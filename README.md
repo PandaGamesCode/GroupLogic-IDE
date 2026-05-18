@@ -387,7 +387,7 @@ Every feature tracked with a live status. Status labels: `Shipped` · `In Progre
 
 | Feature | Status |
 |---------|--------|
-| GitHub public repository | 🔮 Future |
+| GitHub public repository | ✅ Shipped |
 | Contribution guidelines & issue templates | 🔮 Future |
 | Plugin system for community extensions | 🔮 Future |
 | Template marketplace (share/sell grouping templates) | 🔮 Future |
