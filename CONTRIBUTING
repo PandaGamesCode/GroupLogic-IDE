@@ -1,0 +1,64 @@
+# Contributing to GroupLogic IDE
+
+Thanks for your interest in contributing! GroupLogic IDE is built by teachers, for teachers — and we need all kinds of help.
+
+## How to Contribute
+
+### Bug Reports
+Open an issue with the **Bug Report** template. Include:
+- What you expected to happen
+- What actually happened
+- Steps to reproduce
+- Browser and OS
+
+### Feature Requests
+Open an issue with the **Feature Request** template. Describe:
+- The problem you're trying to solve
+- Your proposed solution
+- Which language tier it affects (Simple, Advanced, or Python)
+
+### Code Contributions
+
+1. **Fork** the repo
+2. **Create a branch**: `git checkout -b feature/your-feature-name`
+3. **Make your changes**
+4. **Test** — open the relevant HTML file in a browser and verify it works
+5. **Commit**: `git commit -m "Add: your feature description"`
+6. **Push**: `git push origin feature/your-feature-name`
+7. **Open a Pull Request** — describe what you changed and why
+
+### Areas We Need Help With
+
+| Area | Difficulty | Description |
+|------|-----------|-------------|
+| Advanced language parser | Medium | Parse `score=`, `role=`, `+Want@N`, `separate()`, `together()` |
+| Code-driven classroom layout | Medium | Parse room/table/seat code and render a visual preview |
+| Cloud persistence (Google Apps Scripts) | Medium | Backend for password-based save/load |
+| Export formats | Easy | CSV, JSON, PDF export from grouping results |
+| UI/UX improvements | Easy-Medium | Better editor, panels, drag-and-drop |
+| Documentation & tutorials | Easy | Write guides for each language tier |
+| GroupLogic.py library | Hard | Python library wrapping the optimization engine |
+
+### Code Style
+
+- **HTML/CSS/JS**: Keep it in single files for now (each version is a standalone HTML file)
+- **Comments**: Document what your code does, especially the optimization logic
+- **No build step required**: Everything should work by opening `index.html` in a browser
+
+### Updating Feature Status
+
+The documentation site at `docs/index.html` tracks feature statuses. To update:
+1. Open `docs/index.html`
+2. Find the feature row you want to change
+3. Change the `status-badge` class:
+   - `status-done` = Shipped
+   - `status-active` = In Progress
+   - `status-planned` = Planned
+   - `status-coming` = Coming Soon
+   - `status-future` = Future
+   - `status-deprecated` = Deprecated
+   - `status-cancelled` = Cancelled
+
+### Questions?
+
+Open an issue with the "Question" label and we'll get back to you.
