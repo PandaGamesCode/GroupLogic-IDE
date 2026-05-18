@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GroupLogic IDE v3.4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap');
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; min-height: 100vh; margin: 0; }
+
+        /* ===== IDE LAYOUT ===== */
+        .editor-container {
+            position: relative; background: #1e293b; border-radius: 12px;
+            border: 1px solid #334155; height: 520px; width: 100%;
+            overflow: hidden; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
+            transition: border-color 0.15s ease;
+        }
+        .editor-container.drag-over { border-color: #60a5fa; }
+        #editor-textarea, #editor-highlight {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 52px 24px 20px 24px; margin: 0; border: none;
+            font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.65;
+            white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; background: transparent;
+        }
+        #editor-textarea {
+            color: transparent; caret-color: #60a5fa; z-index: 2;
+            resize: none; outline: none; -webkit-text-fill-color: transparent;
+        }
+        #editor-highlight { z-index: 1; pointer-events: none; color: #94a3b8; }
+
+        /* ===== SYNTAX THEME ===== */
+        .t-name { color: #60a5fa; font-weight: 700; }
+        .t-op { color: #475569; font-weight: bold; }
+        .t-want { color: #4ade80; }
+        .t-avoid { color: #f87171; }
+        .t-comment { color: #334155; font-style: italic; }
+        .t-err { border-bottom: 2px dotted #eab308; }
+        .t-directive { color: #c084fc; font-weight: 600; }
+        .t-key { color: #38bdf8; }
+        .t-val { color: #fbbf24; }
+        .t-flag { color: #2dd4bf; font-weight: 600; }
+        .t-assign { color: #64748b; }
+        .t-score { color: #22d3ee; }
+        .t-role { color: #fb923c; }
+        .t-task { color: #a78bfa; }
+        .t-weight { color: #f472b6; }
+        .t-cond { color: #f59e0b; font-weight: 700; }
+        .t-if { color: #fb923c; font-weight: 800; }
+
+        /* ===== LANGUAGE TABS ===== */
+        .lang-bar {
+            position: absolute; top: 0; left: 0; right: 0; display: flex; z-index: 3;
+            background: rgba(15,23,42,0.6); border-bottom: 1px solid #334155;
+        }
+        .lang-tab {
+            padding: 10px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.08em; color: #475569; background: transparent; border: none;
+            cursor: pointer; transition: all 0.15s ease; position: relative;
+            font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 5px;
+        }
+        .lang-tab:hover { color: #94a3b8; }
+        .lang-tab.on-green { color: #4ade80; }
+        .lang-tab.on-green::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:#4ade80; }
+        .lang-tab.on-blue { color: #60a5fa; }
+        .lang-tab.on-blue::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:#3b82f6; }
+        .lang-tab.on-purple { color: #c084fc; }
+        .lang-tab.on-purple::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:#a855f7; }
+        .lang-tab.locked { opacity: 0.3; cursor: not-allowed; }
+        .lang-tab.locked:hover { color: #475569; }
+        .lang-tab svg { width: 11px; height: 11px; }
+
+        /* ===== PANELS ===== */
+        .panel {
+            background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+            display: flex; flex-direction: column; transition: border-color 0.15s ease;
+        }
+        .panel-expanded {
+            position: fixed; top: 20px; left: 20px; right: 20px; bottom: 20px;
+            z-index: 50; height: auto !important; box-shadow: 0 0 0 1000px rgba(0,0,0,0.8);
+        }
+        .scroll-v { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+        .scroll-v::-webkit-scrollbar { width: 4px; }
+        .scroll-v::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+
+        /* ===== CHIPS ===== */
+        .chip { transition: all 0.2s ease; cursor: pointer; display: inline-block; }
+        .chip-active { background-color: #2563eb !important; color: white !important; transform: scale(1.1); z-index: 20; }
+        .chip-pos { background-color: #064e3b !important; color: #4ade80 !important; border-color: #059669 !important; }
+        .chip-neg { background-color: #450a0a !important; color: #f87171 !important; border-color: #dc2626 !important; }
+        .chip-dim { opacity: 0.15; filter: grayscale(1); }
+
+        /* ===== CONFLICT GLOW ===== */
+        .conflict-glow { border: 2px solid #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .badge { padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 800; }
+
+        /* ===== ROSTER TOOLTIP ===== */
+        .r-tooltip {
+            position: fixed; z-index: 90; pointer-events: none;
+            background: #0f172a; border: 1px solid #334155; border-radius: 10px;
+            padding: 10px 14px; min-width: 160px; max-width: 220px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 11px;
+            display: none;
+        }
+        .r-tooltip.show { display: block; }
+
+        /* ===== ROSTER DRAG ===== */
+        .r-item { position: relative; transition: opacity 0.15s, background 0.1s; }
+        .r-item.dragging { opacity: 0.4; }
+        .r-item.drag-over-top { border-top: 2px solid #60a5fa !important; }
+        .r-item.drag-over-bottom { border-bottom: 2px solid #60a5fa !important; }
+        .rename-input {
+            background: transparent; border: 1px solid #60a5fa; border-radius: 4px;
+            color: #f8fafc; font-size: 12px; font-weight: 700; padding: 1px 4px;
+            outline: none; width: 80px; font-family: 'Inter', sans-serif;
+        }
+
+        /* ===== CLASSROOM TABS ===== */
+        .c-tabs-wrap {
+            max-width: 240px; overflow-x: auto; display: flex; gap: 4px;
+            scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .c-tabs-wrap::-webkit-scrollbar { display: none; }
+        .c-tab {
+            padding: 3px 8px; font-size: 10px; font-weight: 700; color: #64748b;
+            background: rgba(30,41,59,0.5); border: 1px solid #334155; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s ease; font-family: 'Inter', sans-serif;
+            display: flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0;
+            position: relative;
+        }
+        .c-tab:hover { color: #94a3b8; background: rgba(30,41,59,0.8); }
+        .c-tab.on { color: #60a5fa; border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.08); }
+        .c-tab .c-close {
+            display: none; width: 14px; height: 14px; border-radius: 3px;
+            background: rgba(239,68,68,0.15); color: #f87171;
+            cursor: pointer; margin-left: 2px; flex-shrink: 0;
+        }
+        .c-tab:hover .c-close { display: inline-flex; align-items: center; justify-content: center; }
+        .c-tab .c-edit {
+            width: 10px; height: 10px; opacity: 0.3; flex-shrink: 0; cursor: pointer;
+        }
+        .c-tab:hover .c-edit { opacity: 0.7; }
+        .c-tab .c-edit:hover { opacity: 1; }
+        .c-tab .c-lock {
+            font-size: 7px; font-weight: 900; text-transform: uppercase;
+            padding: 1px 3px; border-radius: 3px; letter-spacing: 0.05em;
+            flex-shrink: 0; line-height: 1;
+        }
+        .c-tab .c-lock.lock-s { background: rgba(74,222,128,0.15); color: #4ade80; }
+        .c-tab .c-lock.lock-a { background: rgba(96,165,250,0.15); color: #60a5fa; }
+        .c-tab .c-lock.lock-u { background: rgba(192,132,252,0.15); color: #c084fc; }
+        .lang-tab.mode-locked {
+            opacity: 0.25; cursor: not-allowed; pointer-events: none;
+        }
+        .lang-tab.mode-locked:hover { color: #475569; }
+        .c-rename-input {
+            background: transparent; border: 1px solid #60a5fa; border-radius: 3px;
+            color: #f8fafc; font-size: 10px; font-weight: 700; padding: 0 3px;
+            outline: none; width: 70px; font-family: 'Inter', sans-serif;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+            z-index: 100; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ===== GROUP LIST VIEW ===== */
+        .group-block {
+            background: rgba(30,41,59,0.4); border: 1px solid #334155;
+            border-radius: 12px; padding: 12px; margin-bottom: 10px;
+        }
+        .group-block:hover { border-color: #475569; }
+
+        /* ===== GROUP CARD VIEW ===== */
+        .group-carousel {
+            display: flex; gap: 12px; overflow-x: auto; padding: 8px 4px;
+            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+        }
+        .group-carousel::-webkit-scrollbar { height: 4px; }
+        .group-carousel::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .group-card {
+            min-width: 160px; max-width: 200px; flex-shrink: 0;
+            background: rgba(30,41,59,0.6); border: 1px solid #334155; border-radius: 12px; padding: 10px;
+        }
+
+        /* ===== TOAST ===== */
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            padding: 10px 18px; border-radius: 10px; font-size: 12px; font-weight: 600;
+            animation: toast-in 0.3s ease; min-width: 200px; max-width: 360px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        .toast-success { background: #064e3b; color: #4ade80; border: 1px solid #059669; }
+        .toast-info { background: #1e3a5f; color: #60a5fa; border: 1px solid #2563eb; }
+        .toast-warn { background: #451a03; color: #fbbf24; border: 1px solid #d97706; }
+        .toast-error { background: #450a0a; color: #f87171; border: 1px solid #dc2626; }
+        @keyframes toast-in { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+
+        /* ===== SAVE SETTINGS ===== */
+        .save-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+        .save-label { font-size: 10px; color: #94a3b8; min-width: 70px; text-transform: uppercase; font-weight: 700; }
+        .save-input {
+            background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+            color: #f8fafc; font-size: 11px; padding: 3px 8px; width: 60px;
+            outline: none; font-family: 'Fira Code', monospace;
+        }
+        .save-input:focus { border-color: #60a5fa; }
+
+        /* ===== DOCS OVERLAY ===== */
+        .docs-overlay {
+            position: fixed; inset: 0; z-index: 150; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px); display: flex; align-items: flex-start; justify-content: center;
+            overflow-y: auto; padding: 40px 20px;
+        }
+        .docs-panel {
+            background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+            max-width: 800px; width: 100%; padding: 30px; position: relative;
+        }
+        .docs-section { margin-bottom: 10px; }
+        .docs-section h4 { color: #60a5fa; font-size: 13px; font-weight: 800; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .docs-section h4::before { content: ''; width: 0; height: 0; border-left: 5px solid #60a5fa; border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform 0.15s; display: inline-block; }
+        .docs-section.open h4::before { transform: rotate(90deg); }
+        .docs-section .docs-body { display: none; padding-left: 16px; }
+        .docs-section.open .docs-body { display: block; }
+        .docs-body code { font-family: 'Fira Code', monospace; font-size: 11px; background: rgba(15,23,42,0.6); padding: 1px 5px; border-radius: 4px; }
+
+        .sort-select {
+            background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+            color: #94a3b8; font-size: 9px; font-weight: 700; padding: 2px 6px;
+            outline: none; font-family: 'Inter', sans-serif; cursor: pointer;
+        }
+
+        /* ===== VIEW TOGGLE ===== */
+        .view-btn { padding: 3px 6px; border-radius: 4px; border: 1px solid #334155; background: transparent; color: #64748b; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; }
+        .view-btn:hover { color: #94a3b8; }
+        .view-btn.on { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
+        .view-btn svg { width: 12px; height: 12px; }
+
+        /* ===== IMPORT MODAL ENHANCED ===== */
+        .import-option {
+            padding: 12px 16px; border: 1px solid #334155; border-radius: 10px;
+            cursor: pointer; transition: all 0.15s; background: rgba(15,23,42,0.4);
+        }
+        .import-option:hover { border-color: #475569; background: rgba(15,23,42,0.7); }
+        .import-option.selected { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+        .import-option.override-opt:hover { border-color: #ef4444; }
+        .import-option.override-opt.selected { border-color: #ef4444; background: rgba(239,68,68,0.08); }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+<!-- Global tooltip element -->
+<div class="r-tooltip" id="rTooltip"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="max-w-7xl mx-auto">
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-white flex items-center gap-3">
+                <span class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">G</span>
+                GroupLogic IDE
+            </h1>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v3.4</p>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="c-tabs-wrap" id="cTabs"></div>
+            <button onclick="addClassroom()" class="text-slate-600 hover:text-slate-400 transition-colors flex items-center" title="New Classroom">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            </button>
+
+            <div id="actionBar" class="bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50 flex items-center gap-3" style="transition: border-color 0.15s ease;">
+                <div class="px-2">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase block">Per Group</span>
+                    <input type="number" id="group-size" value="4" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
+                </div>
+                <div class="flex items-center gap-1">
+                    <button onclick="copyExport()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5" title="Copy formatted results">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"/></svg>
+                        Copy
+                    </button>
+                    <button onclick="doExport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Export as JSON">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export
+                    </button>
+                    <button onclick="triggerFileImport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Load file">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        Load
+                    </button>
+                </div>
+                <input type="file" id="fileInput" accept=".gls,.gla,.glu,.json,.txt,.md,.html" style="display:none" onchange="handleFileImport(event)">
+            </div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- ===== EDITOR ===== -->
+        <div class="lg:col-span-7 space-y-4">
+            <div class="editor-container" id="editorContainer">
+                <div class="lang-bar">
+                    <button class="lang-tab on-green" id="lt-simple" onclick="switchLang('simple')">Simple</button>
+                    <button class="lang-tab" id="lt-advanced" onclick="switchLang('advanced')">Advanced</button>
+                    <button class="lang-tab locked" id="lt-python" onclick="event.preventDefault()">
+                        GroupLogic.py
+                        <svg viewBox="0 0 16 16" fill="currentColor" style="opacity:0.5"><path d="M8 1a2 2 0 00-2 2v2H5a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V6a1 1 0 00-1-1h-1V3a2 2 0 00-2-2zm0 1a1 1 0 011 1v2H7V3a1 1 0 011-1zm0 6a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"/></svg>
+                    </button>
+                </div>
+                <div id="editor-highlight"></div>
+                <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie"></textarea>
+            </div>
+
+            <!-- Syntax Reference -->
+            <div id="ref-simple" class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800">
+                <div class="flex flex-wrap gap-6 text-[10px] font-mono items-center">
+                    <div class="flex items-center gap-2"><span class="text-blue-400 font-bold">Name:</span> <span class="text-slate-600">Definition</span></div>
+                    <div class="flex items-center gap-2"><span class="text-green-400 font-bold">+Target</span> <span class="text-slate-600">Want</span></div>
+                    <div class="flex items-center gap-2"><span class="text-red-400 font-bold">-Target</span> <span class="text-slate-600">Avoid</span></div>
+                    <div class="text-slate-500 italic">Monte Carlo + Hill Climbing</div>
+                    <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 font-bold ml-auto flex items-center gap-1">Docs <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>
+                </div>
+                <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800">
+                    <span class="text-[9px] text-slate-600 font-bold uppercase self-center mr-1">Overflow:</span>
+                    <button onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
+                    <button onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
+                    <button onclick="setOverflowMode('small')" id="btn-overflow-small" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Small Last</button>
+                </div>
+            </div>
+            <div id="ref-advanced" class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800" style="display:none;">
+                <div class="flex flex-wrap gap-x-6 gap-y-1.5 text-[10px] font-mono">
+                    <div class="flex items-center gap-2"><span class="text-blue-400 font-bold">Name:</span></div>
+                    <div class="flex items-center gap-2"><span class="text-green-400 font-bold">+Target</span><span class="text-pink-400">@w</span></div>
+                    <div class="flex items-center gap-2"><span class="text-red-400 font-bold">-Target</span></div>
+                    <div class="flex items-center gap-2"><span class="text-cyan-400 font-bold">score=</span><span class="text-slate-600">85</span></div>
+                    <div class="flex items-center gap-2"><span class="text-cyan-400 font-bold">gender=</span><span class="text-slate-600">M/F/X</span></div>
+                    <div class="flex items-center gap-2"><span class="text-cyan-400 font-bold">age=</span><span class="text-slate-600">16</span></div>
+                    <div class="flex items-center gap-2"><span class="text-orange-400 font-bold">role=</span><span class="text-slate-600">"leader"</span></div>
+                    <div class="flex items-center gap-2"><span class="text-teal-400 font-bold">leader</span></div>
+                    <div class="flex items-center gap-2"><span class="text-purple-400 font-bold">task=</span></div>
+                    <div class="flex items-center gap-2"><span class="text-orange-300 font-bold">tag=</span></div>
+                    <div class="flex items-center gap-2"><span class="text-rose-400 font-bold">band=</span></div>
+                    <div class="flex items-center gap-2"><span class="text-amber-400 font-bold">if(cond){...}</span></div>
+                    <div class="w-full flex flex-wrap gap-x-5 gap-y-0.5 mt-1 pt-2 border-t border-slate-800">
+                        <div><span class="text-purple-300 font-bold">@group_size</span> <span class="text-slate-600">= 4</span></div>
+                        <div><span class="text-purple-300 font-bold">@balance</span> <span class="text-slate-600">= gender,scores</span></div>
+                        <div><span class="text-purple-300 font-bold">@overflow</span> <span class="text-slate-600">= even|newgroup|small</span></div>
+                        <div><span class="text-purple-300 font-bold">@group_name</span> <span class="text-slate-600">= "Lab %d"</span></div>
+                        <div><span class="text-purple-300 font-bold">@name_dynamic</span> <span class="text-slate-600">= true</span></div>
+                        <div><span class="text-purple-300 font-bold">@iterations</span> <span class="text-slate-600">= 5000</span></div>
+                        <div><span class="text-purple-300 font-bold">@separate</span> / <span class="text-purple-300 font-bold">@together</span></div>
+                        <div><span class="text-purple-300 font-bold">@strict</span> <span class="text-slate-600">= true</span></div>
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800">
+                    <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 text-[9px] font-bold flex items-center gap-1">Full Docs</button>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="flex items-center gap-3 text-[10px] text-slate-600 flex-wrap">
+                <span class="flex items-center gap-1.5 cursor-pointer hover:text-slate-400 transition-colors" onclick="showVersions()">
+                    <span class="w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
+                    <span id="verLabel">v0/3</span>
+                </span>
+                <span class="text-slate-700">|</span>
+                <span id="savedLabel">Not saved</span>
+                <span class="text-slate-700">|</span>
+                <span id="langLabel" class="text-green-500 font-bold">SIMPLE</span>
+                <span class="text-slate-700">|</span>
+                <span class="cursor-pointer hover:text-slate-400" onclick="showSaveSettings()">Save Settings</span>
+                <span class="text-slate-700">|</span>
+                <span id="fileTypeLabel" class="text-slate-700 font-mono">.gls</span>
+            </div>
+        </div>
+
+        <!-- ===== SIDE PANELS ===== -->
+        <div class="lg:col-span-5 space-y-5">
+            <!-- Roster -->
+            <div id="panel-roster" class="panel" style="height:200px;">
+                <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/10">
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Roster</h3>
+                    <div class="flex items-center gap-2">
+                        <select id="rosterSort" class="sort-select" onchange="renderRoster()">
+                            <option value="editor">Editor</option>
+                            <option value="abc">A-Z</option>
+                            <option value="manual">Manual</option>
+                        </select>
+                        <span id="student-count" class="text-[10px] text-blue-400 font-mono font-bold">0</span>
+                        <button onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="roster-list" class="scroll-v p-3 space-y-1.5 flex-1"></div>
+            </div>
+
+            <!-- Live Output -->
+            <div id="panel-output" class="panel" style="height:420px;">
+                <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/20">
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Output</h3>
+                    <div class="flex items-center gap-2">
+                        <button class="view-btn on" id="vbtn-list" onclick="setGroupView('list')" title="List view">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                        </button>
+                        <button class="view-btn" id="vbtn-cards" onclick="setGroupView('cards')" title="Card view">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                        </button>
+                        <button onclick="calculateGroups()" class="text-[9px] font-black bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-600 transition-colors uppercase ml-1">Shuffle</button>
+                        <div id="feasibility-status" class="badge bg-slate-800 text-slate-600 uppercase tracking-widest">Idle</div>
+                        <button onclick="toggleExpand('panel-output')" class="text-slate-500 hover:text-white">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="groups-list" class="scroll-v p-4 flex-1" style="min-height:0;"></div>
+                <div class="p-2.5 text-center border-t border-slate-800 bg-slate-900/30 flex justify-between items-center px-4">
+                    <span id="engine-label" class="text-[9px] text-slate-500 font-bold uppercase italic tracking-tighter">Engine: MC 2500 + HC 20</span>
+                    <button onclick="addEmptyGroup()" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        Group
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div id="import-modal" class="modal-bg" style="display:none;">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full mx-4">
+        <h3 class="text-sm font-bold text-white mb-3" id="import-modal-title">Load File</h3>
+        <div id="import-content-area"></div>
+        <div class="flex justify-end mt-4">
+            <button onclick="closeImport()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Version Modal -->
+<div id="version-modal" class="modal-bg" style="display:none;">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-sm font-bold text-white mb-3">Version History <span class="text-slate-600 font-normal">(3 max)</span></h3>
+        <div id="version-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        <div class="flex justify-end mt-3"><button onclick="closeVersions()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Close</button></div>
+    </div>
+</div>
+
+<!-- Save Settings Modal -->
+<div id="save-modal" class="modal-bg" style="display:none;">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-sm font-bold text-white mb-3">Save Settings</h3>
+        <div class="space-y-2">
+            <div class="save-row"><span class="save-label">Manual</span><input type="checkbox" id="save-manual" checked class="w-4 h-4 accent-blue-500"><span class="text-[10px] text-slate-500">Ctrl+S</span></div>
+            <div class="save-row"><span class="save-label">Timed</span><input type="checkbox" id="save-timed" class="w-4 h-4 accent-blue-500"><input type="number" id="save-timed-interval" value="60" min="10" class="save-input"><span class="text-[10px] text-slate-500">sec</span></div>
+            <div class="save-row"><span class="save-label">Edit Count</span><input type="checkbox" id="save-edits" class="w-4 h-4 accent-blue-500"><input type="number" id="save-edits-count" value="25" min="1" class="save-input"><span class="text-[10px] text-slate-500">edits</span></div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+            <button onclick="closeSaveSettings()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
+            <button onclick="applySaveSettings()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg">Apply</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========================================================================
+// GROUPLOGIC IDE v3.4 — ADVANCED BUILD
+// ========================================================================
+
+const textarea = document.getElementById('editor-textarea');
+const highlighter = document.getElementById('editor-highlight');
+const rosterBox = document.getElementById('roster-list');
+const groupsBox = document.getElementById('groups-list');
+const sizeInp = document.getElementById('group-size');
+const rTooltip = document.getElementById('rTooltip');
+
+let students = {};
+let currentGroups = [];
+let conflictMap = new Map();
+let currentLang = 'simple';
+let directives = {};
+let overflowMode = 'even';
+let manualRosterOrder = [];
+let rosterDragSrcIdx = null;
+let isDefaultCode = true;
+let groupViewMode = 'list';
+
+// Classroom state
+let classrooms = [{ name: 'Class 1', codeSimple: '', codeAdvanced: '', versions: [], lang: 'simple', lock: 'u' }];
+// lock: 's' = Simple only, 'a' = Advanced only, 'u' = Universal (both)
+let activeClass = 0;
+let autoSaveTimer = null;
+let editCountSinceSave = 0;
+let saveConfig = { manual: true, timed: false, timedInterval: 60, edits: false, editsCount: 25 };
+
+// Pending import for "insert at cursor" mode
+let pendingImportContent = null;
+let pendingImportLang = null;
+
+// Default code
+const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v3.4
+// Syntax: Name: +Want -Avoid
+
+Alice: +Bob -Charlie
+Bob: +Alice -Diana
+Charlie: -Alice +Eve
+Diana: +Eve -Bob
+Eve: +Diana +Charlie`;
+
+const DEFAULT_ADVANCED = `// GroupLogic IDE v3.4 - Advanced Mode
+// Full DSL with scores, roles, directives
+
+@group_size = 4
+@balance = gender,scores
+@overflow = even
+@group_name = "Group %d"
+
+Alice: +Bob -Charlie score=92 gender=F role=leader
+Bob: +Alice -Diana score=78 gender=M
+Charlie: -Alice +Eve score=85 gender=M
+Diana: +Eve -Bob score=90 gender=F
+Eve: +Diana +Charlie score=88 gender=F
+Frank: +Alice score=72 gender=M tag=honors
+Grace: -Frank +Diana score=95 gender=F band=high`;
+
+// ===== INIT =====
+textarea.value = DEFAULT_SIMPLE;
+textarea.addEventListener('input', onEditorInput);
+sizeInp.addEventListener('input', runIDE);
+textarea.addEventListener('scroll', function() {
+    highlighter.scrollTop = textarea.scrollTop;
+    highlighter.scrollLeft = textarea.scrollLeft;
+});
+
+// Click in editor to insert pending import
+textarea.addEventListener('click', function() {
+    if (pendingImportContent !== null) {
+        const pos = textarea.selectionStart;
+        const before = textarea.value.substring(0, pos);
+        const after = textarea.value.substring(pos);
+        textarea.value = before + pendingImportContent + after;
+        isDefaultCode = false;
+        pendingImportContent = null;
+        pendingImportLang = null;
+        toast('Inserted at cursor', 'success');
+        runIDE();
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); manualSave(); }
+});
+
+// Drag & drop on action bar
+const actionBar = document.getElementById('actionBar');
+let actionBarDragCounter = 0;
+actionBar.addEventListener('dragenter', function(e) { e.preventDefault(); actionBarDragCounter++; actionBar.style.borderColor = '#60a5fa'; });
+actionBar.addEventListener('dragleave', function() { actionBarDragCounter--; if (actionBarDragCounter <= 0) { actionBarDragCounter = 0; actionBar.style.borderColor = ''; } });
+actionBar.addEventListener('dragover', function(e) { e.preventDefault(); });
+actionBar.addEventListener('drop', function(e) {
+    e.preventDefault(); actionBarDragCounter = 0; actionBar.style.borderColor = '';
+    if (e.dataTransfer.files.length) handleDroppedFile(e.dataTransfer.files[0]);
+});
+
+// Drag & drop on editor container
+const editorContainer = document.getElementById('editorContainer');
+let editorDragCounter = 0;
+editorContainer.addEventListener('dragenter', function(e) { e.preventDefault(); editorDragCounter++; editorContainer.classList.add('drag-over'); });
+editorContainer.addEventListener('dragleave', function() { editorDragCounter--; if (editorDragCounter <= 0) { editorDragCounter = 0; editorContainer.classList.remove('drag-over'); } });
+editorContainer.addEventListener('dragover', function(e) { e.preventDefault(); });
+editorContainer.addEventListener('drop', function(e) {
+    e.preventDefault(); editorDragCounter = 0; editorContainer.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) handleDroppedFile(e.dataTransfer.files[0]);
+});
+
+// Roster tooltip - mouse follow
+document.addEventListener('mousemove', function(e) {
+    if (rTooltip.classList.contains('show')) {
+        let x = e.clientX + 14;
+        let y = e.clientY + 14;
+        // Keep tooltip in viewport
+        const tw = rTooltip.offsetWidth;
+        const th = rTooltip.offsetHeight;
+        if (x + tw > window.innerWidth - 10) x = e.clientX - tw - 10;
+        if (y + th > window.innerHeight - 10) y = e.clientY - th - 10;
+        rTooltip.style.left = x + 'px';
+        rTooltip.style.top = y + 'px';
+    }
+});
+
+// Global drag end cleanup - ensures no stuck drag indicators
+document.addEventListener('dragend', function() {
+    document.querySelectorAll('.r-item').forEach(function(el) {
+        el.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+    });
+    rosterDragSrcIdx = null;
+});
+
+loadStorage();
+renderClassTabs();
+runIDE();
+
+// ===== TOAST =====
+function toast(msg, type) {
+    type = type || 'info';
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast toast-' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(function() { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(function() { t.remove(); }, 300); }, 3000);
+}
+
+// ===== EDITOR INPUT =====
+function onEditorInput() {
+    if (isDefaultCode) isDefaultCode = false;
+    editCountSinceSave++;
+    runIDE();
+}
+
+// ===== MAIN LOOP =====
+function runIDE() {
+    directives = {};
+    parseRules();
+    renderSyntax();
+    renderRoster();
+    calculateGroups();
+    scheduleAutoSave();
+    checkEditSave();
+    updateFileTypeLabel();
+    saveActiveJSON();
+}
+
+// ===== PARSE =====
+function parseRules() {
+    const lines = textarea.value.split('\n');
+    const nextMap = {};
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+        if (trimmed.startsWith('@')) {
+            const dm = trimmed.match(/^@(\w+)\s*=\s*(.*)/);
+            if (dm) directives[dm[1]] = dm[2].trim().replace(/^["']|["']$/g, '');
+            continue;
+        }
+        // If-condition (advanced only)
+        if (trimmed.match(/^if\s*\(/) && currentLang === 'advanced') {
+            const ifMatch = trimmed.match(/^if\s*\((.+?)\)\s*\{(.*)\}\s*$/);
+            if (ifMatch && evaluateCondition(ifMatch[1], nextMap)) {
+                parseConstraintLine(ifMatch[2], nextMap);
+            }
+            continue;
+        }
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx === -1) continue;
+        const originalName = trimmed.slice(0, colonIdx).trim();
+        if (!originalName) continue;
+        const lowName = originalName.toLowerCase();
+        const body = trimmed.slice(colonIdx + 1);
+        if (!nextMap[lowName]) {
+            nextMap[lowName] = { wants: new Set(), avoids: new Set(), defined: true, originalName,
+                score: null, gender: '', age: null, role: '', leader: false, tasks: [],
+                wantWeights: {}, tag: '', band: '', capacity: null, exclude: false };
+        } else {
+            nextMap[lowName].defined = true;
+            nextMap[lowName].originalName = originalName;
+        }
+        const tokens = body.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+        for (const token of tokens) parseToken(token, nextMap[lowName], nextMap);
+    }
+    students = nextMap;
+    const count = Object.keys(students).filter(k => students[k].defined).length;
+    document.getElementById('student-count').innerText = count + ' STUDENTS';
+}
+
+function parseConstraintLine(body, nextMap) {
+    const parts = body.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+    for (const part of parts) {
+        if (part.includes(':')) {
+            const ci = part.indexOf(':');
+            const name = part.slice(0, ci).trim();
+            const rest = part.slice(ci + 1);
+            const low = name.toLowerCase();
+            if (!nextMap[low]) nextMap[low] = { wants: new Set(), avoids: new Set(), defined: true, originalName: name, score: null, gender: '', age: null, role: '', leader: false, tasks: [], wantWeights: {}, tag: '', band: '', capacity: null, exclude: false };
+            const toks = rest.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+            for (const t of toks) parseToken(t, nextMap[low], nextMap);
+        }
+    }
+}
+
+function parseToken(token, student, nextMap) {
+    if (token.startsWith('+')) {
+        const raw = token.slice(1);
+        const wm = raw.match(/^(.+?)@(\d+)$/);
+        if (wm) { const tl = wm[1].toLowerCase(); student.wants.add(tl); student.wantWeights[tl] = parseInt(wm[2]) || 5; ensureStudent(nextMap, wm[1], tl); }
+        else { const tl = raw.toLowerCase(); student.wants.add(tl); ensureStudent(nextMap, raw, tl); }
+    } else if (token.startsWith('-')) {
+        const raw = token.slice(1).replace(/@\d+$/, '');
+        const tl = raw.toLowerCase(); student.avoids.add(tl); ensureStudent(nextMap, raw, tl);
+    } else if (token.startsWith('score=')) { student.score = parseFloat(token.split('=')[1]) || null;
+    } else if (token.startsWith('gender=')) { student.gender = token.split('=')[1].trim().toUpperCase();
+    } else if (token.startsWith('age=')) { student.age = parseInt(token.split('=')[1]) || null;
+    } else if (token.startsWith('role=')) { student.role = token.split('=')[1].replace(/^["']|["']$/g, '');
+    } else if (token === 'leader') { student.leader = true;
+    } else if (token.startsWith('task=')) { student.tasks.push(token.split('=')[1].replace(/^["']|["']$/g, ''));
+    } else if (token.startsWith('tag=')) { student.tag = token.split('=')[1].replace(/^["']|["']$/g, '');
+    } else if (token.startsWith('band=')) { student.band = token.split('=')[1].replace(/^["']|["']$/g, '');
+    } else if (token.startsWith('capacity=')) { student.capacity = parseInt(token.split('=')[1]) || null;
+    } else if (token === 'exclude') { student.exclude = true; }
+}
+
+function evaluateCondition(cond, studentMap) {
+    const countMatch = cond.match(/count\s*([><=!]+)\s*(\d+)/);
+    if (countMatch) { return compareValues(Object.keys(studentMap).filter(k => studentMap[k].defined).length, countMatch[1], parseInt(countMatch[2])); }
+    const hasMatch = cond.match(/has_role\s+["']?(\w+)["']?/);
+    if (hasMatch) { return Object.values(studentMap).some(s => s.defined && s.role === hasMatch[1]); }
+    const anyMatch = cond.match(/any_score\s*([><=!]+)\s*(\d+)/);
+    if (anyMatch) { return Object.values(studentMap).some(s => s.defined && s.score !== null && compareValues(s.score, anyMatch[1], parseInt(anyMatch[2]))); }
+    return true;
+}
+
+function compareValues(a, op, b) {
+    if (op === '>') return a > b; if (op === '<') return a < b;
+    if (op === '>=' || op === '=>') return a >= b; if (op === '<=' || op === '=<') return a <= b;
+    if (op === '==' || op === '=') return a == b; if (op === '!=') return a != b;
+    return false;
+}
+
+function ensureStudent(map, origName, lowName) {
+    if (!map[lowName]) {
+        map[lowName] = { wants: new Set(), avoids: new Set(), defined: false, originalName: origName,
+            score: null, gender: '', age: null, role: '', leader: false, tasks: [],
+            wantWeights: {}, tag: '', band: '', capacity: null, exclude: false };
+    }
+}
+
+// ===== SYNTAX HIGHLIGHTING =====
+function renderSyntax() {
+    const lines = textarea.value.split('\n');
+    // Build a quick lookup of all defined names (lowercase) to avoid false error highlights
+    const definedLower = new Set();
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('@') || trimmed.startsWith('if')) continue;
+        const ci = trimmed.indexOf(':');
+        if (ci === -1) continue;
+        definedLower.add(trimmed.slice(0, ci).trim().toLowerCase());
+    }
+
+    const htmlLines = lines.map(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('//') || trimmed.startsWith('#')) return '<span class="t-comment">' + esc(line) + '</span>';
+        if (trimmed.startsWith('@')) {
+            return esc(line).replace(/^(@\w+)(\s*=\s*)(.*)/, '<span class="t-directive">$1</span><span class="t-assign">$2</span><span class="t-val">$3</span>');
+        }
+        if (trimmed.match(/^if\s*\(/)) {
+            let el = esc(line);
+            el = el.replace(/^(if)(\s*\()/, '<span class="t-if">$1</span><span class="t-op">$2</span>');
+            el = el.replace(/(count|any_score|has_role)/g, '<span class="t-cond">$1</span>');
+            el = el.replace(/(=&gt;|=&lt;|[><=!]+)/g, '<span class="t-op">$1</span>');
+            return el;
+        }
+
+        let el = esc(line);
+        const dm = el.match(/^([^:]+)(:)/);
+        if (!dm) return el;
+
+        const name = dm[1], op = dm[2];
+        let result = '<span class="t-name">' + name + '</span><span class="t-op">' + op + '</span>';
+        let rem = el.substring(name.length + op.length);
+
+        const parts = rem.split(/(\s+)/);
+        const highlighted = parts.map(function(part) {
+            if (!part || /^\s+$/.test(part)) return part;
+
+            const kvq = part.match(/^(role|task|tag)(=)(&quot;)(.*?)(&quot;)$/);
+            if (kvq) return '<span class="t-key">' + kvq[1] + '</span><span class="t-assign">' + kvq[2] + '</span><span class="t-role">' + kvq[3] + kvq[4] + kvq[5] + '</span>';
+
+            const kv = part.match(/^(score|gender|age|band|capacity)(=)(\S+)$/);
+            if (kv) return '<span class="t-key">' + kv[1] + '</span><span class="t-assign">' + kv[2] + '</span><span class="t-score">' + kv[3] + '</span>';
+
+            const kv2 = part.match(/^(role|task|tag)(=)(\S+)$/);
+            if (kv2) return '<span class="t-key">' + kv2[1] + '</span><span class="t-assign">' + kv2[2] + '</span><span class="t-role">' + kv2[3] + '</span>';
+
+            if (part === 'leader' || part === 'exclude') return '<span class="t-flag">' + part + '</span>';
+
+            const pm = part.match(/^([+\-])([a-zA-Z0-9_]+)(@\d+)?$/);
+            if (pm) {
+                var lt = pm[2].toLowerCase();
+                var isDefined = definedLower.has(lt);
+                var cls = pm[1] === '+' ? 't-want' : 't-avoid';
+                var err = isDefined ? '' : ' t-err';
+                var wh = pm[3] ? '<span class="t-weight">' + pm[3] + '</span>' : '';
+                return '<span class="t-op">' + pm[1] + '</span><span class="' + cls + err + '">' + pm[2] + '</span>' + wh;
+            }
+
+            return part;
+        }).join('');
+
+        return result + highlighted;
+    });
+    highlighter.innerHTML = htmlLines.join('\n') + '\n';
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ===== ROSTER =====
+function renderRoster() {
+    let keys = Object.keys(students).filter(k => students[k].defined);
+    const sortMode = document.getElementById('rosterSort').value;
+
+    if (sortMode === 'abc') {
+        keys.sort((a, b) => a.localeCompare(b));
+    } else if (sortMode === 'manual') {
+        const ordered = [];
+        for (const k of manualRosterOrder) { if (keys.includes(k)) ordered.push(k); }
+        for (const k of keys) { if (!ordered.includes(k)) ordered.push(k); }
+        keys = ordered;
+    } else {
+        const editorOrder = [];
+        const lines = textarea.value.split('\n');
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('@') || trimmed.startsWith('if')) continue;
+            const ci = trimmed.indexOf(':');
+            if (ci === -1) continue;
+            const name = trimmed.slice(0, ci).trim().toLowerCase();
+            if (keys.includes(name) && !editorOrder.includes(name)) editorOrder.push(name);
+        }
+        for (const k of keys) { if (!editorOrder.includes(k)) editorOrder.push(k); }
+        keys = editorOrder;
+    }
+    manualRosterOrder = [...keys];
+
+    if (keys.length === 0) { rosterBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-10 font-bold uppercase">Ready</div>'; return; }
+
+    const isManual = sortMode === 'manual';
+    const isSimple = currentLang === 'simple';
+    rosterBox.innerHTML = keys.map(function(k, idx) {
+        const s = students[k];
+        const ex = [];
+        if (s.score !== null) ex.push('<span class="text-cyan-500">' + s.score + '</span>');
+        if (s.gender) ex.push('<span class="text-blue-400">' + esc(s.gender) + '</span>');
+        if (s.leader) ex.push('<span class="text-amber-400">LDR</span>');
+        if (s.role) ex.push('<span class="text-orange-400">' + esc(s.role) + '</span>');
+        if (s.tag) ex.push('<span class="text-lime-400">' + esc(s.tag) + '</span>');
+        if (s.band) ex.push('<span class="text-rose-400">' + esc(s.band) + '</span>');
+        if (s.exclude) ex.push('<span class="text-slate-500 line-through">X</span>');
+
+        // Only show +/- counts in advanced mode
+        let countHTML = '';
+        if (!isSimple) {
+            countHTML = '<span class="text-[10px] text-green-500">+' + s.wants.size + '</span>' +
+                        '<span class="text-[10px] text-red-400">-' + s.avoids.size + '</span>';
+        }
+
+        return '<div class="r-item flex items-center justify-between p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/50"' +
+            ' draggable="' + (isManual ? 'true' : 'false') + '"' +
+            ' data-key="' + esc(k) + '"' +
+            ' ondblclick="startRename(this, \'' + esc(k) + '\')"' +
+            ' onmouseenter="showRosterTip(event, \'' + esc(k) + '\')"' +
+            ' onmouseleave="hideRosterTip()"' +
+            (isManual ? ' ondragstart="rDragStart(event,' + idx + ')" ondragover="rDragOver(event)" ondrop="rDrop(event,' + idx + ')" ondragend="rDragEnd(event)"' : '') +
+            '>' +
+            '<span class="text-xs font-bold text-slate-300 rename-target">' + esc(s.originalName) + '</span>' +
+            '<div class="flex gap-2 font-mono items-center">' + ex.join('') + countHTML + '</div>' +
+        '</div>';
+    }).join('');
+}
+
+// ===== ROSTER TOOLTIP =====
+function showRosterTip(e, lowName) {
+    const s = students[lowName];
+    if (!s) return;
+    let html = '<div class="text-white font-bold mb-1">' + esc(s.originalName) + '</div>';
+    // Only show advanced properties in advanced mode
+    if (currentLang === 'advanced') {
+        if (s.score !== null) html += '<div class="text-slate-400">Score: <span class="text-cyan-400">' + s.score + '</span></div>';
+        if (s.gender) html += '<div class="text-slate-400">Gender: <span class="text-blue-400">' + esc(s.gender) + '</span></div>';
+        if (s.age) html += '<div class="text-slate-400">Age: ' + s.age + '</div>';
+        if (s.role) html += '<div class="text-slate-400">Role: <span class="text-orange-400">' + esc(s.role) + '</span></div>';
+        if (s.leader) html += '<div class="text-amber-400 font-bold">Leader</div>';
+        if (s.tag) html += '<div class="text-slate-400">Tag: <span class="text-lime-400">' + esc(s.tag) + '</span></div>';
+        if (s.band) html += '<div class="text-slate-400">Band: <span class="text-rose-400">' + esc(s.band) + '</span></div>';
+        if (s.capacity) html += '<div class="text-slate-400">Capacity: ' + s.capacity + '</div>';
+        if (s.exclude) html += '<div class="text-slate-500">Excluded from groups</div>';
+        if (s.tasks.length) html += '<div class="text-slate-400">Tasks: <span class="text-purple-400">' + s.tasks.map(esc).join(', ') + '</span></div>';
+        if (s.wants.size) html += '<div class="text-green-400 mt-1">+' + [...s.wants].map(w => students[w] ? students[w].originalName : w).join(', ') + '</div>';
+        if (s.avoids.size) html += '<div class="text-red-400">-' + [...s.avoids].map(w => students[w] ? students[w].originalName : w).join(', ') + '</div>';
+    }
+    rTooltip.innerHTML = html;
+    rTooltip.classList.add('show');
+    rTooltip.style.left = (e.clientX + 14) + 'px';
+    rTooltip.style.top = (e.clientY + 14) + 'px';
+}
+
+function hideRosterTip() { rTooltip.classList.remove('show'); }
+
+// ===== ROSTER DRAG =====
+function rDragStart(e, idx) {
+    rosterDragSrcIdx = idx;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    // Use a small delay to prevent immediate dragend
+    e.dataTransfer.setData('text/plain', '');
+}
+function rDragOver(e) {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    // Clear all indicators on this item first
+    e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+    if (e.clientY < mid) e.currentTarget.classList.add('drag-over-top');
+    else e.currentTarget.classList.add('drag-over-bottom');
+}
+function rDrop(e, targetIdx) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+    if (rosterDragSrcIdx === null || rosterDragSrcIdx === targetIdx) return;
+    const item = manualRosterOrder.splice(rosterDragSrcIdx, 1)[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    const insertIdx = e.clientY < mid ? targetIdx : targetIdx + 1;
+    const adjustedIdx = rosterDragSrcIdx < targetIdx ? insertIdx - 1 : insertIdx;
+    manualRosterOrder.splice(adjustedIdx, 0, item);
+    document.getElementById('rosterSort').value = 'manual';
+    rosterDragSrcIdx = null;
+    renderRoster();
+}
+function rDragEnd(e) {
+    e.target.classList.remove('dragging');
+    // Clean up ALL drag indicators immediately
+    document.querySelectorAll('.r-item').forEach(function(el) {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    rosterDragSrcIdx = null;
+}
+
+// ===== RENAME =====
+function startRename(el, lowName) {
+    const target = el.querySelector('.rename-target');
+    if (!target || target.querySelector('.rename-input')) return;
+    const currentName = students[lowName] ? students[lowName].originalName : lowName;
+    const input = document.createElement('input');
+    input.className = 'rename-input';
+    input.value = currentName;
+    target.innerHTML = '';
+    target.appendChild(input);
+    input.focus();
+    input.select();
+    function submit() {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) renameStudent(currentName, newName);
+        else renderRoster();
+    }
+    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); submit(); } if (e.key === 'Escape') renderRoster(); });
+    input.addEventListener('blur', submit);
+}
+
+function renameStudent(oldName, newName) {
+    const oldLow = oldName.toLowerCase();
+    const lines = textarea.value.split('\n');
+    const newLines = lines.map(function(line) {
+        const ci = line.indexOf(':');
+        if (ci !== -1 && line.slice(0, ci).trim().toLowerCase() === oldLow) {
+            return newName + line.slice(ci);
+        }
+        return line.replace(/([+-])([a-zA-Z0-9_]+)(@\d+)?/g, function(m, sign, target, weight) {
+            if (target.toLowerCase() === oldLow) return sign + newName + (weight || '');
+            return m;
+        });
+    });
+    textarea.value = newLines.join('\n');
+    runIDE();
+    toast('Renamed ' + oldName + ' to ' + newName, 'success');
+}
+
+// ===== GROUP VIEW MODE =====
+function setGroupView(mode) {
+    groupViewMode = mode;
+    document.getElementById('vbtn-list').classList.toggle('on', mode === 'list');
+    document.getElementById('vbtn-cards').classList.toggle('on', mode === 'cards');
+    renderGroups(currentGroups, conflictMap.size > 0 ? 1 : 0);
+}
+
+// ===== GROUPING ENGINE =====
+function calculateGroups() {
+    const keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
+    if (keys.length < 2) {
+        groupsBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-16 font-bold uppercase">Add students to generate groups</div>';
+        document.getElementById('feasibility-status').textContent = 'Idle';
+        document.getElementById('feasibility-status').className = 'badge bg-slate-800 text-slate-600 uppercase tracking-widest';
+        return;
+    }
+
+    let perGroup = parseInt(sizeInp.value) || 4;
+    if (directives.group_size) perGroup = Math.max(2, parseInt(directives.group_size) || perGroup);
+
+    // Determine overflow mode - advanced code directive takes precedence
+    let effectiveOverflow = overflowMode;
+    if (directives.overflow) {
+        const ov = directives.overflow.toLowerCase();
+        if (ov === 'even') effectiveOverflow = 'even';
+        else if (ov === 'newgroup' || ov === 'new') effectiveOverflow = 'newgroup';
+        else if (ov === 'small') effectiveOverflow = 'small';
+        else if (ov === 'dist' || ov === 'distributed') effectiveOverflow = 'even'; // dist maps to even
+    }
+
+    const arrangeBy = directives.arrange_by || '';
+    const balance = (directives.balance || '').split(',').map(s => s.trim()).filter(Boolean);
+    const separateList = (directives.separate || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const togetherList = (directives.together || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const bandWidth = parseInt(directives.band_width) || 10;
+    const strict = directives.strict === 'true' || directives.strict === '1';
+    const tagBalance = directives.tag_balance || '';
+    const iterations = parseInt(directives.iterations) || 2500;
+    const hillClimbRounds = parseInt(directives.hill_climb) || 20;
+
+    // Group distribution based on overflow mode
+    const totalStudents = keys.length;
+    let totalGroups, groupSizes;
+
+    if (effectiveOverflow === 'newgroup') {
+        // New Group: Fill groups to perGroup, leftover students get their own new group
+        totalGroups = Math.ceil(totalStudents / perGroup);
+        groupSizes = [];
+        for (let i = 0; i < totalGroups - 1; i++) groupSizes.push(perGroup);
+        const remaining = totalStudents - perGroup * (totalGroups - 1);
+        if (remaining > 0) groupSizes.push(remaining);
+        else groupSizes.pop(); // exact fit
+    } else if (effectiveOverflow === 'even') {
+        // Even: Distribute students as evenly as possible
+        totalGroups = Math.ceil(totalStudents / perGroup);
+        const baseSize = Math.floor(totalStudents / totalGroups);
+        const remainder = totalStudents % totalGroups;
+        groupSizes = [];
+        for (let i = 0; i < totalGroups; i++) groupSizes.push(baseSize + (i < remainder ? 1 : 0));
+    } else {
+        // Small: Last group is smaller
+        totalGroups = Math.ceil(totalStudents / perGroup);
+        groupSizes = [];
+        for (let i = 0; i < totalGroups - 1; i++) groupSizes.push(perGroup);
+        groupSizes.push(totalStudents - perGroup * (totalGroups - 1));
+    }
+
+    let bestTrial = null, minViolations = Infinity, topScore = -Infinity;
+
+    for (let i = 0; i < iterations; i++) {
+        let shuffled = [...keys];
+        if (arrangeBy === 'score' || balance.includes('scores')) {
+            shuffled.sort((a, b) => (students[a].score || 0) - (students[b].score || 0));
+            for (let j = shuffled.length - 1; j > 0; j--) { if (Math.random() < 0.3) { const k = Math.max(0, j - Math.floor(Math.random()*3)-1); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; } }
+        } else if (arrangeBy === 'gender' || balance.includes('gender')) {
+            shuffled.sort((a, b) => students[a].gender.localeCompare(students[b].gender));
+            for (let j = shuffled.length - 1; j > 0; j--) { if (Math.random() < 0.25) { const k = Math.max(0, j - Math.floor(Math.random()*2)-1); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; } }
+        } else {
+            for (let j = shuffled.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; }
+        }
+
+        const trial = groupSizes.map(function() { return []; });
+        let si = 0;
+        for (let g = 0; g < trial.length; g++) { for (let s = 0; s < groupSizes[g] && si < shuffled.length; s++) { trial[g].push(shuffled[si++]); } }
+
+        // @together constraint
+        if (togetherList.length > 1) {
+            const first = togetherList[0];
+            const tg = trial.find(g => g.includes(first));
+            if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
+        }
+        // @separate constraint
+        if (separateList.length > 1) {
+            for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
+        }
+
+        const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
+        if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
+        if (minViolations === 0 && topScore > 0) break;
+    }
+
+    // Hill Climbing
+    if (bestTrial) {
+        for (let r = 0; r < hillClimbRounds; r++) {
+            let improved = false;
+            for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
+                for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
+                    const student = bestTrial[gIdx][sIdx];
+                    let hasConflict = false;
+                    bestTrial[gIdx].forEach(peer => { if (peer !== student && (students[student].avoids.has(peer) || students[peer].avoids.has(student))) hasConflict = true; });
+                    if (hasConflict) {
+                        for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
+                            if (gIdx === tgIdx) continue;
+                            const next = bestTrial.map(g => [...g]);
+                            next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
+                            const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
+                            if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
+                        }
+                    }
+                    if (improved) break;
+                }
+                if (improved) break;
+            }
+            if (!improved) break;
+        }
+    }
+
+    currentGroups = bestTrial;
+    identifyConflicts(bestTrial);
+    renderGroups(bestTrial, minViolations);
+
+    const statusEl = document.getElementById('feasibility-status');
+    if (minViolations === 0) { statusEl.textContent = 'Optimal'; statusEl.className = 'badge bg-emerald-900/50 text-emerald-400 uppercase tracking-widest'; }
+    else { statusEl.textContent = minViolations + ' Conflict' + (minViolations > 1 ? 's' : ''); statusEl.className = 'badge bg-red-900/50 text-red-400 uppercase tracking-widest'; }
+
+    const el = document.getElementById('engine-label');
+    el.textContent = (strict && minViolations > 0) ? 'STRICT - ' + minViolations + ' unresolved' : 'Engine: MC ' + iterations + ' + HC ' + hillClimbRounds;
+}
+
+function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
+    let score = 0, violations = 0;
+    groups.forEach(g => {
+        for (let i = 0; i < g.length; i++) { for (let j = i + 1; j < g.length; j++) {
+            const a = g[i], b = g[j];
+            if (students[a].wants.has(b)) { score += 500 * ((students[a].wantWeights[b] || 5) / 5); }
+            if (students[b].wants.has(a)) { score += 500 * ((students[b].wantWeights[a] || 5) / 5); }
+            if (students[a].avoids.has(b)) { score -= 100000; violations++; }
+            if (students[b].avoids.has(a)) { score -= 100000; violations++; }
+        } if (g.length === 1) score -= 5000; }
+        if (balance.includes('scores') || directives.arrange_by === 'score') {
+            const scores = g.map(n => students[n].score || 0);
+            if (scores.length > 1) { const avg = scores.reduce((a,b)=>a+b,0)/scores.length; score -= scores.reduce((s,v)=>s+(v-avg)*(v-avg),0)/10; if (Math.max(...scores)-Math.min(...scores) > bandWidth) score -= 200; }
+        }
+        if (balance.includes('gender')) { const f = g.filter(n=>students[n].gender==='F').length; const m = g.filter(n=>students[n].gender==='M').length; score -= Math.abs(f-m)*150; }
+        if (balance.includes('age')) { const ages = g.map(n=>students[n].age||0).filter(Boolean); if (ages.length>1) { const avg=ages.reduce((a,b)=>a+b,0)/ages.length; score-=ages.reduce((s,v)=>s+(v-avg)*(v-avg),0); } }
+        if (balance.includes('roles')) { const roles = g.map(n=>students[n].role).filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score-=300; }
+        if (tagBalance) { const tc = g.filter(n=>students[n].tag===tagBalance).length; if (tc>1) score-=200*(tc-1); }
+        if (g.filter(n=>students[n].leader).length>1) score-=500;
+    });
+    if (separateList.length>1) { for (let i=0;i<separateList.length-1;i++) for (let j=i+1;j<separateList.length;j++) for (const g of groups) if (g.includes(separateList[i])&&g.includes(separateList[j])) { score-=50000; violations++; } }
+    return { score, violations };
+}
+
+function identifyConflicts(groups) {
+    conflictMap = new Map();
+    if (!groups) return;
+    groups.forEach(g => { for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) { if (students[g[i]].avoids.has(g[j])||students[g[j]].avoids.has(g[i])) { conflictMap.set(g[i],true); conflictMap.set(g[j],true); } } });
+}
+
+// ===== RENDER GROUPS =====
+function renderGroups(groups, violations) {
+    if (!groups || groups.length === 0) { groupsBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-16 font-bold uppercase">Add students</div>'; return; }
+
+    const groupNamePattern = directives.group_name || '';
+    const nameDynamic = directives.name_dynamic === 'true';
+
+    function getGroupName(g, gi) {
+        let gn = 'Group ' + (gi + 1);
+        if (groupNamePattern) gn = groupNamePattern.replace(/%d/g, gi + 1).replace(/%s/g, g.length + '');
+        if (nameDynamic && g.length > 0) { const leader = g.find(n => students[n].leader); if (leader) gn = students[leader].originalName + "'s Group"; }
+        return gn;
+    }
+
+    function makeChips(g) {
+        return g.map(function(name) {
+            const s = students[name]; if (!s) return '';
+            const isConflict = conflictMap.has(name);
+            return '<span class="chip px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-600 bg-slate-700/50 text-slate-300' + (isConflict ? ' conflict-glow' : '') + '"' +
+                ' onmouseenter="inspect(\'' + name + '\')"' +
+                ' onmouseleave="uninspect()">' + esc(s.originalName) + '</span>';
+        }).join(' ');
+    }
+
+    function groupStats(g) {
+        const scores = g.map(n => students[n].score).filter(s => s !== null);
+        const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(0) : '--';
+        const genders = g.map(n => students[n].gender).filter(Boolean);
+        const fC = genders.filter(x=>x==='F').length, mC = genders.filter(x=>x==='M').length;
+        let s = '<span class="text-[9px] text-cyan-600 font-mono">avg:' + avg + '</span>';
+        if (genders.length) s += ' <span class="text-[9px] text-blue-600 font-mono">M:' + mC + ' F:' + fC + '</span>';
+        return s;
+    }
+
+    if (groupViewMode === 'list') {
+        groupsBox.innerHTML = groups.map(function(g, gi) {
+            return '<div class="group-block">' +
+                '<div class="flex justify-between items-center mb-2">' +
+                    '<span class="text-[11px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
+                    '<span class="text-[9px] text-slate-600">' + g.length + ' members</span>' +
+                '</div>' +
+                '<div class="flex flex-wrap gap-1.5">' + makeChips(g) + '</div>' +
+                (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
+            '</div>';
+        }).join('');
+    } else {
+        groupsBox.innerHTML = '<div class="group-carousel">' + groups.map(function(g, gi) {
+            return '<div class="group-card">' +
+                '<div class="flex justify-between items-center mb-2">' +
+                    '<span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
+                    '<span class="text-[9px] text-slate-600">' + g.length + '</span>' +
+                '</div>' +
+                '<div class="flex flex-wrap gap-1">' + makeChips(g) + '</div>' +
+                (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
+            '</div>';
+        }).join('') + '</div>';
+    }
+}
+
+// ===== CHIP INSPECT =====
+function inspect(activeLow) {
+    document.querySelectorAll('.chip').forEach(function(el) {
+        const chipName = el.textContent.trim().toLowerCase();
+        if (chipName === activeLow) el.classList.add('chip-active');
+        else if (students[activeLow]) {
+            if (students[activeLow].wants.has(chipName) || (students[chipName] && students[chipName].wants.has(activeLow))) el.classList.add('chip-pos');
+            else if (students[activeLow].avoids.has(chipName) || (students[chipName] && students[chipName].avoids.has(activeLow))) el.classList.add('chip-neg');
+            else el.classList.add('chip-dim');
+        }
+    });
+}
+function uninspect() { document.querySelectorAll('.chip').forEach(function(el) { el.classList.remove('chip-active','chip-pos','chip-neg','chip-dim'); }); }
+
+// ===== ADD EMPTY GROUP =====
+function addEmptyGroup() { if (!currentGroups) currentGroups = []; currentGroups.push([]); renderGroups(currentGroups, 0); toast('Added empty group', 'info'); }
+
+// ===== OVERFLOW =====
+function setOverflowMode(mode) {
+    overflowMode = mode;
+    document.querySelectorAll('[id^="btn-overflow-"]').forEach(function(b) { b.classList.remove('bg-blue-600','text-white','border-blue-500'); b.classList.add('bg-slate-800','text-slate-400','border-slate-700'); });
+    const id = mode === 'newgroup' ? 'btn-overflow-newgroup' : mode === 'distributed' ? 'btn-overflow-dist' : 'btn-overflow-' + mode;
+    const btn = document.getElementById(id);
+    if (btn) { btn.classList.remove('bg-slate-800','text-slate-400','border-slate-700'); btn.classList.add('bg-blue-600','text-white','border-blue-500'); }
+    runIDE();
+}
+
+// ===== LANGUAGE =====
+function switchLang(lang) {
+    const cl = classrooms[activeClass];
+    // Save current editor code to the correct slot
+    if (currentLang === 'simple') cl.codeSimple = textarea.value;
+    else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
+
+    // Check lock: can we switch to the requested language?
+    if (cl.lock === 's' && lang !== 'simple') { toast('This classroom is locked to Simple mode', 'warn'); return; }
+    if (cl.lock === 'a' && lang !== 'advanced') { toast('This classroom is locked to Advanced mode', 'warn'); return; }
+
+    if (lang === currentLang) return;
+    cl.lang = currentLang;
+    currentLang = lang;
+
+    // Update tab visuals
+    updateLangTabs();
+
+    // Load the independent code for this editor
+    if (lang === 'simple') {
+        textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+        if (!cl.codeSimple) isDefaultCode = true; else isDefaultCode = false;
+    } else if (lang === 'advanced') {
+        textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+        if (!cl.codeAdvanced) isDefaultCode = true; else isDefaultCode = false;
+    }
+    updateFileTypeLabel(); runIDE();
+}
+
+function updateLangTabs() {
+    const cl = classrooms[activeClass];
+    const lock = cl.lock || 'u';
+
+    document.getElementById('lt-simple').className = 'lang-tab';
+    document.getElementById('lt-advanced').className = 'lang-tab';
+    document.getElementById('lt-python').className = 'lang-tab locked';
+
+    // Apply lock styling
+    if (lock === 'a') document.getElementById('lt-simple').classList.add('mode-locked');
+    if (lock === 's') document.getElementById('lt-advanced').classList.add('mode-locked');
+
+    // Active tab
+    if (currentLang === 'simple') { document.getElementById('lt-simple').classList.add('on-green'); document.getElementById('ref-simple').style.display = ''; document.getElementById('ref-advanced').style.display = 'none'; document.getElementById('langLabel').className = 'text-green-500 font-bold'; document.getElementById('langLabel').textContent = 'SIMPLE'; }
+    else if (currentLang === 'advanced') { document.getElementById('lt-advanced').classList.add('on-blue'); document.getElementById('ref-simple').style.display = 'none'; document.getElementById('ref-advanced').style.display = ''; document.getElementById('langLabel').className = 'text-blue-400 font-bold'; document.getElementById('langLabel').textContent = 'ADVANCED'; }
+}
+
+function updateFileTypeLabel() {
+    const lock = classrooms[activeClass].lock || 'u';
+    let label = currentLang === 'simple' ? '.gls' : '.gla';
+    if (lock === 'u') label += ' (universal)';
+    else if (lock === 's') label += ' (simple only)';
+    else if (lock === 'a') label += ' (advanced only)';
+    document.getElementById('fileTypeLabel').textContent = label;
+}
+
+// ===== TEMPLATES =====
+const TEMPLATES = {
+    'score-lab': { code: '// Score-Lab Template\n@group_size = 4\n@balance = scores\n@arrange_by = score\n@band_width = 10\n@overflow = even\n\nAlice: +Bob score=92 gender=F\nBob: +Alice score=78 gender=M\nCharlie: +Eve score=85 gender=M\nDiana: +Bob score=90 gender=F\nEve: +Diana score=88 gender=F' },
+    'gender-balance': { code: '// Gender Balance Template\n@group_size = 4\n@balance = gender\n@overflow = even\n\nAlice: +Bob gender=F\nBob: +Alice gender=M\nCharlie: +Diana gender=M\nDiana: +Charlie gender=F\nEve: +Frank gender=F\nFrank: +Eve gender=M' },
+    'leader-projects': { code: '// Leader Projects Template\n@group_size = 4\n@balance = gender\n@overflow = even\n@group_name = "Project %d"\n@name_dynamic = true\n\nAlice: +Bob -Charlie leader role=pm gender=F\nBob: +Alice role=dev gender=M\nCharlie: -Alice +Eve role=dev gender=M\nDiana: +Eve role=design gender=F\nEve: +Diana role=dev gender=F\nFrank: +Alice role=qa gender=M' },
+    'basic': { code: '// Basic Template\n@group_size = 4\n\nAlice: +Bob -Charlie\nBob: +Alice -Diana\nCharlie: -Alice +Eve\nDiana: +Eve -Bob\nEve: +Diana +Charlie' }
+};
+
+// ===== COPY EXPORT =====
+function copyExport() {
+    if (!currentGroups || currentGroups.length === 0) { toast('No groups to copy', 'warn'); return; }
+
+    // Helper: format groups for a single classroom
+    function formatClassroomGroups(cl, clIdx) {
+        const lock = cl.lock || 'u';
+        const lockLabel = lock === 's' ? 'Simple' : lock === 'a' ? 'Advanced' : 'Universal';
+        let text = '=== ' + cl.name + ' (' + lockLabel + ') ===\n';
+
+        // Parse the active code for this classroom to get group info
+        const isCurrentClass = clIdx === activeClass;
+        let groups, studMap, dirs;
+        if (isCurrentClass) {
+            groups = currentGroups;
+            studMap = students;
+            dirs = directives;
+        } else {
+            // Parse the classroom's code to extract groups
+            const code = currentLang === 'simple' ? cl.codeSimple : cl.codeAdvanced;
+            // We can only format the active class's groups from the live state,
+            // for other classrooms just show the code summary
+            if (!isCurrentClass) {
+                const sCode = cl.codeSimple || '';
+                const aCode = cl.codeAdvanced || '';
+                const sCount = sCode ? sCode.split('\n').filter(l => l.trim() && !l.trim().startsWith('//') && !l.trim().startsWith('#') && l.trim().indexOf(':') !== -1).length : 0;
+                const aCount = aCode ? aCode.split('\n').filter(l => l.trim() && !l.trim().startsWith('//') && !l.trim().startsWith('#') && l.trim().indexOf(':') !== -1).length : 0;
+                text += '  Simple: ' + sCount + ' students | Advanced: ' + aCount + ' students\n';
+                return text;
+            }
+        }
+
+        const gnp = dirs.group_name || '';
+        const nd = dirs.name_dynamic === 'true';
+        groups.forEach(function(g, gi) {
+            let gn = 'Group ' + (gi + 1);
+            if (gnp) gn = gnp.replace(/%d/g, gi + 1).replace(/%s/g, g.length + '');
+            if (nd && g.length > 0) { const leader = g.find(n => studMap[n].leader); if (leader) gn = studMap[leader].originalName + "'s Group"; }
+            text += gn + ': ' + g.map(n => studMap[n] ? studMap[n].originalName : n).join(', ') + '\n';
+        });
+        const total = groups.reduce((s, g) => s + g.length, 0);
+        text += '--- ' + total + ' students | ' + groups.length + ' groups ---\n';
+        return text;
+    }
+
+    let text = '';
+    classrooms.forEach(function(cl, i) {
+        text += formatClassroomGroups(cl, i) + '\n';
+    });
+
+    // Trim trailing newline
+    text = text.trim();
+
+    navigator.clipboard.writeText(text).then(function() { toast('Copied all classrooms to clipboard', 'success'); }).catch(function() {
+        const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast('Copied', 'success');
+    });
+}
+
+// ===== EXPORT AS JSON =====
+function doExport() {
+    // Save current editor to the active classroom first
+    const activeCl = classrooms[activeClass];
+    if (currentLang === 'simple') activeCl.codeSimple = textarea.value;
+    else if (currentLang === 'advanced') activeCl.codeAdvanced = textarea.value;
+
+    // Helper: generate formatted DSL code with a header comment
+    function formatGeneratedCode(code, modeLabel, className, fileExt) {
+        const header = '// GroupLogic ' + modeLabel + ' \u2014 Class: ' + className + '\n// Copy this code into a .' + fileExt + ' file\n';
+        return header + code;
+    }
+
+    // Helper: determine fileType from lock
+    function lockToFileType(lock) {
+        if (lock === 's') return 'gls';
+        if (lock === 'a') return 'gla';
+        return 'glu';
+    }
+
+    // Build the classrooms array from ALL classrooms
+    const classroomsData = classrooms.map(function(cl) {
+        const lock = cl.lock || 'u';
+        const ft = lockToFileType(lock);
+        return {
+            name: cl.name,
+            lock: lock,
+            fileType: ft,
+            codeSimple: cl.codeSimple || '',
+            codeAdvanced: cl.codeAdvanced || '',
+            generated_code_simple: cl.codeSimple ? formatGeneratedCode(cl.codeSimple, 'Simple', cl.name, 'gls') : '',
+            generated_code_advanced: cl.codeAdvanced ? formatGeneratedCode(cl.codeAdvanced, 'Advanced', cl.name, 'gla') : '',
+            groupSize: parseInt(sizeInp.value) || 4,
+            overflowMode: overflowMode,
+            students: [],
+            groups: []
+        };
+    });
+
+    // Populate the active classroom's students/groups from the live parse state
+    classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
+        name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
+        score: students[k].score, gender: students[k].gender, age: students[k].age,
+        role: students[k].role, leader: students[k].leader, tasks: students[k].tasks,
+        tag: students[k].tag, band: students[k].band, capacity: students[k].capacity, exclude: students[k].exclude
+    }));
+    classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
+
+    const data = {
+        version: '3.4',
+        exportedAt: new Date().toISOString(),
+        classrooms: classroomsData,
+        activeClassIndex: activeClass
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'grouplogic-export.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast('Exported ' + classrooms.length + ' classroom(s) as JSON', 'success');
+}
+
+// ===== FILE IMPORT =====
+function triggerFileImport() { document.getElementById('fileInput').click(); }
+
+function handleFileImport(event) {
+    const file = event.target ? event.target.files[0] : null;
+    if (file) processImportedFile(file);
+    if (event.target) event.target.value = '';
+}
+
+function handleDroppedFile(file) { processImportedFile(file); }
+
+function processImportedFile(file) {
+    const name = file.name.toLowerCase();
+    const ext = '.' + name.split('.').pop();
+    const proprietaryExts = ['.gls', '.gla', '.glu', '.json'];
+
+    if (!proprietaryExts.includes(ext)) {
+        // For non-proprietary files, check for [[glu]] marker
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            let content = e.target.result;
+            if (content.indexOf('[[glu]]') !== -1) {
+                // Strip [[glu]] secret tag before importing
+                content = content.replace(/\[\[glu\]\]/g, '');
+                showImportModal(content, 'glu');
+            } else {
+                toast('Unsupported file type. Use .gls .gla .glu .json or add [[glu]] marker', 'error');
+            }
+        };
+        reader.readAsText(file);
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        let content = e.target.result;
+        if (ext === '.glu') {
+            // Strip [[glu]] secret tag from .glu files
+            content = content.replace(/\[\[glu\]\]/g, '');
+            showImportModal(content, 'glu');
+        } else if (ext === '.gls') {
+            showImportModal(content, 'simple');
+        } else if (ext === '.gla') {
+            showImportModal(content, 'advanced');
+        } else if (ext === '.json') {
+            // Try to parse as JSON to determine type
+            try {
+                const data = JSON.parse(content);
+                // v3.4+ multi-classroom format
+                if (data.classrooms && Array.isArray(data.classrooms)) {
+                    showImportModal(content, 'json-multi');
+                    return;
+                }
+                // Legacy single-classroom JSON format
+                const detectedType = data.fileType === 'gls' ? 'simple' : data.fileType === 'gla' ? 'advanced' : data.lang || 'glu';
+                if (detectedType === 'glu' || !data.fileType) {
+                    showImportModal(content, 'glu');
+                } else {
+                    showImportModal(content, detectedType);
+                }
+            } catch (ex) {
+                showImportModal(content, 'glu');
+            }
+        }
+    };
+    reader.readAsText(file);
+}
+
+function showImportModal(content, fileType) {
+    const modal = document.getElementById('import-modal');
+    const title = document.getElementById('import-modal-title');
+    const area = document.getElementById('import-content-area');
+
+    let html = '';
+
+    if (fileType === 'json-multi') {
+        // Multi-classroom JSON import
+        try {
+            const data = JSON.parse(content);
+            const clsCount = data.classrooms ? data.classrooms.length : 0;
+            title.textContent = 'Import Multi-Classroom JSON (' + clsCount + ' classes)';
+            html = '<div class="mb-3">' +
+                '<div class="text-[10px] text-slate-400 mb-1">This JSON contains <span class="text-purple-400 font-bold">' + clsCount + ' classroom(s)</span>. Choose how to import them.</div>' +
+            '</div>';
+        } catch (ex) {
+            title.textContent = 'Import JSON';
+            html = '<div class="mb-3"><div class="text-[10px] text-slate-400">Invalid JSON file</div></div>';
+        }
+    } else if (fileType === 'glu') {
+        // Universal: ask what tier to import as, then override or insert
+        title.textContent = 'Import Universal File';
+        html = '<div class="mb-4">' +
+            '<div class="text-[10px] text-slate-400 mb-2 uppercase font-bold">Import as:</div>' +
+            '<div class="flex gap-2 mb-4">' +
+                '<button onclick="selectImportTier(\'simple\')" class="import-option tier-opt flex-1 text-center" data-tier="simple">' +
+                    '<div class="text-[10px] font-bold text-green-400">Simple</div>' +
+                    '<div class="text-[8px] text-slate-500">.gls mode</div>' +
+                '</button>' +
+                '<button onclick="selectImportTier(\'advanced\')" class="import-option tier-opt flex-1 text-center" data-tier="advanced">' +
+                    '<div class="text-[10px] font-bold text-blue-400">Advanced</div>' +
+                    '<div class="text-[8px] text-slate-500">.gla mode</div>' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+    } else if (fileType === 'simple') {
+        // .gls file - must import into simple mode
+        title.textContent = 'Import Simple File';
+        html = '<div class="mb-3">' +
+            '<div class="text-[10px] text-slate-400 mb-1">This file will be imported as <span class="text-green-400 font-bold">Simple</span> mode</div>' +
+        '</div>';
+    } else if (fileType === 'advanced') {
+        // .gla file - must import into advanced mode
+        title.textContent = 'Import Advanced File';
+        html = '<div class="mb-3">' +
+            '<div class="text-[10px] text-slate-400 mb-1">This file will be imported as <span class="text-blue-400 font-bold">Advanced</span> mode</div>' +
+        '</div>';
+    }
+
+    // Override vs Insert at Cursor
+    html += '<div class="mb-4">' +
+        '<div class="text-[10px] text-slate-400 mb-2 uppercase font-bold">How to import:</div>' +
+        '<div class="space-y-2">' +
+            '<button onclick="selectImportMethod(\'override\')" class="import-option override-opt w-full text-left flex items-center gap-3" data-method="override">' +
+                '<svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>' +
+                '<div>' +
+                    '<div class="text-[10px] font-bold text-red-400">Override Everything</div>' +
+                    '<div class="text-[8px] text-slate-500">Replace all current editor content</div>' +
+                '</div>' +
+            '</button>' +
+            '<button onclick="selectImportMethod(\'cursor\')" class="import-option w-full text-left flex items-center gap-3" data-method="cursor">' +
+                '<svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>' +
+                '<div>' +
+                    '<div class="text-[10px] font-bold text-blue-400">Insert at Cursor</div>' +
+                    '<div class="text-[8px] text-slate-500">Click in the editor to place the import</div>' +
+                '</div>' +
+            '</button>' +
+        '</div>' +
+    '</div>';
+
+    // Preview
+    const preview = content.length > 300 ? content.substring(0, 300) + '...' : content;
+    html += '<div class="bg-slate-900 border border-slate-700 rounded-lg p-3 max-h-32 overflow-y-auto">' +
+        '<div class="text-[9px] text-slate-500 mb-1 font-bold uppercase">Preview</div>' +
+        '<pre class="text-[9px] text-slate-400 font-mono whitespace-pre-wrap">' + esc(preview) + '</pre>' +
+    '</div>';
+
+    // Confirm button
+    html += '<div class="flex justify-end mt-4">' +
+        '<button onclick="confirmImport()" id="import-confirm-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg opacity-50 cursor-not-allowed" disabled>Select options above</button>' +
+    '</div>';
+
+    area.innerHTML = html;
+
+    // Store content for later use
+    area.dataset.content = content;
+    area.dataset.fileType = fileType;
+    area.dataset.selectedTier = fileType === 'glu' ? '' : fileType;
+    area.dataset.selectedMethod = '';
+
+    modal.style.display = 'flex';
+}
+
+function selectImportTier(tier) {
+    const area = document.getElementById('import-content-area');
+    area.dataset.selectedTier = tier;
+    document.querySelectorAll('.tier-opt').forEach(function(btn) {
+        btn.classList.toggle('selected', btn.dataset.tier === tier);
+    });
+    updateImportConfirm();
+}
+
+function selectImportMethod(method) {
+    const area = document.getElementById('import-content-area');
+    area.dataset.selectedMethod = method;
+    document.querySelectorAll('.import-option[data-method]').forEach(function(btn) {
+        btn.classList.toggle('selected', btn.dataset.method === method);
+    });
+    updateImportConfirm();
+}
+
+function updateImportConfirm() {
+    const area = document.getElementById('import-content-area');
+    const btn = document.getElementById('import-confirm-btn');
+    const tier = area.dataset.selectedTier;
+    const method = area.dataset.selectedMethod;
+    const fileType = area.dataset.fileType;
+    const tierReady = fileType === 'json-multi' || fileType !== 'glu' || tier;
+    const methodReady = !!method;
+
+    if (tierReady && methodReady) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        if (method === 'override') {
+            btn.textContent = 'Override Content';
+            btn.className = 'bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-5 py-2 rounded-lg';
+        } else {
+            btn.textContent = 'Insert at Cursor';
+            btn.className = 'bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg';
+        }
+    } else {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.textContent = 'Select options above';
+    }
+}
+
+function confirmImport() {
+    const area = document.getElementById('import-content-area');
+    const content = area.dataset.content;
+    const fileType = area.dataset.fileType;
+    const tier = area.dataset.selectedTier || fileType;
+    const method = area.dataset.selectedMethod;
+
+    if (!method) return;
+
+    // ===== Multi-classroom JSON import (v3.4+ format) =====
+    if (fileType === 'json-multi') {
+        try {
+            const data = JSON.parse(content);
+            if (!data.classrooms || !Array.isArray(data.classrooms)) {
+                toast('Invalid multi-classroom JSON', 'error');
+                return;
+            }
+            const importedClassrooms = data.classrooms.map(function(c) {
+                return {
+                    name: c.name || 'Imported Class',
+                    codeSimple: (c.codeSimple || '').replace(/\[\[glu\]\]/g, ''),
+                    codeAdvanced: (c.codeAdvanced || '').replace(/\[\[glu\]\]/g, ''),
+                    versions: [],
+                    lang: c.lock === 'a' ? 'advanced' : 'simple',
+                    lock: c.lock || 'u'
+                };
+            });
+
+            if (method === 'override') {
+                // Replace all classrooms
+                classrooms = importedClassrooms;
+                activeClass = data.activeClassIndex || 0;
+                if (activeClass >= classrooms.length) activeClass = 0;
+            } else if (method === 'cursor') {
+                // Insert: add classrooms to existing ones
+                classrooms = classrooms.concat(importedClassrooms);
+                // Stay on current active class
+            }
+
+            // Switch to the active class
+            const cl = classrooms[activeClass];
+            const lock = cl.lock || 'u';
+            if (lock === 's') currentLang = 'simple';
+            else if (lock === 'a') currentLang = 'advanced';
+            else currentLang = cl.lang || 'simple';
+
+            if (currentLang === 'simple') {
+                textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+                isDefaultCode = !cl.codeSimple;
+            } else {
+                textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+                isDefaultCode = !cl.codeAdvanced;
+            }
+            updateLangTabs();
+            closeImport();
+            renderClassTabs();
+            runIDE();
+            toast('Imported ' + importedClassrooms.length + ' classroom(s) (' + method + ')', 'success');
+        } catch (ex) {
+            toast('Failed to parse multi-classroom JSON: ' + ex.message, 'error');
+        }
+        return;
+    }
+
+    // ===== Single-file import (existing logic, updated for isolation) =====
+    const cl = classrooms[activeClass];
+
+    // Extract actual code content and lock from JSON if applicable
+    let codeContent = content;
+    let fileLock = null; // lock from file, if present
+    let codeSimple = null; // separate simple code from JSON
+    let codeAdvanced = null; // separate advanced code from JSON
+    try {
+        const data = JSON.parse(content);
+        codeContent = data.code || data.generated_code || content;
+        if (data.lock) fileLock = data.lock;
+        if (data.codeSimple) codeSimple = data.codeSimple;
+        if (data.codeAdvanced) codeAdvanced = data.codeAdvanced;
+        // Legacy: if codeSimple/codeAdvanced in generated_code fields
+        if (data.generated_code_simple && !codeSimple) codeSimple = data.generated_code_simple;
+        if (data.generated_code_advanced && !codeAdvanced) codeAdvanced = data.generated_code_advanced;
+    } catch (ex) { /* not JSON, use raw content */ }
+
+    // Strip any remaining [[glu]] secret tags
+    codeContent = codeContent.replace(/\[\[glu\]\]/g, '');
+    if (codeSimple !== null) codeSimple = codeSimple.replace(/\[\[glu\]\]/g, '');
+    if (codeAdvanced !== null) codeAdvanced = codeAdvanced.replace(/\[\[glu\]\]/g, '');
+
+    // Determine the lock this file imposes on the classroom
+    let imposedLock = fileLock; // from JSON first
+    if (!imposedLock) {
+        if (tier === 'simple' || fileType === 'simple') imposedLock = 's';
+        else if (tier === 'advanced' || fileType === 'advanced') imposedLock = 'a';
+        else imposedLock = 'u'; // universal
+    }
+
+    if (method === 'override') {
+        // Set the classroom lock from the file
+        cl.lock = imposedLock;
+        updateLangTabs();
+
+        // Load the code into ONLY the selected editor slot (import isolation)
+        if (tier === 'simple') {
+            // Simple: ONLY load into codeSimple, do NOT touch codeAdvanced
+            cl.codeSimple = codeContent;
+            if (currentLang !== 'simple') {
+                currentLang = 'simple';
+                updateLangTabs();
+            }
+            textarea.value = codeContent;
+        } else if (tier === 'advanced') {
+            // Advanced: ONLY load into codeAdvanced, do NOT touch codeSimple
+            cl.codeAdvanced = codeContent;
+            if (currentLang !== 'advanced') {
+                currentLang = 'advanced';
+                updateLangTabs();
+            }
+            textarea.value = codeContent;
+        } else {
+            // Universal: load into ONLY the selected editor slot
+            // The user chose which tier via selectImportTier
+            // tier is 'glu' by default — use whichever they selected (simple or advanced)
+            // Since glu requires tier selection, this falls through only if tier is 'glu'
+            // which shouldn't happen (confirm button requires tier for glu files).
+            // But as a safety net, default to current language:
+            if (currentLang === 'simple') {
+                cl.codeSimple = codeContent;
+                textarea.value = codeContent;
+            } else {
+                cl.codeAdvanced = codeContent;
+                textarea.value = codeContent;
+            }
+        }
+
+        // If JSON has both separate code slots, restore the other editor (but don't overwrite if already set by tier)
+        if (codeSimple !== null && tier !== 'simple') cl.codeSimple = codeSimple;
+        if (codeAdvanced !== null && tier !== 'advanced') cl.codeAdvanced = codeAdvanced;
+
+        isDefaultCode = false;
+        closeImport();
+        renderClassTabs();
+        runIDE();
+        toast('Loaded into ' + (tier === 'simple' ? 'Simple' : tier === 'advanced' ? 'Advanced' : 'current') + ' editor (lock: ' + imposedLock + ')', 'success');
+    } else if (method === 'cursor') {
+        // Set the classroom lock from the file
+        cl.lock = imposedLock;
+        updateLangTabs();
+
+        // Switch to the correct editor
+        if (tier === 'simple' && currentLang !== 'simple') {
+            currentLang = 'simple';
+            updateLangTabs();
+            textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+        } else if (tier === 'advanced' && currentLang !== 'advanced') {
+            currentLang = 'advanced';
+            updateLangTabs();
+            textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+        }
+
+        pendingImportContent = codeContent;
+        pendingImportLang = tier;
+        closeImport();
+        renderClassTabs();
+        toast('Click in the editor to insert at cursor position', 'info');
+    }
+}
+
+function closeImport() { document.getElementById('import-modal').style.display = 'none'; }
+
+// ===== CLASSROOMS =====
+function renderClassTabs() {
+    const el = document.getElementById('cTabs');
+    el.innerHTML = classrooms.map(function(c, i) {
+        const on = i === activeClass ? ' on' : '';
+        const lock = c.lock || 'u';
+        const lockLabel = lock === 's' ? 'S' : lock === 'a' ? 'A' : 'U';
+        const lockClass = 'lock-' + lock;
+        return '<button class="c-tab' + on + '" data-cidx="' + i + '">' +
+            '<svg class="c-edit" viewBox="0 0 16 16" fill="currentColor" onclick="startClassRename(event,' + i + ')" title="Rename"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.1a.25.25 0 00-.064.108l-.624 2.182 2.182-.624a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.353l-1.248-1.249z"/></svg>' +
+            '<span class="c-name">' + esc(c.name) + '</span>' +
+            '<span class="c-lock ' + lockClass + '" title="Lock: ' + (lock === 's' ? 'Simple only' : lock === 'a' ? 'Advanced only' : 'Universal') + '" onclick="cycleClassLock(event,' + i + ')">' + lockLabel + '</span>' +
+            (classrooms.length > 1 ?
+                '<svg class="c-close" viewBox="0 0 16 16" fill="currentColor" onclick="removeClassroom(event,' + i + ')" title="Remove">' +
+                    '<path d="M4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z"/>' +
+                '</svg>'
+            : '') +
+        '</button>';
+    }).join('');
+
+    // Click to switch (but not on edit/close/lock icons)
+    el.querySelectorAll('.c-tab').forEach(function(tab) {
+        tab.addEventListener('click', function(e) {
+            if (e.target.closest('.c-close') || e.target.closest('.c-edit') || e.target.closest('.c-lock') || e.target.classList.contains('c-rename-input')) return;
+            const idx = parseInt(this.dataset.cidx);
+            if (idx !== activeClass) switchClassroom(idx);
+        });
+    });
+}
+
+function cycleClassLock(e, idx) {
+    e.stopPropagation();
+    const cl = classrooms[idx];
+    const locks = ['u', 's', 'a'];
+    const currentIdx = locks.indexOf(cl.lock || 'u');
+    const nextIdx = (currentIdx + 1) % locks.length;
+    const newLock = locks[nextIdx];
+
+    // If locking to 's' and currently in advanced, switch to simple
+    if (newLock === 's' && currentLang === 'advanced') {
+        cl.codeAdvanced = textarea.value;
+        currentLang = 'simple';
+        textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+    }
+    // If locking to 'a' and currently in simple, switch to advanced
+    if (newLock === 'a' && currentLang === 'simple') {
+        cl.codeSimple = textarea.value;
+        currentLang = 'advanced';
+        textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+    }
+
+    cl.lock = newLock;
+    renderClassTabs();
+    updateLangTabs();
+    updateFileTypeLabel();
+    runIDE();
+    const lockNames = { s: 'Simple only', a: 'Advanced only', u: 'Universal' };
+    toast('Class lock: ' + lockNames[newLock], 'info');
+}
+
+function addClassroom() {
+    const idx = classrooms.length + 1;
+    classrooms.push({ name: 'Class ' + idx, codeSimple: '', codeAdvanced: '', versions: [], lang: 'simple', lock: 'u' });
+    switchClassroom(classrooms.length - 1);
+    toast('Added Class ' + idx, 'info');
+}
+
+function removeClassroom(e, idx) {
+    e.stopPropagation();
+    if (classrooms.length <= 1) return;
+    classrooms.splice(idx, 1);
+    if (activeClass >= classrooms.length) activeClass = classrooms.length - 1;
+    else if (activeClass > idx) activeClass--;
+    else if (activeClass === idx) { activeClass = Math.min(idx, classrooms.length - 1); }
+    const c = classrooms[activeClass];
+    // Restore editor for the new active classroom
+    if (currentLang === 'simple') {
+        textarea.value = c.codeSimple || DEFAULT_SIMPLE;
+        isDefaultCode = !c.codeSimple;
+    } else {
+        textarea.value = c.codeAdvanced || DEFAULT_ADVANCED;
+        isDefaultCode = !c.codeAdvanced;
+    }
+    updateLangTabs();
+    renderClassTabs(); runIDE();
+    toast('Removed classroom', 'info');
+}
+
+function startClassRename(e, idx) {
+    e.stopPropagation();
+    e.preventDefault();
+    const tab = e.target.closest('.c-tab');
+    if (!tab) return;
+    const nameEl = tab.querySelector('.c-name');
+    if (!nameEl || nameEl.querySelector('.c-rename-input')) return;
+    const currentName = classrooms[idx].name;
+    const input = document.createElement('input');
+    input.className = 'c-rename-input';
+    input.value = currentName;
+    nameEl.innerHTML = '';
+    nameEl.appendChild(input);
+    input.focus();
+    input.select();
+    function submit() {
+        const newName = input.value.trim() || currentName;
+        classrooms[idx].name = newName;
+        renderClassTabs();
+        saveStorage();
+    }
+    input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } if (ev.key === 'Escape') renderClassTabs(); });
+    input.addEventListener('blur', submit);
+}
+
+function switchClassroom(idx) {
+    // Save current editor code to the correct slot
+    const prevCl = classrooms[activeClass];
+    if (currentLang === 'simple') prevCl.codeSimple = textarea.value;
+    else if (currentLang === 'advanced') prevCl.codeAdvanced = textarea.value;
+    prevCl.lang = currentLang;
+
+    activeClass = idx;
+    const c = classrooms[idx];
+
+    // Determine which editor to show based on lock
+    const lock = c.lock || 'u';
+    let targetLang = currentLang;
+    if (lock === 's') targetLang = 'simple';
+    else if (lock === 'a') targetLang = 'advanced';
+    // If universal, keep current lang or use stored lang
+    else if (c.lang) targetLang = c.lang;
+
+    currentLang = targetLang;
+    updateLangTabs();
+
+    if (targetLang === 'simple') {
+        textarea.value = c.codeSimple || DEFAULT_SIMPLE;
+        isDefaultCode = !c.codeSimple;
+    } else {
+        textarea.value = c.codeAdvanced || DEFAULT_ADVANCED;
+        isDefaultCode = !c.codeAdvanced;
+    }
+    renderClassTabs(); runIDE();
+}
+
+// ===== PANEL EXPAND =====
+function toggleExpand(id) { document.getElementById(id).classList.toggle('panel-expanded'); }
+
+// ===== VERSIONS =====
+function showVersions() {
+    const cl = classrooms[activeClass]; const list = document.getElementById('version-list');
+    if (!cl.versions || cl.versions.length === 0) { list.innerHTML = '<div class="text-slate-600 text-[10px] text-center py-4">No versions saved</div>'; }
+    else { list.innerHTML = cl.versions.map(function(v, i) { const date = new Date(v.time).toLocaleString(); const preview = (v.code||'').substring(0,60).replace(/\n/g,' '); return '<div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50"><div><div class="text-[10px] text-slate-400 font-bold">v'+(i+1)+' - '+date+'</div><div class="text-[9px] text-slate-600 font-mono truncate max-w-[250px]">'+esc(preview)+'</div></div><button onclick="restoreVersion('+i+')" class="text-[9px] text-blue-400 hover:text-blue-300 font-bold">Restore</button></div>'; }).join(''); }
+    document.getElementById('version-modal').style.display = 'flex';
+}
+function closeVersions() { document.getElementById('version-modal').style.display = 'none'; }
+function restoreVersion(idx) { const v = classrooms[activeClass].versions[idx]; if (v&&v.code) { textarea.value = v.code; isDefaultCode = false; runIDE(); toast('Restored v'+(idx+1), 'success'); } closeVersions(); }
+function pushVersion() { const cl = classrooms[activeClass]; if (!cl.versions) cl.versions = []; cl.versions.push({ code: textarea.value, time: Date.now() }); if (cl.versions.length > 3) cl.versions.shift(); document.getElementById('verLabel').textContent = 'v' + cl.versions.length + '/3'; }
+
+// ===== SAVE =====
+function scheduleAutoSave() { if (autoSaveTimer) clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(function() { if (saveConfig.timed) saveStorage(); }, (saveConfig.timedInterval||60)*1000); }
+function checkEditSave() { if (saveConfig.edits && editCountSinceSave >= (saveConfig.editsCount||25)) { editCountSinceSave = 0; pushVersion(); saveStorage(); document.getElementById('savedLabel').textContent = 'Auto-saved'; } }
+function manualSave() { pushVersion(); saveStorage(); document.getElementById('savedLabel').textContent = 'Saved'; toast('Saved', 'success'); }
+
+// ===== ACTIVE JSON BACKUP =====
+function saveActiveJSON() {
+    try {
+        const cl = classrooms[activeClass];
+        // Save current editor to correct slot first
+        if (currentLang === 'simple') cl.codeSimple = textarea.value;
+        else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
+
+        // Helper: generate formatted DSL code with a header comment
+        function formatGeneratedCode(code, modeLabel, className, fileExt) {
+            const header = '// GroupLogic ' + modeLabel + ' \u2014 Class: ' + className + '\n// Copy this code into a .' + fileExt + ' file\n';
+            return header + code;
+        }
+        function lockToFileType(lock) {
+            if (lock === 's') return 'gls';
+            if (lock === 'a') return 'gla';
+            return 'glu';
+        }
+
+        const classroomsData = classrooms.map(function(c) {
+            const lock = c.lock || 'u';
+            const ft = lockToFileType(lock);
+            return {
+                name: c.name,
+                lock: lock,
+                fileType: ft,
+                codeSimple: c.codeSimple || '',
+                codeAdvanced: c.codeAdvanced || '',
+                generated_code_simple: c.codeSimple ? formatGeneratedCode(c.codeSimple, 'Simple', c.name, 'gls') : '',
+                generated_code_advanced: c.codeAdvanced ? formatGeneratedCode(c.codeAdvanced, 'Advanced', c.name, 'gla') : '',
+                groupSize: parseInt(sizeInp.value) || 4,
+                overflowMode: overflowMode,
+                students: [],
+                groups: []
+            };
+        });
+
+        // Populate active classroom's live data
+        classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
+            name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
+            score: students[k].score, gender: students[k].gender, role: students[k].role
+        }));
+        classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
+
+        const data = {
+            version: '3.4',
+            exportedAt: new Date().toISOString(),
+            classrooms: classroomsData,
+            activeClassIndex: activeClass
+        };
+        localStorage.setItem('glide_active_json', JSON.stringify(data));
+    } catch(e) {}
+}
+
+function saveStorage() {
+    // Save current editor to correct slot
+    const cl = classrooms[activeClass];
+    if (currentLang === 'simple') cl.codeSimple = textarea.value;
+    else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
+    cl.lang = currentLang;
+    try { localStorage.setItem('glide_classrooms', JSON.stringify(classrooms)); localStorage.setItem('glide_activeClass', activeClass); localStorage.setItem('glide_saveConfig', JSON.stringify(saveConfig)); localStorage.setItem('glide_overflow', overflowMode); localStorage.setItem('glide_viewMode', groupViewMode); document.getElementById('savedLabel').textContent = 'Saved ' + new Date().toLocaleTimeString(); } catch(e) {}
+    saveActiveJSON();
+}
+
+function loadStorage() {
+    try {
+        const data = localStorage.getItem('glide_classrooms');
+        if (data) {
+            classrooms = JSON.parse(data);
+            classrooms.forEach(function(cl) {
+                if (!cl.versions) cl.versions = [];
+                if (!cl.lang) cl.lang = 'simple';
+                if (!cl.lock) cl.lock = 'u';
+                // Migrate old 'code' field to codeSimple/codeAdvanced
+                if (cl.code && !cl.codeSimple && !cl.codeAdvanced) {
+                    if (cl.lang === 'advanced') { cl.codeAdvanced = cl.code; cl.codeSimple = ''; }
+                    else { cl.codeSimple = cl.code; cl.codeAdvanced = ''; }
+                    delete cl.code;
+                }
+                if (!cl.codeSimple) cl.codeSimple = '';
+                if (!cl.codeAdvanced) cl.codeAdvanced = '';
+            });
+        }
+        const ac = localStorage.getItem('glide_activeClass'); if (ac !== null) activeClass = parseInt(ac);
+        const sc = localStorage.getItem('glide_saveConfig'); if (sc) saveConfig = JSON.parse(sc);
+        const ov = localStorage.getItem('glide_overflow'); if (ov) overflowMode = ov;
+        const vm = localStorage.getItem('glide_viewMode'); if (vm) groupViewMode = vm;
+
+        // Restore editor state
+        const cl = classrooms[activeClass];
+        if (cl) {
+            const lock = cl.lock || 'u';
+            // Determine which editor to show
+            if (lock === 's') currentLang = 'simple';
+            else if (lock === 'a') currentLang = 'advanced';
+            else if (cl.lang) currentLang = cl.lang;
+
+            if (currentLang === 'simple') {
+                textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+                isDefaultCode = !cl.codeSimple;
+            } else {
+                textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+                isDefaultCode = !cl.codeAdvanced;
+            }
+        }
+    } catch(e) {}
+    const sm = document.getElementById('save-manual'); const st = document.getElementById('save-timed'); const se = document.getElementById('save-edits');
+    const sti = document.getElementById('save-timed-interval'); const sec = document.getElementById('save-edits-count');
+    if (sm) sm.checked = saveConfig.manual; if (st) st.checked = saveConfig.timed; if (se) se.checked = saveConfig.edits;
+    if (sti) sti.value = saveConfig.timedInterval || 60; if (sec) sec.value = saveConfig.editsCount || 25;
+    setGroupView(groupViewMode);
+}
+
+function showSaveSettings() { document.getElementById('save-modal').style.display = 'flex'; }
+function closeSaveSettings() { document.getElementById('save-modal').style.display = 'none'; }
+function applySaveSettings() {
+    saveConfig.manual = document.getElementById('save-manual').checked;
+    saveConfig.timed = document.getElementById('save-timed').checked;
+    saveConfig.timedInterval = parseInt(document.getElementById('save-timed-interval').value) || 60;
+    saveConfig.edits = document.getElementById('save-edits').checked;
+    saveConfig.editsCount = parseInt(document.getElementById('save-edits-count').value) || 25;
+    saveStorage(); closeSaveSettings(); toast('Save settings updated', 'info');
+}
+
+// ===== DOCS =====
+function openDocs() {
+    const existing = document.getElementById('docsOverlay'); if (existing) { existing.remove(); return; }
+    const isAdv = currentLang === 'advanced';
+    const overlay = document.createElement('div'); overlay.id = 'docsOverlay'; overlay.className = 'docs-overlay';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+    overlay.innerHTML = '<div class="docs-panel">' +
+        '<div class="flex justify-between items-center mb-4"><h2 class="text-white font-black text-lg">GroupLogic IDE Docs</h2>' +
+        '<div class="flex items-center gap-3">' +
+        '<button onclick="document.getElementById(\'docsOverlay\').remove()" class="text-slate-500 hover:text-white text-xl font-bold flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700">' +
+            '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+        '</button></div></div>' +
+
+        '<div class="docs-section open"><h4>Basic Syntax</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p>Define a student: <code>Name: +Want -Avoid</code>. Each student gets their own line.</p>' +
+        '<p><code>Alice: +Bob -Charlie</code> means Alice wants to be with Bob, avoid Charlie.</p>' +
+        '<p>Weighted wants: <code>+Name@8</code> (1-10, default 5). Higher = stronger preference.</p>' +
+        '<p>Comments: <code>//</code> or <code>#</code></p></div></div>' +
+
+        (isAdv ?
+        '<div class="docs-section"><h4>Scores & Banding</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>score=85</code> - numeric score for grouping by ability.</p>' +
+        '<p><code>band=high</code> - categorical band label.</p>' +
+        '<p><code>@balance = scores</code> - group similar scores together.</p>' +
+        '<p><code>@band_width = 10</code> - max score spread within a group.</p></div></div>' +
+
+        '<div class="docs-section"><h4>Gender & Age</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>gender=M</code> / <code>gender=F</code> / <code>gender=X</code></p>' +
+        '<p><code>age=16</code> - used with <code>@balance=age</code></p>' +
+        '<p><code>@balance=gender</code> - balance gender ratios across groups.</p></div></div>' +
+
+        '<div class="docs-section"><h4>Roles & Leaders</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>role=pm</code> - assign a role (no quotes needed).</p>' +
+        '<p><code>leader</code> - flag as group leader. One leader per group when possible.</p>' +
+        '<p><code>@balance=roles</code> - spread different roles across groups.</p></div></div>' +
+
+        '<div class="docs-section"><h4>Conditional Constraints</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>if(count > 10) { +Alice }</code> - apply only when condition is true.</p>' +
+        '<p><code>if(has_role leader) { -Charlie }</code></p>' +
+        '<p><code>if(any_score => 90) { @balance = scores }</code></p>' +
+        '<p>Operators: >  <  =>  =<  ==  !=</p></div></div>' +
+
+        '<div class="docs-section"><h4>Group Names & Overflow</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@group_name = "Lab %d"</code> - %d = group number, %s = size.</p>' +
+        '<p><code>@name_dynamic = true</code> - name groups after their leader.</p>' +
+        '<p><code>@overflow = even</code> - distribute extra students evenly.</p>' +
+        '<p><code>@overflow = newgroup</code> - create a new group for overflow.</p>' +
+        '<p><code>@overflow = small</code> - smaller last group.</p></div></div>' +
+
+        '<div class="docs-section"><h4>Engine Tuning</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@iterations = 5000</code> - more = better but slower.</p>' +
+        '<p><code>@hill_climb = 30</code> - more refinement rounds.</p>' +
+        '<p><code>@strict = true</code> - no avoid violations allowed.</p>' +
+        '<p><code>capacity=3</code> on a student - limit group size when present.</p>' +
+        '<p><code>exclude</code> flag - exclude from group generation.</p></div></div>'
+        : '') +
+
+        '<div class="docs-section"><h4>Directives Reference</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
+        '<p><code>@group_size = 4</code></p><p><code>@min_group = 2</code> / <code>@max_group = 6</code></p>' +
+        '<p><code>@arrange_by = score|gender|age</code></p><p><code>@balance = gender,scores,roles,age</code></p>' +
+        '<p><code>@separate = Name1,Name2</code></p><p><code>@together = Name1,Name2</code></p>' +
+        '<p><code>@template = score-lab|gender-balance|leader-projects|basic</code></p></div></div>' +
+
+        '<div class="docs-section"><h4>File Types & Locks</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
+        '<p><code>.gls</code> - GroupLogic Simple (lock: s, Simple only)</p>' +
+        '<p><code>.gla</code> - GroupLogic Advanced (lock: a, Advanced only)</p>' +
+        '<p><code>.glu</code> - GroupLogic Universal (lock: u, both editors)</p>' +
+        '<p><code>.json</code> - Full export/import with all classrooms, lock, both editor codes, metadata</p>' +
+        '<p>Other file types (txt, md, html) only accepted if they contain <code>[[glu]]</code> marker (which is automatically stripped on import).</p>' +
+        '<p class="mt-2"><b>Classroom Lock System:</b></p>' +
+        '<p><code>U</code> (purple) = Universal - both Simple and Advanced editors open</p>' +
+        '<p><code>S</code> (green) = Simple only - Advanced editor locked</p>' +
+        '<p><code>A</code> (blue) = Advanced only - Simple editor locked</p>' +
+        '<p>Click the lock badge on a class tab to cycle U \u2192 S \u2192 A.</p>' +
+        '<p>The lock is stored per classroom and is included in exports.</p>' +
+        '<p>You can change the lock by cycling it on the class tab, or by editing the JSON export\'s lock field.</p>' +
+        '<p>Importing a <code>.gls</code> file only affects the Simple editor and doesn\'t touch Advanced (and vice versa for <code>.gla</code>).</p>' +
+        '<p><code>[[glu]]</code> is a secret tag that gets stripped on import \u2014 it will not appear in the editor after loading.</p></div></div>' +
+
+    '</div>';
+
+    document.body.appendChild(overlay);
+    overlay.querySelectorAll('.docs-section h4').forEach(function(h4) { h4.addEventListener('click', function() { this.parentElement.classList.toggle('open'); }); });
+}
+
+// Init
+setOverflowMode('even');
+</script>
+</body>
+</html>
