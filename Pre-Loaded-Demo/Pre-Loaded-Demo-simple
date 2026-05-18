@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GroupLogic IDE v2.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* IDE Layout */
+        .editor-container {
+            position: relative;
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            height: 480px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
+        }
+
+        #editor-textarea, #editor-highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 24px;
+            margin: 0;
+            border: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+            background: transparent;
+        }
+
+        #editor-textarea {
+            color: transparent;
+            caret-color: #60a5fa;
+            z-index: 2;
+            resize: none;
+            outline: none;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #editor-highlight {
+            z-index: 1;
+            pointer-events: none;
+            color: #94a3b8;
+        }
+
+        /* Syntax Theme */
+        .t-name { color: #60a5fa; font-weight: 700; }
+        .t-op { color: #475569; font-weight: bold; }
+        .t-want { color: #4ade80; }
+        .t-avoid { color: #f87171; }
+        .t-comment { color: #334155; font-style: italic; }
+        .t-err { border-bottom: 2px dotted #eab308; }
+
+        /* Panels & Expansion */
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+        
+        .panel-expanded {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            z-index: 50;
+            height: auto !important;
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.8);
+        }
+
+        .scroll-v {
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+        }
+        .scroll-v::-webkit-scrollbar { width: 4px; }
+        .scroll-v::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+
+        /* Conflict & Hover Logic */
+        .chip {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .chip-active { background-color: #2563eb !important; color: white !important; transform: scale(1.1); z-index: 20; }
+        .chip-pos { background-color: #064e3b !important; color: #4ade80 !important; border-color: #059669 !important; }
+        .chip-neg { background-color: #450a0a !important; color: #f87171 !important; border-color: #dc2626 !important; }
+        .chip-dim { opacity: 0.15; filter: grayscale(1); }
+
+        /* Conflict Glow */
+        .conflict-glow {
+            border: 2px solid #ef4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-white flex items-center gap-3">
+                    <span class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">G</span>
+                    GroupLogic IDE
+                </h1>
+                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v2.5 — Conflict & Expansion Update</p>
+            </div>
+            
+            <div class="flex items-center gap-4 bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50">
+                <div class="px-4">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase block mb-0.5">Per Group</span>
+                    <input type="number" id="group-size" value="4" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
+                </div>
+                <button onclick="copyExport()" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95">
+                    Copy Results
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Editor -->
+            <div class="lg:col-span-7 space-y-4">
+                <div class="editor-container">
+                    <div id="editor-highlight"></div>
+                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie">Harley: +Joshua -Asia -OP -Sara -Avory
+CJ: +Harley -Sara +Sean
+Asa: +Harley -Sean +OP
+Sean: +Harley -Avory -CJ
+Avory:
+Asia: -CJ -Joshua
+OP: +Asia -CJ -Kylee -Sara
+Kylee: +Harley +Sean -CJ
+Joshua: +Harley -Asia -OP
+Sara: +Asa -Harley -Kylee -Joshua -CJ -Sean</textarea>
+                </div>
+                
+                <div class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800">
+                    <div class="flex flex-wrap gap-6 text-[10px] font-mono">
+                        <div class="flex items-center gap-2"><span class="text-blue-400 font-bold">Name:</span> <span class="text-slate-600">Definition</span></div>
+                        <div class="flex items-center gap-2"><span class="text-green-400 font-bold">+Target</span> <span class="text-slate-600">Want</span></div>
+                        <div class="flex items-center gap-2"><span class="text-red-400 font-bold">-Target</span> <span class="text-slate-600">Avoid</span></div>
+                        <div class="text-slate-500 italic">Names are now Case-Insensitive</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panels -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Roster Stats -->
+                <div id="panel-roster" class="panel h-[180px]">
+                    <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/10">
+                        <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Roster</h3>
+                        <div class="flex items-center gap-3">
+                            <span id="student-count" class="text-[10px] text-blue-400 font-mono font-bold">0</span>
+                            <button onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="roster-list" class="scroll-v p-3 space-y-1.5 flex-1"></div>
+                </div>
+
+                <!-- Optimal Preview -->
+                <div id="panel-output" class="panel h-[410px]">
+                    <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/20">
+                        <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Output</h3>
+                        <div class="flex items-center gap-3">
+                            <button onclick="calculateGroups()" class="text-[9px] font-black bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-600 transition-colors uppercase">Reshuffle</button>
+                            <div id="feasibility-status" class="badge bg-slate-800 text-slate-600 uppercase tracking-widest">Idle</div>
+                            <button onclick="toggleExpand('panel-output')" class="text-slate-500 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="groups-list" class="scroll-v p-4 space-y-4 flex-1"></div>
+                    <div class="p-2.5 text-center border-t border-slate-800 bg-slate-900/30">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase italic tracking-tighter">Names with red glow indicate social conflicts</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const textarea = document.getElementById('editor-textarea');
+        const highlighter = document.getElementById('editor-highlight');
+        const rosterBox = document.getElementById('roster-list');
+        const groupsBox = document.getElementById('groups-list');
+        const sizeInp = document.getElementById('group-size');
+
+        let students = {}; // lowerName -> { wants: Set(lower), avoids: Set(lower), defined: bool, originalName: str }
+        let currentGroups = []; // Array of arrays (lowercase names)
+        let conflictMap = new Map(); // lowerName -> true if in conflict
+
+        textarea.addEventListener('input', runIDE);
+        sizeInp.addEventListener('input', runIDE);
+        textarea.addEventListener('scroll', () => {
+            highlighter.scrollTop = textarea.scrollTop;
+            highlighter.scrollLeft = textarea.scrollLeft;
+        });
+
+        function toggleExpand(id) {
+            document.getElementById(id).classList.toggle('panel-expanded');
+        }
+
+        function runIDE() {
+            parseRules();
+            renderSyntax();
+            renderRoster();
+            calculateGroups();
+        }
+
+        function parseRules() {
+            const lines = textarea.value.split('\n');
+            const nextMap = {};
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('//')) return;
+
+                const match = line.match(/^([a-zA-Z0-9_]+):(.*)$/);
+                if (match) {
+                    const originalName = match[1].trim();
+                    const lowName = originalName.toLowerCase();
+                    const body = match[2];
+
+                    if (!nextMap[lowName]) nextMap[lowName] = { wants: new Set(), avoids: new Set(), defined: true, originalName };
+                    else {
+                        nextMap[lowName].defined = true;
+                        nextMap[lowName].originalName = originalName;
+                    }
+
+                    const tokens = body.matchAll(/([\+\-])([a-zA-Z0-9_]+)/g);
+                    for (const token of tokens) {
+                        const type = token[1];
+                        const targetOriginal = token[2];
+                        const targetLow = targetOriginal.toLowerCase();
+                        
+                        if (type === '+') nextMap[lowName].wants.add(targetLow);
+                        else nextMap[lowName].avoids.add(targetLow);
+                        
+                        if (!nextMap[targetLow]) nextMap[targetLow] = { wants: new Set(), avoids: new Set(), defined: false, originalName: targetOriginal };
+                    }
+                }
+            });
+
+            students = nextMap;
+            const count = Object.keys(students).filter(k => students[k].defined).length;
+            document.getElementById('student-count').innerText = `${count} STUDENTS`;
+        }
+
+        function renderSyntax() {
+            const lines = textarea.value.split('\n');
+            const htmlLines = lines.map(line => {
+                if (line.trim().startsWith('//')) return `<span class="t-comment">${esc(line)}</span>`;
+
+                let escLine = esc(line);
+                let result = "";
+                const defMatch = escLine.match(/^([a-zA-Z0-9_]+)(:)/);
+                
+                if (defMatch) {
+                    const name = defMatch[1];
+                    const op = defMatch[2];
+                    result += `<span class="t-name">${name}</span><span class="t-op">${op}</span>`;
+                    
+                    let remaining = escLine.substring(name.length + op.length);
+                    result += remaining.replace(/([\+\-])([a-zA-Z0-9_]+)/g, (match, sign, target) => {
+                        const lowTarget = target.toLowerCase();
+                        const isDef = students[lowTarget] && students[lowTarget].defined;
+                        const cls = (sign === '+') ? 't-want' : 't-avoid';
+                        const errCls = isDef ? '' : ' t-err';
+                        return `<span class="t-op">${sign}</span><span class="${cls}${errCls}">${target}</span>`;
+                    });
+                } else {
+                    result = escLine;
+                }
+                return result;
+            });
+            highlighter.innerHTML = htmlLines.join('\n') + '\n';
+        }
+
+        function esc(str) { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function renderRoster() {
+            const keys = Object.keys(students).filter(k => students[k].defined).sort();
+            if (keys.length === 0) {
+                rosterBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-10 font-bold uppercase">Ready for logic</div>';
+                return;
+            }
+            rosterBox.innerHTML = keys.map(k => {
+                const s = students[k];
+                return `
+                    <div class="flex items-center justify-between p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/50">
+                        <span class="text-xs font-bold text-slate-300">${s.originalName}</span>
+                        <div class="flex gap-2 font-mono">
+                            <span class="text-[10px] text-green-500">+${s.wants.size}</span>
+                            <span class="text-[10px] text-red-400">-${s.avoids.size}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function calculateGroups() {
+            const keys = Object.keys(students).filter(k => students[k].defined);
+            if (keys.length < 2) { groupsBox.innerHTML = ''; return; }
+
+            const perGroup = parseInt(sizeInp.value) || 4;
+            const totalGroups = Math.ceil(keys.length / perGroup);
+            
+            let bestTrial = null;
+            let topScore = -Infinity;
+            let minViolations = Infinity;
+
+            for (let i = 0; i < 600; i++) {
+                const trial = Array.from({ length: totalGroups }, () => []);
+                const shuffled = [...keys].sort(() => Math.random() - 0.5);
+                shuffled.forEach((n, idx) => trial[idx % totalGroups].push(n));
+
+                const { score, violations } = scoreTrial(trial);
+                if (violations < minViolations || (violations === minViolations && score > topScore)) {
+                    topScore = score;
+                    minViolations = violations;
+                    bestTrial = trial;
+                }
+            }
+
+            currentGroups = bestTrial;
+            identifyConflicts(bestTrial);
+            renderGroups(bestTrial, minViolations);
+        }
+
+        function scoreTrial(groups) {
+            let score = 0, violations = 0;
+            groups.forEach(g => {
+                for (let i = 0; i < g.length; i++) {
+                    for (let j = i + 1; j < g.length; j++) {
+                        const a = g[i], b = g[j];
+                        if (students[a].wants.has(b)) score += 500;
+                        if (students[a].avoids.has(b)) { score -= 20000; violations++; }
+                        if (students[b].wants.has(a)) score += 500;
+                        if (students[b].avoids.has(a)) { score -= 20000; violations++; }
+                    }
+                }
+                if (g.length < 2) score -= 2000;
+            });
+            return { score, violations };
+        }
+
+        function identifyConflicts(groups) {
+            conflictMap.clear();
+            groups.forEach(g => {
+                g.forEach(a => {
+                    g.forEach(b => {
+                        if (a === b) return;
+                        if (students[a].avoids.has(b)) conflictMap.set(a, true);
+                    });
+                });
+            });
+        }
+
+        function renderGroups(groups, violations) {
+            const stat = document.getElementById('feasibility-status');
+            if (violations > 0) {
+                stat.className = "badge bg-red-500/20 text-red-400";
+                stat.innerText = `${violations} Conflicts`;
+            } else {
+                stat.className = "badge bg-green-500/20 text-green-400";
+                stat.innerText = "Satisfied";
+            }
+
+            groupsBox.innerHTML = groups.map((g, idx) => `
+                <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4">
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-tighter mb-3 block">Squad ${idx + 1}</span>
+                    <div class="flex flex-wrap gap-2">
+                        ${g.map(name => {
+                            const isConflict = conflictMap.has(name);
+                            const displayName = students[name].originalName;
+                            return `
+                                <span class="chip bg-slate-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-slate-600 ${isConflict ? 'conflict-glow' : ''}"
+                                      onmouseenter="inspect('${name}')"
+                                      onmouseleave="uninspect()"
+                                      data-n="${name}">
+                                    ${displayName}
+                                </span>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function inspect(activeLow) {
+            const data = students[activeLow];
+            if (!data) return;
+            document.querySelectorAll('.chip').forEach(c => {
+                const n = c.getAttribute('data-n');
+                if (n === activeLow) c.classList.add('chip-active');
+                else if (data.wants.has(n)) c.classList.add('chip-pos');
+                else if (data.avoids.has(n)) c.classList.add('chip-neg');
+                else c.classList.add('chip-dim');
+            });
+        }
+
+        function uninspect() {
+            document.querySelectorAll('.chip').forEach(c => {
+                c.classList.remove('chip-active', 'chip-pos', 'chip-neg', 'chip-dim');
+            });
+        }
+
+        function copyExport() {
+            let out = "GROUP LOGIC EXPORT\n";
+            currentGroups.forEach((g, i) => {
+                const names = g.map(n => students[n].originalName);
+                out += `SQUAD ${i+1}: ${names.join(', ')}\n`;
+            });
+            const el = document.createElement('textarea');
+            el.value = out;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("Results copied!");
+        }
+
+        runIDE();
+    </script>
+</body>
+</html>
