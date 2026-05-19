@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GroupLogic IDE v3.5</title>
+    <title>GroupLogic IDE v3.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap');
@@ -316,7 +316,7 @@
                 <span class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">G</span>
                 GroupLogic IDE
             </h1>
-            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v3.5</p>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v3.6</p>
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
@@ -452,12 +452,13 @@
             <div id="panel-roster" class="panel" style="height:200px;">
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/10">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Roster</h3>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" style="position:relative">
                         <select id="rosterSort" class="sort-select" onchange="renderRoster()">
                             <option value="editor">Editor</option>
                             <option value="abc">A-Z</option>
                             <option value="manual" id="opt-manual">Manual</option>
                         </select>
+                        <span id="sortAdvHint" class="adv-code-hint" style="display:none;">In code</span>
                         <span id="student-count" class="text-[10px] text-blue-400 font-mono font-bold">0</span>
                         <button onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
@@ -536,7 +537,7 @@
 
 <script>
 // ========================================================================
-// GROUPLOGIC IDE v3.5 — ADVANCED BUILD
+// GROUPLOGIC IDE v3.6 — ADVANCED BUILD
 // ========================================================================
 
 const textarea = document.getElementById('editor-textarea');
@@ -570,7 +571,7 @@ let pendingImportContent = null;
 let pendingImportLang = null;
 
 // Default code
-const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v3.5
+const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v3.6
 // Syntax: Name: +Want -Avoid
 
 Alice: +Bob -Charlie
@@ -579,21 +580,35 @@ Charlie: -Alice +Eve
 Diana: +Eve -Bob
 Eve: +Diana +Charlie`;
 
-const DEFAULT_ADVANCED = `// GroupLogic IDE v3.5 - Advanced Mode
-// Full DSL with scores, roles, directives
+const DEFAULT_ADVANCED = `// GroupLogic IDE v3.6 - Advanced Mode
+// Full DSL with scores, roles, directives, conditionals
+// In Advanced mode, grouping is controlled here — not the UI
 
 @group_size = 4
 @balance = gender,scores
 @overflow = even
-@group_name = "Group %d"
+@group_name = "Lab %d"
+@name_dynamic = true
+@iterations = 5000
+@arrange_by = score
+@strict = false
 
+// Students with scores, gender, roles, tags, and bands
 Alice: +Bob -Charlie score=92 gender=F role=leader
-Bob: +Alice -Diana score=78 gender=M
-Charlie: -Alice +Eve score=85 gender=M
-Diana: +Eve -Bob score=90 gender=F
-Eve: +Diana +Charlie score=88 gender=F
-Frank: +Alice score=72 gender=M tag=honors
-Grace: -Frank +Diana score=95 gender=F band=high`;
+Bob: +Alice -Diana score=78 gender=M role=dev
+Charlie: -Alice +Eve score=85 gender=M role=dev
+Diana: +Eve -Bob score=90 gender=F role=design
+Eve: +Diana +Charlie score=88 gender=F role=dev
+Frank: +Alice score=72 gender=M tag=honors band=low
+Grace: -Frank +Diana score=95 gender=F band=high
+Henry: +Bob -Grace score=80 gender=M role=qa
+Ivy: +Eve score=83 gender=F tag=honors leader
+
+// Conditional: if more than 8 students, enforce score balancing
+if(count > 8) { @balance = scores,gender }
+
+// Conditional: if any score >= 95, separate high-band students
+if(any_score >= 95) { @band_width = 12 }`;
 
 // ===== INIT =====
 textarea.value = DEFAULT_SIMPLE;
@@ -661,11 +676,14 @@ document.addEventListener('mousemove', function(e) {
 });
 
 // Global drag end cleanup - ensures no stuck drag indicators
-document.addEventListener('dragend', function() {
-    document.querySelectorAll('.r-item').forEach(function(el) {
-        el.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
-    });
-    rosterDragSrcIdx = null;
+document.addEventListener('dragend', function(e) {
+    // Only clean up roster drag indicators, not file drag
+    if (rosterDragSrcIdx !== null) {
+        document.querySelectorAll('.r-item').forEach(function(el) {
+            el.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+        });
+        rosterDragSrcIdx = null;
+    }
 });
 
 loadStorage();
@@ -904,11 +922,13 @@ function renderRoster() {
     }
     manualRosterOrder = [...keys];
 
+    document.getElementById('student-count').textContent = keys.length;
+
     if (keys.length === 0) { rosterBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-10 font-bold uppercase">Ready</div>'; return; }
 
-    // In Simple mode, manual drag is always available; in Advanced, only when sort is "manual"
+    // In Simple mode, drag is always available; in Advanced, drag is disabled (order defined in code)
     const isSimple = currentLang === 'simple';
-    const canDrag = isSimple || sortMode === 'manual';
+    const canDrag = isSimple && sortMode === 'manual';
     rosterBox.innerHTML = keys.map(function(k, idx) {
         const s = students[k];
         const ex = [];
@@ -927,15 +947,21 @@ function renderRoster() {
                         '<span class="text-[10px] text-red-400">-' + s.avoids.size + '</span>';
         }
 
+        // Drag handle indicator for manual sort mode
+        let dragHandle = '';
+        if (canDrag) {
+            dragHandle = '<span class="text-slate-600 mr-1 cursor-grab" style="font-size:10px">&#9776;</span>';
+        }
+
         return '<div class="r-item flex items-center justify-between p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/50"' +
             ' draggable="' + (canDrag ? 'true' : 'false') + '"' +
-            ' data-key="' + esc(k) + '"' +
+            ' data-key="' + esc(k) + '" data-idx="' + idx + '"' +
             ' ondblclick="startRename(this, \'' + esc(k) + '\')"' +
             ' onmouseenter="showRosterTip(event, \'' + esc(k) + '\')"' +
             ' onmouseleave="hideRosterTip()"' +
             (canDrag ? ' ondragstart="rDragStart(event,' + idx + ')" ondragover="rDragOver(event)" ondrop="rDrop(event,' + idx + ')" ondragend="rDragEnd(event)"' : '') +
             '>' +
-            '<span class="text-xs font-bold text-slate-300 rename-target">' + esc(s.originalName) + '</span>' +
+            '<div class="flex items-center">' + dragHandle + '<span class="text-xs font-bold text-slate-300 rename-target">' + esc(s.originalName) + '</span></div>' +
             '<div class="flex gap-2 font-mono items-center">' + ex.join('') + countHTML + '</div>' +
         '</div>';
     }).join('');
@@ -974,28 +1000,52 @@ function rDragStart(e, idx) {
     rosterDragSrcIdx = idx;
     e.target.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    // Use a small delay to prevent immediate dragend
-    e.dataTransfer.setData('text/plain', '');
+    e.dataTransfer.setData('text/plain', 'roster-item');
+    // Needed for Firefox compatibility
+    e.dataTransfer.setData('text/x-roster-idx', idx.toString());
 }
 function rDragOver(e) {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     const rect = e.currentTarget.getBoundingClientRect();
     const mid = rect.top + rect.height / 2;
-    // Clear all indicators on this item first
-    e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+    // Clear all indicators on roster items first
+    document.querySelectorAll('.r-item').forEach(function(el) {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
     if (e.clientY < mid) e.currentTarget.classList.add('drag-over-top');
     else e.currentTarget.classList.add('drag-over-bottom');
 }
 function rDrop(e, targetIdx) {
     e.preventDefault();
-    e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+    e.stopPropagation();
+    // Clean up indicators
+    document.querySelectorAll('.r-item').forEach(function(el) {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
     if (rosterDragSrcIdx === null || rosterDragSrcIdx === targetIdx) return;
-    const item = manualRosterOrder.splice(rosterDragSrcIdx, 1)[0];
+    
+    // Calculate insert position based on mouse position relative to target
     const rect = e.currentTarget.getBoundingClientRect();
     const mid = rect.top + rect.height / 2;
-    const insertIdx = e.clientY < mid ? targetIdx : targetIdx + 1;
-    const adjustedIdx = rosterDragSrcIdx < targetIdx ? insertIdx - 1 : insertIdx;
-    manualRosterOrder.splice(adjustedIdx, 0, item);
+    const insertBefore = e.clientY < mid;
+    
+    // Create a new order array
+    const newOrder = [...manualRosterOrder];
+    const item = newOrder.splice(rosterDragSrcIdx, 1)[0];
+    
+    // Adjust target index after removal
+    let adjustedTarget = targetIdx;
+    if (rosterDragSrcIdx < targetIdx) adjustedTarget--;
+    
+    // Insert at the right position
+    if (insertBefore) {
+        newOrder.splice(adjustedTarget, 0, item);
+    } else {
+        newOrder.splice(adjustedTarget + 1, 0, item);
+    }
+    
+    manualRosterOrder = newOrder;
     document.getElementById('rosterSort').value = 'manual';
     rosterDragSrcIdx = null;
     renderRoster();
@@ -1363,22 +1413,29 @@ function updateLangTabs() {
     const addGroupBtn = document.getElementById('addGroupBtn');
     const rosterSort = document.getElementById('rosterSort');
     const optManual = document.getElementById('opt-manual');
+    const sortAdvHint = document.getElementById('sortAdvHint');
 
     if (isAdv) {
         perGroupWrap.classList.add('adv-disabled');
         overflowBar.classList.add('adv-disabled');
         addGroupBtn.classList.add('adv-disabled');
-        // Disable manual sort option in advanced (order is in code)
+        // Disable entire roster sort in advanced (order & sorting defined in code)
+        rosterSort.classList.add('adv-disabled-no-pseudo');
+        rosterSort.disabled = true;
         optManual.disabled = true;
         optManual.style.color = '#334155';
+        if (sortAdvHint) sortAdvHint.style.display = '';
         // If currently on manual, switch to editor sort
         if (rosterSort.value === 'manual') { rosterSort.value = 'editor'; }
     } else {
         perGroupWrap.classList.remove('adv-disabled');
         overflowBar.classList.remove('adv-disabled');
         addGroupBtn.classList.remove('adv-disabled');
+        rosterSort.classList.remove('adv-disabled-no-pseudo');
+        rosterSort.disabled = false;
         optManual.disabled = false;
         optManual.style.color = '';
+        if (sortAdvHint) sortAdvHint.style.display = 'none';
     }
 }
 
@@ -1569,7 +1626,7 @@ function doExport() {
     classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
     const data = {
-        version: '3.5',
+        version: '3.6',
         exportedAt: new Date().toISOString(),
         classrooms: classroomsData,
         activeClassIndex: activeClass
@@ -2129,12 +2186,44 @@ function showVersions() {
 }
 function closeVersions() { document.getElementById('version-modal').style.display = 'none'; }
 function restoreVersion(idx) { const v = classrooms[activeClass].versions[idx]; if (v&&v.code) { textarea.value = v.code; isDefaultCode = false; runIDE(); toast('Restored v'+(idx+1), 'success'); } closeVersions(); }
-function pushVersion() { const cl = classrooms[activeClass]; if (!cl.versions) cl.versions = []; cl.versions.push({ code: textarea.value, time: Date.now() }); if (cl.versions.length > 3) cl.versions.shift(); document.getElementById('verLabel').textContent = 'v' + cl.versions.length + '/3'; }
+function pushVersion() {
+    // Save current editor code to the active classroom slot first
+    const cl = classrooms[activeClass];
+    if (currentLang === 'simple') cl.codeSimple = textarea.value;
+    else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
+    if (!cl.versions) cl.versions = [];
+    cl.versions.push({ code: textarea.value, time: Date.now() });
+    if (cl.versions.length > 3) cl.versions.shift();
+    document.getElementById('verLabel').textContent = 'v' + cl.versions.length + '/3';
+}
 
 // ===== SAVE =====
-function scheduleAutoSave() { if (autoSaveTimer) clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(function() { if (saveConfig.timed) saveStorage(); }, (saveConfig.timedInterval||60)*1000); }
-function checkEditSave() { if (saveConfig.edits && editCountSinceSave >= (saveConfig.editsCount||25)) { editCountSinceSave = 0; pushVersion(); saveStorage(); document.getElementById('savedLabel').textContent = 'Auto-saved'; } }
-function manualSave() { pushVersion(); saveStorage(); document.getElementById('savedLabel').textContent = 'Saved'; toast('Saved', 'success'); }
+function scheduleAutoSave() {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(function() {
+        if (saveConfig.timed) {
+            saveStorage();
+            document.getElementById('savedLabel').textContent = 'Auto-saved ' + new Date().toLocaleTimeString();
+        }
+        // Restart the timer for recurring timed saves
+        scheduleAutoSave();
+    }, (saveConfig.timedInterval||60)*1000);
+}
+function checkEditSave() {
+    if (saveConfig.edits && editCountSinceSave >= (saveConfig.editsCount||25)) {
+        editCountSinceSave = 0;
+        pushVersion();
+        saveStorage();
+        document.getElementById('savedLabel').textContent = 'Auto-saved';
+    }
+}
+function manualSave() {
+    editCountSinceSave = 0;
+    pushVersion();
+    saveStorage();
+    document.getElementById('savedLabel').textContent = 'Saved';
+    toast('Saved', 'success');
+}
 
 // ===== ACTIVE JSON BACKUP =====
 function saveActiveJSON() {
@@ -2181,7 +2270,7 @@ function saveActiveJSON() {
         classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
         const data = {
-            version: '3.5',
+            version: '3.6',
             exportedAt: new Date().toISOString(),
             classrooms: classroomsData,
             activeClassIndex: activeClass
@@ -2274,83 +2363,145 @@ function openDocs() {
             '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
         '</button></div></div>' +
 
-        '<div class="docs-section open"><h4>Basic Syntax</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
-        '<p>Define a student: <code>Name: +Want -Avoid</code>. Each student gets their own line.</p>' +
-        '<p><code>Alice: +Bob -Charlie</code> means Alice wants to be with Bob, avoid Charlie.</p>' +
-        '<p>Weighted wants: <code>+Name@8</code> (1-10, default 5). Higher = stronger preference.</p>' +
-        '<p>Comments: <code>//</code> or <code>#</code></p></div></div>' +
+        // ===== GETTING STARTED =====
+        '<div class="docs-section open"><h4>Getting Started</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p>GroupLogic IDE is a <b>code-driven</b> constraint-satisfaction group generator. Instead of clicking buttons to configure groups, you write code that defines your students, their preferences, and how groups should be formed. The editor <b>is</b> the interface.</p>' +
+        '<p>Every time you edit code, the engine runs automatically using <b>Monte Carlo sampling + Hill Climbing</b> optimization. This means it tries thousands of random groupings, picks the best one, then refines it further by swapping conflicting students.</p>' +
+        '<p><b>Simple mode</b> is for quick grouping with just names and preferences. <b>Advanced mode</b> adds scores, gender, roles, directives, conditionals, and full control over the grouping algorithm. In Advanced mode, UI controls like Per Group size, Overflow, and + Group are disabled because they are defined by your code directives instead.</p>' +
+        '<p>The <b>Active Roster</b> panel shows all defined students. In Simple mode, switch the sort to "Manual" and drag items to reorder. In Advanced mode, the roster order follows your editor code.</p></div></div>' +
+
+        // ===== BASIC SYNTAX =====
+        '<div class="docs-section open"><h4>Basic Syntax (Simple & Advanced)</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p>Define a student: <code>Name: +Want -Avoid</code>. Each student gets their own line. The colon separates the student name from their constraints.</p>' +
+        '<p><code>Alice: +Bob -Charlie</code> means Alice wants to be with Bob (positive constraint), and wants to avoid Charlie (negative constraint).</p>' +
+        '<p>Weighted wants: <code>+Name@8</code> (1-10, default 5). Higher weight = stronger preference. The engine scores fulfilled wants proportionally to their weight.</p>' +
+        '<p>Multiple wants/avoids: <code>Alice: +Bob +Diana -Charlie -Eve</code> — you can have any number of + and - targets on a single line.</p>' +
+        '<p>Comments: <code>//</code> or <code>#</code> — lines starting with these are ignored by the parser.</p>' +
+        '<p><b>Undefined target warning:</b> If you reference a name in + or - that has no definition line of its own, it will show a yellow dotted underline. Add a definition line for that name to resolve it.</p></div></div>' +
 
         (isAdv ?
+        // ===== SCORES & BANDING =====
         '<div class="docs-section"><h4>Scores & Banding</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
-        '<p><code>score=85</code> - numeric score for grouping by ability.</p>' +
-        '<p><code>band=high</code> - categorical band label.</p>' +
-        '<p><code>@balance = scores</code> - group similar scores together.</p>' +
-        '<p><code>@band_width = 10</code> - max score spread within a group.</p></div></div>' +
+        '<p><code>score=85</code> assigns a numeric score to a student. This is used for ability-based grouping and statistical analysis within groups.</p>' +
+        '<p><code>band=high</code> assigns a categorical band label. Bands are string labels (high, mid, low, honors, etc.) that you define. They can be used for tag-based grouping constraints.</p>' +
+        '<p><code>@balance = scores</code> tells the engine to form groups with similar score distributions. Students with close scores will be placed together, minimizing within-group score variance.</p>' +
+        '<p><code>@band_width = 10</code> sets the maximum allowed score spread within any single group. If the range (max-min) exceeds this, the group gets a heavy scoring penalty, pushing the optimizer toward tighter groupings.</p>' +
+        '<p><b>Example:</b> With <code>@band_width=10</code>, a group containing a score=95 and a score=78 student would have a spread of 17, exceeding the bandwidth, so the engine will try to avoid that combination.</p></div></div>' +
 
-        '<div class="docs-section"><h4>Gender & Age</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
-        '<p><code>gender=M</code> / <code>gender=F</code> / <code>gender=X</code></p>' +
-        '<p><code>age=16</code> - used with <code>@balance=age</code></p>' +
-        '<p><code>@balance=gender</code> - balance gender ratios across groups.</p></div></div>' +
+        // ===== GENDER & AGE =====
+        '<div class="docs-section"><h4>Gender & Age Balancing</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>gender=M</code> / <code>gender=F</code> / <code>gender=X</code> — assign a gender category. These are arbitrary labels; you can use any string.</p>' +
+        '<p><code>age=16</code> — numeric age value, used with <code>@balance=age</code> to group students of similar ages.</p>' +
+        '<p><code>@balance = gender</code> balances gender ratios across groups. The engine penalizes groups where M and F counts are far apart, pushing toward even distributions.</p>' +
+        '<p><code>@balance = gender,scores</code> — you can combine multiple balance criteria with commas. The engine optimizes for all of them simultaneously.</p>' +
+        '<p><b>How balancing works:</b> For gender, it minimizes abs(female_count - male_count) in each group. For scores, it minimizes the variance within each group. The penalties are additive in the scoring function.</p></div></div>' +
 
+        // ===== ROLES & LEADERS =====
         '<div class="docs-section"><h4>Roles & Leaders</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
-        '<p><code>role=pm</code> - assign a role (no quotes needed).</p>' +
-        '<p><code>leader</code> - flag as group leader. One leader per group when possible.</p>' +
-        '<p><code>@balance=roles</code> - spread different roles across groups.</p></div></div>' +
+        '<p><code>role=pm</code> assigns a role to the student. Roles are freeform strings — use whatever makes sense for your context (pm, dev, design, qa, researcher, etc.).</p>' +
+        '<p><code>leader</code> flags a student as a group leader. The engine tries to place exactly one leader per group. If multiple leaders end up in the same group, the configuration receives a -500 score penalty.</p>' +
+        '<p><code>@balance = roles</code> distributes different roles across groups. It penalizes groups where all members share the same role, encouraging diversity of roles within each group.</p>' +
+        '<p><code>@name_dynamic = true</code> names groups after their leader instead of "Group 1", "Group 2", etc. The leader\'s name becomes the group name: "Alice\'s Group".</p></div></div>' +
 
-        '<div class="docs-section"><h4>Conditional Constraints</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
-        '<p><code>if(count > 10) { +Alice }</code> - apply only when condition is true.</p>' +
-        '<p><code>if(has_role leader) { -Charlie }</code></p>' +
-        '<p><code>if(any_score => 90) { @balance = scores }</code></p>' +
-        '<p>Operators: >  <  =>  =<  ==  !=</p></div></div>' +
+        // ===== CONDITIONALS =====
+        '<div class="docs-section"><h4>Conditional Constraints (if)</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>if(condition) { constraints }</code> applies constraints only when the condition is true at parse time. This allows adaptive rules based on class size or student attributes.</p>' +
+        '<p><b>Available conditions:</b></p>' +
+        '<p><code>count > 10</code> — total number of defined students. Useful for switching strategies based on class size.</p>' +
+        '<p><code>has_role leader</code> — true if any student has the specified role. Use this to activate leader-dependent rules only when leaders exist.</p>' +
+        '<p><code>any_score >= 90</code> — true if any student has a score meeting the threshold. Useful for adjusting bandwidth or balance when high-scorers are present.</p>' +
+        '<p><b>Comparison operators:</b> <code>&gt;</code> <code>&lt;</code> <code>=&gt;</code> (greater or equal) <code>=&lt;</code> (less or equal) <code>==</code> <code>!=</code></p>' +
+        '<p><b>Example:</b> <code>if(count > 8) { @balance = scores,gender }</code> — only enforce score+gender balancing for larger classes. Small classes may not need it.</p></div></div>' +
 
-        '<div class="docs-section"><h4>Group Names & Overflow</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
-        '<p><code>@group_name = "Lab %d"</code> - %d = group number, %s = size.</p>' +
-        '<p><code>@name_dynamic = true</code> - name groups after their leader.</p>' +
-        '<p><code>@overflow = even</code> - distribute extra students evenly.</p>' +
-        '<p><code>@overflow = newgroup</code> - create a new group for overflow.</p>' +
-        '<p><code>@overflow = small</code> - smaller last group.</p></div></div>' +
+        // ===== GROUP CONFIGURATION =====
+        '<div class="docs-section"><h4>Group Configuration Directives</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@group_size = 4</code> — target number of students per group. This replaces the "Per Group" UI control in Advanced mode.</p>' +
+        '<p><code>@group_name = "Lab %d"</code> — custom group naming. <code>%d</code> = group number (1-indexed), <code>%s</code> = group size. Example: "Lab 1", "Lab 2", etc.</p>' +
+        '<p><code>@name_dynamic = true</code> — name groups after their leader instead of using the pattern. Overrides @group_name for groups that have a leader.</p>' +
+        '<p><code>@overflow = even|newgroup|small</code> — how to handle extra students that don\'t fill a complete group:</p>' +
+        '<p>&nbsp;&nbsp;<code>even</code> (default) — distribute overflow students evenly across groups, making some groups slightly larger.</p>' +
+        '<p>&nbsp;&nbsp;<code>newgroup</code> — create a new group for the remaining students, potentially making a smaller final group.</p>' +
+        '<p>&nbsp;&nbsp;<code>small</code> — the last group is intentionally smaller. All other groups are exactly @group_size.</p>' +
+        '<p><code>@min_group = 2</code> / <code>@max_group = 6</code> — hard bounds on group sizes. The engine respects these limits.</p></div></div>' +
 
-        '<div class="docs-section"><h4>Engine Tuning</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
-        '<p><code>@iterations = 5000</code> - more = better but slower.</p>' +
-        '<p><code>@hill_climb = 30</code> - more refinement rounds.</p>' +
-        '<p><code>@strict = true</code> - no avoid violations allowed.</p>' +
-        '<p><code>capacity=3</code> on a student - limit group size when present.</p>' +
-        '<p><code>exclude</code> flag - exclude from group generation.</p></div></div>'
+        // ===== SEPARATE & TOGETHER =====
+        '<div class="docs-section"><h4>Separate & Together Constraints</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@separate = Alice,Bob</code> — force these students into different groups. If they end up together, the engine applies a massive penalty (-50000 per pair violation) and counts it as a constraint violation.</p>' +
+        '<p><code>@together = Alice,Bob</code> — force these students into the same group. The engine will move them together during the Monte Carlo phase.</p>' +
+        '<p>Both directives accept comma-separated lists. With <code>@separate = A,B,C</code>, all pairs (A-B, A-C, B-C) are kept apart. With <code>@together = A,B,C</code>, all listed students are placed in the same group.</p></div></div>' +
+
+        // ===== ENGINE TUNING =====
+        '<div class="docs-section"><h4>Engine Tuning & Strict Mode</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@iterations = 5000</code> — number of Monte Carlo trials. More iterations = better chance of finding an optimal solution, but slower. Default is 2500.</p>' +
+        '<p><code>@hill_climb = 30</code> — number of Hill Climbing refinement rounds. Each round examines every student and tries to swap them out of conflicts. Default is 20.</p>' +
+        '<p><code>@strict = true</code> — in strict mode, any avoid violation is considered unacceptable. The engine label will show "STRICT" with the number of unresolved violations, making it clear when constraints cannot be satisfied.</p>' +
+        '<p><code>capacity=3</code> on a student — limits the group size when that student is present. If a student has capacity=3, no group containing them can exceed 3 members.</p>' +
+        '<p><code>exclude</code> flag — excludes the student from group generation entirely. They will not be placed in any group. Useful for tracking students who are absent.</p>' +
+        '<p><b>Scoring system:</b> Fulfilled wants add +500 per pair (scaled by weight). Avoid violations subtract -100000 per pair. Leader conflicts: -500. Solo groups: -5000. Balance penalties vary by type.</p></div></div>'
         : '') +
 
+        // ===== ARRANGE BY =====
+        (isAdv ?
+        '<div class="docs-section"><h4>Arrange By (Seeding Strategy)</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@arrange_by = score</code> — controls how the Monte Carlo phase initially seeds students into groups. Instead of purely random shuffling, students are pre-sorted by score, then slightly randomized. This gives the optimizer a better starting point.</p>' +
+        '<p><code>@arrange_by = gender</code> — pre-sorts by gender before randomization, creating a gender-alternating initial distribution.</p>' +
+        '<p><code>@arrange_by = age</code> — pre-sorts by age for age-balanced seeding.</p>' +
+        '<p>After the initial seeding, the engine applies 30% random perturbation to avoid getting stuck in local optima. The arrange_by directive only affects the starting point — the final result is determined by the full optimization process.</p></div></div>'
+        : '') +
+
+        // ===== DIRECTIVES REFERENCE =====
         '<div class="docs-section"><h4>Directives Reference</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
-        '<p><code>@group_size = 4</code></p><p><code>@min_group = 2</code> / <code>@max_group = 6</code></p>' +
-        '<p><code>@arrange_by = score|gender|age</code></p><p><code>@balance = gender,scores,roles,age</code></p>' +
-        '<p><code>@separate = Name1,Name2</code></p><p><code>@together = Name1,Name2</code></p>' +
-        '<p><code>@template = score-lab|gender-balance|leader-projects|basic</code></p></div></div>' +
+        '<p><code>@group_size = 4</code> — target students per group</p>' +
+        '<p><code>@min_group = 2</code> / <code>@max_group = 6</code> — size bounds</p>' +
+        '<p><code>@arrange_by = score|gender|age</code> — initial seeding strategy</p>' +
+        '<p><code>@balance = gender,scores,roles,age</code> — balance criteria (comma-separated)</p>' +
+        '<p><code>@band_width = 10</code> — max score spread within a group</p>' +
+        '<p><code>@overflow = even|newgroup|small</code> — overflow distribution mode</p>' +
+        '<p><code>@group_name = "Lab %d"</code> — custom group naming (%d=number, %s=size)</p>' +
+        '<p><code>@name_dynamic = true</code> — name groups after their leader</p>' +
+        '<p><code>@separate = Name1,Name2</code> — force into different groups</p>' +
+        '<p><code>@together = Name1,Name2</code> — force into same group</p>' +
+        '<p><code>@iterations = 5000</code> — Monte Carlo trial count</p>' +
+        '<p><code>@hill_climb = 30</code> — refinement rounds</p>' +
+        '<p><code>@strict = true</code> — no avoid violations allowed</p>' +
+        '<p><code>@template = score-lab|gender-balance|leader-projects|basic</code> — load a template</p>' +
+        '<p><code>@tag_balance = honors</code> — spread students with this tag across groups</p></div></div>' +
 
+        // ===== FILE TYPES & LOCKS =====
         '<div class="docs-section"><h4>File Types & Locks</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
-        '<p><code>.gls</code> - GroupLogic Simple (lock: s, Simple only)</p>' +
-        '<p><code>.gla</code> - GroupLogic Advanced (lock: a, Advanced only)</p>' +
-        '<p><code>.glu</code> - GroupLogic Universal (lock: u, both editors)</p>' +
-        '<p><code>.json</code> - Full export/import with all classrooms, lock, both editor codes, metadata</p>' +
-        '<p>Export as .gls/.gla/.glu directly from the Export dropdown — no need to dig through JSON.</p>' +
-        '<p>Proprietary files include a <code>// lock=</code> metadata comment that sets the classroom lock on import.</p>' +
-        '<p>Other file types (txt, md, html) only accepted if they contain <code>[[glu]]</code> marker (which is automatically stripped on import).</p>' +
+        '<p><code>.gls</code> — GroupLogic Simple (lock: s, Simple editor only). Contains Simple DSL code with a <code>// lock=s</code> metadata comment.</p>' +
+        '<p><code>.gla</code> — GroupLogic Advanced (lock: a, Advanced editor only). Contains Advanced DSL code with a <code>// lock=a</code> metadata comment.</p>' +
+        '<p><code>.glu</code> — GroupLogic Universal (lock: u, both editors). Contains both Simple and Advanced code separated by <code>=== SIMPLE ===</code> / <code>=== ADVANCED ===</code> markers.</p>' +
+        '<p><code>.json</code> — Full export/import with all classrooms, lock settings, both editor codes, student data, and group results. Use this for complete project backups.</p>' +
+        '<p>Export as .gls/.gla/.glu directly from the Export dropdown for quick sharing of just the code — no need to dig through JSON.</p>' +
+        '<p>Proprietary files include a <code>// lock=</code> metadata comment that automatically sets the classroom lock on import.</p>' +
+        '<p>Other file types (txt, md, html) only accepted if they contain the secret <code>[[glu]]</code> marker, which is automatically stripped on import so it won\'t appear in the editor.</p>' +
         '<p class="mt-2"><b>Classroom Lock System:</b></p>' +
-        '<p><code>U</code> (purple) = Universal - both Simple and Advanced editors open</p>' +
-        '<p><code>S</code> (green) = Simple only - Advanced editor locked</p>' +
-        '<p><code>A</code> (blue) = Advanced only - Simple editor locked</p>' +
-        '<p>Click the lock badge on a class tab to cycle U \u2192 S \u2192 A.</p>' +
-        '<p>The lock is stored per classroom and is included in exports.</p>' +
-        '<p>You can change the lock by cycling it on the class tab, or by editing the JSON export\'s lock field.</p>' +
-        '<p>Importing a <code>.gls</code> file only affects the Simple editor and doesn\'t touch Advanced (and vice versa for <code>.gla</code>).</p>' +
-        '<p><code>[[glu]]</code> is a secret tag that gets stripped on import \u2014 it will not appear in the editor after loading.</p></div></div>' +
+        '<p><code>U</code> (purple badge) = Universal — both Simple and Advanced editors available</p>' +
+        '<p><code>S</code> (green badge) = Simple only — Advanced editor tab is locked</p>' +
+        '<p><code>A</code> (blue badge) = Advanced only — Simple editor tab is locked</p>' +
+        '<p>Click the lock badge on a class tab to cycle U → S → A. The lock is stored per classroom and included in all exports.</p>' +
+        '<p><b>Import isolation:</b> Importing a <code>.gls</code> file only loads code into the Simple editor and never touches the Advanced editor (and vice versa for <code>.gla</code>). <code>.glu</code> files let you choose which editor receives the import.</p></div></div>' +
 
-        '<div class="docs-section"><h4>Advanced Mode Controls</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
-        '<p>In Advanced mode, many UI controls are <b>disabled</b> because they are defined by code directives instead:</p>' +
-        '<p><code>Per Group</code> \u2192 Use <code>@group_size = 4</code> in the editor</p>' +
-        '<p><code>Overflow</code> buttons \u2192 Use <code>@overflow = even|newgroup|small</code></p>' +
-        '<p><code>+ Group</code> button \u2192 Groups are auto-generated from the code</p>' +
-        '<p><code>Manual</code> roster sort \u2192 Roster order follows the editor code</p>' +
-        '<p>Disabled controls show an "In code" overlay. Switch to Simple mode to use these controls directly.</p>' +
+        // ===== ADVANCED MODE CONTROLS =====
+        '<div class="docs-section"><h4>Advanced Mode: Disabled UI Controls</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
+        '<p>In Advanced mode, many UI controls are <b>disabled</b> (greyed out with "In code" overlay) because they are controlled by code directives instead of buttons:</p>' +
+        '<p><code>Per Group</code> input → Use <code>@group_size = 4</code> in the editor</p>' +
+        '<p><code>Overflow</code> buttons → Use <code>@overflow = even|newgroup|small</code></p>' +
+        '<p><code>+ Group</code> button → Groups are auto-generated from the code. Adding empty groups manually doesn\'t make sense when the code defines group sizes.</p>' +
+        '<p><code>Roster Sort</code> dropdown → In Advanced mode, roster order follows the editor code. The "Manual" drag-reorder option is disabled because you should define order via code instead. Use <code>@arrange_by</code> for sorting strategies.</p>' +
+        '<p>Disabled controls show an "In code" indicator. Switch to Simple mode to use these controls directly with the UI.</p>' +
         '<p class="mt-2"><b>Simple Mode Controls:</b></p>' +
-        '<p>In Simple mode, all UI controls are active. Drag roster items to reorder manually. Use the Per Group input and Overflow buttons to configure grouping.</p></div></div>' +
+        '<p>In Simple mode, all UI controls are active. Set the roster sort to "Manual" to drag-and-drop reorder students. Use the Per Group input and Overflow buttons to configure grouping without writing directives.</p></div></div>' +
+
+        // ===== SAVE SYSTEM =====
+        '<div class="docs-section"><h4>Save System</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
+        '<p><b>Manual save:</b> Press <code>Ctrl+S</code> (or Cmd+S on Mac) to save immediately. This pushes a version snapshot and saves to browser localStorage.</p>' +
+        '<p><b>Timed save:</b> Enable in Save Settings. Automatically saves at a regular interval (default 60 seconds). The timer resets after each save.</p>' +
+        '<p><b>Edit count save:</b> Enable in Save Settings. Automatically saves after a certain number of edits (default 25). Resets the counter after each save.</p>' +
+        '<p><b>Version history:</b> Each manual save and auto-save pushes a version snapshot (max 3). Click the green version indicator in the status bar to view and restore previous versions.</p>' +
+        '<p><b>Active JSON backup:</b> On every engine run, a complete JSON snapshot of all classrooms is saved to localStorage. This provides a safety net even if you haven\'t explicitly saved.</p>' +
+        '<p><b>Export</b> creates a downloadable file. Use .json for full backups, .gls/.gla/.glu for sharing just the code.</p></div></div>' +
 
     '</div>';
 
