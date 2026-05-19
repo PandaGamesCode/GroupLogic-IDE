@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GroupLogic IDE v3.4</title>
+    <title>GroupLogic IDE v3.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap');
@@ -253,6 +253,54 @@
         .import-option.selected { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
         .import-option.override-opt:hover { border-color: #ef4444; }
         .import-option.override-opt.selected { border-color: #ef4444; background: rgba(239,68,68,0.08); }
+
+        /* ===== ADVANCED DISABLED CONTROLS ===== */
+        .adv-disabled {
+            opacity: 0.25 !important;
+            pointer-events: none !important;
+            cursor: not-allowed !important;
+            position: relative;
+        }
+        .adv-disabled::after {
+            content: 'In code';
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase;
+            letter-spacing: 0.05em; white-space: nowrap;
+        }
+        .adv-disabled-no-pseudo {
+            opacity: 0.25 !important;
+            pointer-events: none !important;
+            cursor: not-allowed !important;
+        }
+        .adv-code-hint {
+            font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase;
+            letter-spacing: 0.05em; white-space: nowrap; position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none;
+        }
+
+        /* ===== EXPORT DROPDOWN ===== */
+        .export-dropdown {
+            position: relative; display: inline-block;
+        }
+        .export-menu {
+            display: none; position: absolute; top: 100%; right: 0; margin-top: 4px;
+            background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+            min-width: 180px; z-index: 60; overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .export-menu.show { display: block; }
+        .export-menu-item {
+            padding: 8px 14px; font-size: 11px; font-weight: 700; color: #94a3b8;
+            cursor: pointer; transition: all 0.1s; display: flex; align-items: center; gap: 8px;
+            border-bottom: 1px solid rgba(51,65,85,0.5);
+        }
+        .export-menu-item:last-child { border-bottom: none; }
+        .export-menu-item:hover { background: rgba(59,130,246,0.1); color: #60a5fa; }
+        .export-menu-item .ext { font-family: 'Fira Code', monospace; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 800; }
+        .ext-json { background: rgba(234,179,8,0.15); color: #fbbf24; }
+        .ext-gls { background: rgba(74,222,128,0.15); color: #4ade80; }
+        .ext-gla { background: rgba(96,165,250,0.15); color: #60a5fa; }
+        .ext-glu { background: rgba(192,132,252,0.15); color: #c084fc; }
     </style>
 </head>
 <body class="p-4 lg:p-8">
@@ -268,7 +316,7 @@
                 <span class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">G</span>
                 GroupLogic IDE
             </h1>
-            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v3.4</p>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v3.5</p>
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
@@ -278,7 +326,7 @@
             </button>
 
             <div id="actionBar" class="bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50 flex items-center gap-3" style="transition: border-color 0.15s ease;">
-                <div class="px-2">
+                <div class="px-2" id="perGroupWrap" style="position:relative">
                     <span class="text-[9px] font-bold text-slate-500 uppercase block">Per Group</span>
                     <input type="number" id="group-size" value="4" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
                 </div>
@@ -287,10 +335,27 @@
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"/></svg>
                         Copy
                     </button>
-                    <button onclick="doExport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Export as JSON">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export
-                    </button>
+                    <div class="export-dropdown">
+                        <button onclick="toggleExportMenu()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Export">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Export
+                            <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="export-menu" id="exportMenu">
+                            <div class="export-menu-item" onclick="doExport()">
+                                <span class="ext ext-json">.json</span> All Classrooms
+                            </div>
+                            <div class="export-menu-item" onclick="doExportFile('gls')">
+                                <span class="ext ext-gls">.gls</span> Simple Code
+                            </div>
+                            <div class="export-menu-item" onclick="doExportFile('gla')">
+                                <span class="ext ext-gla">.gla</span> Advanced Code
+                            </div>
+                            <div class="export-menu-item" onclick="doExportFile('glu')">
+                                <span class="ext ext-glu">.glu</span> Universal Code
+                            </div>
+                        </div>
+                    </div>
                     <button onclick="triggerFileImport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Load file">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         Load
@@ -327,7 +392,7 @@
                     <div class="text-slate-500 italic">Monte Carlo + Hill Climbing</div>
                     <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 font-bold ml-auto flex items-center gap-1">Docs <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>
                 </div>
-                <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800">
+                <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800" id="overflowBar">
                     <span class="text-[9px] text-slate-600 font-bold uppercase self-center mr-1">Overflow:</span>
                     <button onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
                     <button onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
@@ -391,7 +456,7 @@
                         <select id="rosterSort" class="sort-select" onchange="renderRoster()">
                             <option value="editor">Editor</option>
                             <option value="abc">A-Z</option>
-                            <option value="manual">Manual</option>
+                            <option value="manual" id="opt-manual">Manual</option>
                         </select>
                         <span id="student-count" class="text-[10px] text-blue-400 font-mono font-bold">0</span>
                         <button onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
@@ -423,7 +488,7 @@
                 <div id="groups-list" class="scroll-v p-4 flex-1" style="min-height:0;"></div>
                 <div class="p-2.5 text-center border-t border-slate-800 bg-slate-900/30 flex justify-between items-center px-4">
                     <span id="engine-label" class="text-[9px] text-slate-500 font-bold uppercase italic tracking-tighter">Engine: MC 2500 + HC 20</span>
-                    <button onclick="addEmptyGroup()" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1">
+                    <button onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                         Group
                     </button>
@@ -471,7 +536,7 @@
 
 <script>
 // ========================================================================
-// GROUPLOGIC IDE v3.4 — ADVANCED BUILD
+// GROUPLOGIC IDE v3.5 — ADVANCED BUILD
 // ========================================================================
 
 const textarea = document.getElementById('editor-textarea');
@@ -505,7 +570,7 @@ let pendingImportContent = null;
 let pendingImportLang = null;
 
 // Default code
-const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v3.4
+const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v3.5
 // Syntax: Name: +Want -Avoid
 
 Alice: +Bob -Charlie
@@ -514,7 +579,7 @@ Charlie: -Alice +Eve
 Diana: +Eve -Bob
 Eve: +Diana +Charlie`;
 
-const DEFAULT_ADVANCED = `// GroupLogic IDE v3.4 - Advanced Mode
+const DEFAULT_ADVANCED = `// GroupLogic IDE v3.5 - Advanced Mode
 // Full DSL with scores, roles, directives
 
 @group_size = 4
@@ -841,8 +906,9 @@ function renderRoster() {
 
     if (keys.length === 0) { rosterBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-10 font-bold uppercase">Ready</div>'; return; }
 
-    const isManual = sortMode === 'manual';
+    // In Simple mode, manual drag is always available; in Advanced, only when sort is "manual"
     const isSimple = currentLang === 'simple';
+    const canDrag = isSimple || sortMode === 'manual';
     rosterBox.innerHTML = keys.map(function(k, idx) {
         const s = students[k];
         const ex = [];
@@ -862,12 +928,12 @@ function renderRoster() {
         }
 
         return '<div class="r-item flex items-center justify-between p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/50"' +
-            ' draggable="' + (isManual ? 'true' : 'false') + '"' +
+            ' draggable="' + (canDrag ? 'true' : 'false') + '"' +
             ' data-key="' + esc(k) + '"' +
             ' ondblclick="startRename(this, \'' + esc(k) + '\')"' +
             ' onmouseenter="showRosterTip(event, \'' + esc(k) + '\')"' +
             ' onmouseleave="hideRosterTip()"' +
-            (isManual ? ' ondragstart="rDragStart(event,' + idx + ')" ondragover="rDragOver(event)" ondrop="rDrop(event,' + idx + ')" ondragend="rDragEnd(event)"' : '') +
+            (canDrag ? ' ondragstart="rDragStart(event,' + idx + ')" ondragover="rDragOver(event)" ondrop="rDrop(event,' + idx + ')" ondragend="rDragEnd(event)"' : '') +
             '>' +
             '<span class="text-xs font-bold text-slate-300 rename-target">' + esc(s.originalName) + '</span>' +
             '<div class="flex gap-2 font-mono items-center">' + ex.join('') + countHTML + '</div>' +
@@ -1226,7 +1292,13 @@ function inspect(activeLow) {
 function uninspect() { document.querySelectorAll('.chip').forEach(function(el) { el.classList.remove('chip-active','chip-pos','chip-neg','chip-dim'); }); }
 
 // ===== ADD EMPTY GROUP =====
-function addEmptyGroup() { if (!currentGroups) currentGroups = []; currentGroups.push([]); renderGroups(currentGroups, 0); toast('Added empty group', 'info'); }
+function addEmptyGroup() {
+    if (currentLang === 'advanced') { toast('Groups are defined in code in Advanced mode', 'warn'); return; }
+    if (!currentGroups) currentGroups = [];
+    currentGroups.push([]);
+    renderGroups(currentGroups, 0);
+    toast('Added empty group', 'info');
+}
 
 // ===== OVERFLOW =====
 function setOverflowMode(mode) {
@@ -1270,6 +1342,7 @@ function switchLang(lang) {
 function updateLangTabs() {
     const cl = classrooms[activeClass];
     const lock = cl.lock || 'u';
+    const isAdv = currentLang === 'advanced';
 
     document.getElementById('lt-simple').className = 'lang-tab';
     document.getElementById('lt-advanced').className = 'lang-tab';
@@ -1282,6 +1355,31 @@ function updateLangTabs() {
     // Active tab
     if (currentLang === 'simple') { document.getElementById('lt-simple').classList.add('on-green'); document.getElementById('ref-simple').style.display = ''; document.getElementById('ref-advanced').style.display = 'none'; document.getElementById('langLabel').className = 'text-green-500 font-bold'; document.getElementById('langLabel').textContent = 'SIMPLE'; }
     else if (currentLang === 'advanced') { document.getElementById('lt-advanced').classList.add('on-blue'); document.getElementById('ref-simple').style.display = 'none'; document.getElementById('ref-advanced').style.display = ''; document.getElementById('langLabel').className = 'text-blue-400 font-bold'; document.getElementById('langLabel').textContent = 'ADVANCED'; }
+
+    // ===== Toggle Advanced-disabled controls =====
+    // In Advanced mode, things like @group_size, @overflow, groups, and manual sort are defined in code
+    const perGroupWrap = document.getElementById('perGroupWrap');
+    const overflowBar = document.getElementById('overflowBar');
+    const addGroupBtn = document.getElementById('addGroupBtn');
+    const rosterSort = document.getElementById('rosterSort');
+    const optManual = document.getElementById('opt-manual');
+
+    if (isAdv) {
+        perGroupWrap.classList.add('adv-disabled');
+        overflowBar.classList.add('adv-disabled');
+        addGroupBtn.classList.add('adv-disabled');
+        // Disable manual sort option in advanced (order is in code)
+        optManual.disabled = true;
+        optManual.style.color = '#334155';
+        // If currently on manual, switch to editor sort
+        if (rosterSort.value === 'manual') { rosterSort.value = 'editor'; }
+    } else {
+        perGroupWrap.classList.remove('adv-disabled');
+        overflowBar.classList.remove('adv-disabled');
+        addGroupBtn.classList.remove('adv-disabled');
+        optManual.disabled = false;
+        optManual.style.color = '';
+    }
 }
 
 function updateFileTypeLabel() {
@@ -1359,12 +1457,75 @@ function copyExport() {
     });
 }
 
+// ===== EXPORT MENU =====
+function toggleExportMenu() {
+    const menu = document.getElementById('exportMenu');
+    menu.classList.toggle('show');
+    // Close when clicking outside
+    if (menu.classList.contains('show')) {
+        setTimeout(function() {
+            document.addEventListener('click', closeExportMenuOutside, { once: true });
+        }, 10);
+    }
+}
+function closeExportMenuOutside(e) {
+    const menu = document.getElementById('exportMenu');
+    if (!e.target.closest('.export-dropdown')) {
+        menu.classList.remove('show');
+    }
+}
+
+// ===== EXPORT AS .gls/.gla/.glu FILE =====
+function doExportFile(type) {
+    // Save current editor first
+    const cl = classrooms[activeClass];
+    if (currentLang === 'simple') cl.codeSimple = textarea.value;
+    else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
+
+    let code = '';
+    let filename = '';
+    let lockField = '';
+
+    if (type === 'gls') {
+        code = cl.codeSimple || '';
+        filename = (cl.name || 'simple') + '.gls';
+        lockField = 's';
+    } else if (type === 'gla') {
+        code = cl.codeAdvanced || '';
+        filename = (cl.name || 'advanced') + '.gla';
+        lockField = 'a';
+    } else {
+        // .glu — universal, include both editors with a separator
+        const sCode = cl.codeSimple || '';
+        const aCode = cl.codeAdvanced || '';
+        code = '=== SIMPLE ===\n' + sCode + '\n\n=== ADVANCED ===\n' + aCode;
+        filename = (cl.name || 'universal') + '.glu';
+        lockField = 'u';
+    }
+
+    // Add lock metadata as a comment at the top
+    const metaComment = '// lock=' + lockField + ' class=' + cl.name + '\n';
+    const content = metaComment + code;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+
+    // Close the menu
+    document.getElementById('exportMenu').classList.remove('show');
+    toast('Exported as ' + filename, 'success');
+}
+
 // ===== EXPORT AS JSON =====
 function doExport() {
     // Save current editor to the active classroom first
     const activeCl = classrooms[activeClass];
     if (currentLang === 'simple') activeCl.codeSimple = textarea.value;
     else if (currentLang === 'advanced') activeCl.codeAdvanced = textarea.value;
+
+    // Close export menu
+    document.getElementById('exportMenu').classList.remove('show');
 
     // Helper: generate formatted DSL code with a header comment
     function formatGeneratedCode(code, modeLabel, className, fileExt) {
@@ -1408,7 +1569,7 @@ function doExport() {
     classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
     const data = {
-        version: '3.4',
+        version: '3.5',
         exportedAt: new Date().toISOString(),
         classrooms: classroomsData,
         activeClassIndex: activeClass
@@ -1708,7 +1869,23 @@ function confirmImport() {
         // Legacy: if codeSimple/codeAdvanced in generated_code fields
         if (data.generated_code_simple && !codeSimple) codeSimple = data.generated_code_simple;
         if (data.generated_code_advanced && !codeAdvanced) codeAdvanced = data.generated_code_advanced;
-    } catch (ex) { /* not JSON, use raw content */ }
+    } catch (ex) {
+        // Not JSON — check for // lock= metadata comment in .gls/.gla/.glu files
+        var lockMatch = codeContent.match(/^\/\/\s*lock=([sau])/m);
+        if (lockMatch) {
+            fileLock = lockMatch[1];
+            // Strip the lock metadata line from code
+            codeContent = codeContent.replace(/^\/\/\s*lock=[sau]\s*.*$/m, '').trim();
+        }
+        // For .glu files with === SIMPLE === / === ADVANCED === sections
+        if (fileType === 'glu' && codeContent.indexOf('=== SIMPLE ===') !== -1) {
+            var sections = codeContent.split(/===\s*(SIMPLE|ADVANCED)\s*===/);
+            for (var si = 1; si < sections.length; si += 2) {
+                if (sections[si] === 'SIMPLE' && sections[si+1]) codeSimple = sections[si+1].trim();
+                if (sections[si] === 'ADVANCED' && sections[si+1]) codeAdvanced = sections[si+1].trim();
+            }
+        }
+    }
 
     // Strip any remaining [[glu]] secret tags
     codeContent = codeContent.replace(/\[\[glu\]\]/g, '');
@@ -2004,7 +2181,7 @@ function saveActiveJSON() {
         classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
         const data = {
-            version: '3.4',
+            version: '3.5',
             exportedAt: new Date().toISOString(),
             classrooms: classroomsData,
             activeClassIndex: activeClass
@@ -2152,6 +2329,8 @@ function openDocs() {
         '<p><code>.gla</code> - GroupLogic Advanced (lock: a, Advanced only)</p>' +
         '<p><code>.glu</code> - GroupLogic Universal (lock: u, both editors)</p>' +
         '<p><code>.json</code> - Full export/import with all classrooms, lock, both editor codes, metadata</p>' +
+        '<p>Export as .gls/.gla/.glu directly from the Export dropdown — no need to dig through JSON.</p>' +
+        '<p>Proprietary files include a <code>// lock=</code> metadata comment that sets the classroom lock on import.</p>' +
         '<p>Other file types (txt, md, html) only accepted if they contain <code>[[glu]]</code> marker (which is automatically stripped on import).</p>' +
         '<p class="mt-2"><b>Classroom Lock System:</b></p>' +
         '<p><code>U</code> (purple) = Universal - both Simple and Advanced editors open</p>' +
@@ -2162,6 +2341,16 @@ function openDocs() {
         '<p>You can change the lock by cycling it on the class tab, or by editing the JSON export\'s lock field.</p>' +
         '<p>Importing a <code>.gls</code> file only affects the Simple editor and doesn\'t touch Advanced (and vice versa for <code>.gla</code>).</p>' +
         '<p><code>[[glu]]</code> is a secret tag that gets stripped on import \u2014 it will not appear in the editor after loading.</p></div></div>' +
+
+        '<div class="docs-section"><h4>Advanced Mode Controls</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
+        '<p>In Advanced mode, many UI controls are <b>disabled</b> because they are defined by code directives instead:</p>' +
+        '<p><code>Per Group</code> \u2192 Use <code>@group_size = 4</code> in the editor</p>' +
+        '<p><code>Overflow</code> buttons \u2192 Use <code>@overflow = even|newgroup|small</code></p>' +
+        '<p><code>+ Group</code> button \u2192 Groups are auto-generated from the code</p>' +
+        '<p><code>Manual</code> roster sort \u2192 Roster order follows the editor code</p>' +
+        '<p>Disabled controls show an "In code" overlay. Switch to Simple mode to use these controls directly.</p>' +
+        '<p class="mt-2"><b>Simple Mode Controls:</b></p>' +
+        '<p>In Simple mode, all UI controls are active. Drag roster items to reorder manually. Use the Per Group input and Overflow buttons to configure grouping.</p></div></div>' +
 
     '</div>';
 
