@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GroupLogic IDE v3.6</title>
+    <title>GroupLogic IDE v8.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap');
@@ -13,47 +13,194 @@
 
         /* ===== IDE LAYOUT ===== */
         .editor-container {
-            position: relative; background: #1e293b; border-radius: 12px;
-            border: 1px solid #334155; height: 520px; width: 100%;
+            display: flex; flex-direction: column;
+            background: #1e293b; border-radius: 12px;
+            border: 1px solid #334155; width: 100%;
             overflow: hidden; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
             transition: border-color 0.15s ease;
         }
         .editor-container.drag-over { border-color: #60a5fa; }
+        .editor-scroll-wrap {
+            position: relative;
+            flex: 1; min-height: 0;
+            overflow: hidden;
+            background: #1e293b;
+        }
+        /* ===== EDITOR OVERLAY v8.1 =====
+           PROVEN UNIVERSAL APPROACH (used by CodeFlask, Prism Live, etc.):
+           Highlighter BEHIND (z-index:1): renders colored syntax text
+           on an OPAQUE background (#1e293b). This is the "canvas" the user sees.
+           Textarea ON TOP (z-index:2): receives keyboard input.
+           Its background is TRANSPARENT so the highlighter's colored text
+           shows through. Its text color is TRANSPARENT (invisible) so only
+           the highlighter's colored syntax text is visible. Caret is visible.
+           Both use white-space:pre (NO wrapping), identical font metrics.
+           Highlighter scroll is sync'd via CSS transform. */
         #editor-textarea, #editor-highlight {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            padding: 52px 24px 20px 24px; margin: 0; border: none;
-            font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.65;
-            white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; background: transparent;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            padding: 16px 20px; margin: 0; border: none;
+            font-family: 'Fira Code', monospace; font-size: 13px; line-height: 22px;
+            white-space: pre;
+            tab-size: 4;
+            font-variant-ligatures: none;
+            box-sizing: border-box;
         }
+        .hl-line {
+            min-height: 22px;
+            line-height: 22px;
+            white-space: pre;
+        }
+        /* Highlighter BEHIND — renders colored syntax text on opaque bg.
+           This is the visual layer the user actually sees.
+           z-index:1 puts it behind the textarea.
+           background:#1e293b provides the dark editor background.
+           overflow:auto lets it scroll its own content to match the textarea.
+           Scrollbars are HIDDEN (we see the textarea's scrollbars instead).
+           pointer-events:none so clicks pass through to the textarea.
+           v8.1: Uses scrollTop/scrollLeft sync instead of CSS transform —
+           the transform approach caused text to be cut off when scrolling
+           because it moved the entire element, leaving a gap at the bottom. */
+        #editor-highlight {
+            z-index: 1;
+            overflow: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            pointer-events: none;
+            color: #94a3b8;
+            background: #1e293b;
+        }
+        #editor-highlight::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        /* Textarea ON TOP — receives keyboard input.
+           background:TRANSPARENT so the highlighter's colored text shows through.
+           Text is invisible (transparent) so only the highlighter's colored
+           syntax text is visible. Caret is blue and visible.
+           This is the universal approach that works across ALL browsers. */
         #editor-textarea {
-            color: transparent; caret-color: #60a5fa; z-index: 2;
-            resize: none; outline: none; -webkit-text-fill-color: transparent;
+            z-index: 2;
+            overflow-y: scroll; overflow-x: auto;
+            scrollbar-width: thin; scrollbar-color: #475569 transparent;
+            color: transparent !important;
+            caret-color: #60a5fa !important;
+            -webkit-text-fill-color: transparent !important;
+            resize: none; outline: none;
+            background: transparent !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
         }
-        #editor-highlight { z-index: 1; pointer-events: none; color: #94a3b8; }
+        #editor-textarea::-webkit-scrollbar { width: 6px; height: 6px; }
+        #editor-textarea::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        #editor-textarea::-webkit-scrollbar-track { background: transparent; }
+        #editor-textarea::selection { background: rgba(59,130,246,0.3); }
 
-        /* ===== SYNTAX THEME ===== */
-        .t-name { color: #60a5fa; font-weight: 700; }
-        .t-op { color: #475569; font-weight: bold; }
+        /* ===== EDITOR DEBUG (v6.0 Enhanced) ===== */
+        .editor-debug {
+            position: absolute; top: 4px; right: 4px; z-index: 100;
+            background: rgba(2,6,23,0.96); border: 1px solid #334155; border-radius: 10px;
+            font-family: 'Fira Code', monospace; font-size: 9px;
+            color: #94a3b8; line-height: 1.5; white-space: pre;
+            display: none; max-width: 460px; max-height: 90%; overflow-y: auto;
+            scrollbar-width: thin; scrollbar-color: #334155 transparent;
+            pointer-events: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        .editor-debug.visible { display: flex; flex-direction: column; }
+        .editor-debug::-webkit-scrollbar { width: 4px; }
+        .editor-debug::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .editor-debug .dbg-warn { color: #fbbf24; }
+        .editor-debug .dbg-err { color: #f87171; }
+        .editor-debug .dbg-ok { color: #4ade80; }
+        .editor-debug .dbg-info { color: #60a5fa; }
+        .editor-debug .dbg-dim { color: #475569; }
+        .editor-debug .dbg-hdr {
+            background: rgba(51,65,85,0.5); padding: 6px 10px; border-radius: 10px 10px 0 0;
+            font-weight: 700; font-size: 10px; color: #e2e8f0; display: flex;
+            align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 5;
+            cursor: grab; user-select: none;
+        }
+        .editor-debug .dbg-hdr:active { cursor: grabbing; }
+        .editor-debug .dbg-hdr-btns { display: flex; gap: 4px; }
+        .editor-debug .dbg-btn {
+            background: rgba(51,65,85,0.6); border: 1px solid #475569; border-radius: 4px;
+            color: #94a3b8; font-size: 8px; font-weight: 700; padding: 2px 6px;
+            cursor: pointer; font-family: 'Fira Code', monospace; text-transform: uppercase;
+            transition: all 0.1s;
+        }
+        .editor-debug .dbg-btn:hover { background: rgba(59,130,246,0.2); color: #60a5fa; border-color: #3b82f6; }
+        .editor-debug .dbg-btn:active { transform: scale(0.95); }
+        .editor-debug .dbg-btn.btn-copy:hover { background: rgba(74,222,128,0.2); color: #4ade80; border-color: #22c55e; }
+        .editor-debug .dbg-btn.btn-scan:hover { background: rgba(251,191,36,0.2); color: #fbbf24; border-color: #d97706; }
+        .editor-debug .dbg-btn.btn-close:hover { background: rgba(239,68,68,0.2); color: #f87171; border-color: #ef4444; }
+        .editor-debug .dbg-body { padding: 8px 10px; overflow-y: auto; }
+        .editor-debug .dbg-section {
+            border-bottom: 1px solid rgba(51,65,85,0.4); padding-bottom: 6px; margin-bottom: 6px;
+        }
+        .editor-debug .dbg-section:last-child { border-bottom: none; margin-bottom: 0; }
+        .editor-debug .dbg-section-title {
+            color: #60a5fa; font-weight: 700; font-size: 9px; margin-bottom: 2px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .editor-debug .dbg-line-sample {
+            display: flex; align-items: flex-start; gap: 6px; padding: 1px 0;
+        }
+        .editor-debug .dbg-linenum {
+            color: #475569; min-width: 24px; text-align: right; flex-shrink: 0;
+        }
+        .editor-debug .dbg-val { color: #e2e8f0; }
+        .editor-debug .dbg-status-bar {
+            background: rgba(51,65,85,0.3); border-radius: 4px; padding: 4px 8px;
+            margin-top: 4px; font-weight: 700; text-align: center; font-size: 10px;
+        }
+        .editor-debug .dbg-timeline {
+            background: #1e293b; border-radius: 3px; height: 6px; position: relative;
+            margin: 3px 0; overflow: hidden;
+        }
+        .editor-debug .dbg-timeline-fill {
+            position: absolute; top: 0; left: 0; bottom: 0; background: #3b82f6; border-radius: 3px;
+            transition: width 0.1s;
+        }
+        /* Syntax error indicators — use text-decoration ONLY (no border/margin/padding)
+           border-bottom adds extra height and shifts all text below it, causing
+           highlighter/textarea misalignment. text-decoration is purely visual. */
+        .t-syntax-err {
+            text-decoration: wavy underline;
+            text-decoration-color: #ef4444;
+            text-underline-offset: 3px;
+            background: rgba(239,68,68,0.08);
+        }
+
+        /* ===== SYNTAX THEME =====
+           CRITICAL: NO font-weight changes on inline tokens!
+           font-weight: bold can change character advance widths even in
+           monospace fonts (different glyph shapes → different wrapping),
+           causing highlighter/textarea misalignment. Use color only. */
+        .t-name { color: #60a5fa; }
+        .t-op { color: #475569; }
         .t-want { color: #4ade80; }
         .t-avoid { color: #f87171; }
-        .t-comment { color: #334155; font-style: italic; }
-        .t-err { border-bottom: 2px dotted #eab308; }
-        .t-directive { color: #c084fc; font-weight: 600; }
+        .t-comment { color: #334155; }
+        .t-err { text-decoration: dotted underline; text-decoration-color: #eab308; text-underline-offset: 3px; }
+        .t-directive { color: #c084fc; }
         .t-key { color: #38bdf8; }
         .t-val { color: #fbbf24; }
-        .t-flag { color: #2dd4bf; font-weight: 600; }
+        .t-flag { color: #2dd4bf; }
         .t-assign { color: #64748b; }
         .t-score { color: #22d3ee; }
         .t-role { color: #fb923c; }
         .t-task { color: #a78bfa; }
         .t-weight { color: #f472b6; }
-        .t-cond { color: #f59e0b; font-weight: 700; }
-        .t-if { color: #fb923c; font-weight: 800; }
+        .t-cond { color: #f59e0b; }
+        .t-if { color: #fb923c; }
+        .t-strategy { color: #fb923c; }  /* mixed, similar, random in @rounds */
+        .t-round-key { color: #22d3ee; }  /* score, gender in @rounds context */
+        .t-round-name { color: #a78bfa; font-weight: 600; }  /* custom round names in quotes */
 
         /* ===== LANGUAGE TABS ===== */
         .lang-bar {
-            position: absolute; top: 0; left: 0; right: 0; display: flex; z-index: 3;
-            background: rgba(15,23,42,0.6); border-bottom: 1px solid #334155;
+            display: flex; flex-shrink: 0; z-index: 10;
+            background: #0f172a; border-bottom: 1px solid #334155;
         }
         .lang-tab {
             padding: 10px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase;
@@ -179,15 +326,9 @@
         }
         .group-block:hover { border-color: #475569; }
 
-        /* ===== GROUP CARD VIEW ===== */
-        .group-carousel {
-            display: flex; gap: 12px; overflow-x: auto; padding: 8px 4px;
-            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
-        }
-        .group-carousel::-webkit-scrollbar { height: 4px; }
-        .group-carousel::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        /* ===== GROUP CARD VIEW (wrapping grid) ===== */
         .group-card {
-            min-width: 160px; max-width: 200px; flex-shrink: 0;
+            flex: 1 1 160px; max-width: 220px; min-width: 150px;
             background: rgba(30,41,59,0.6); border: 1px solid #334155; border-radius: 12px; padding: 10px;
         }
 
@@ -256,26 +397,50 @@
 
         /* ===== ADVANCED DISABLED CONTROLS ===== */
         .adv-disabled {
-            opacity: 0.25 !important;
+            opacity: 0.2 !important;
             pointer-events: none !important;
             cursor: not-allowed !important;
             position: relative;
+            overflow: visible !important;
         }
         .adv-disabled::after {
             content: 'In code';
             position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-            font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase;
-            letter-spacing: 0.05em; white-space: nowrap;
+            font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase;
+            letter-spacing: 0.1em; white-space: nowrap; z-index: 30;
+            background: rgba(15,23,42,0.9); padding: 3px 8px; border-radius: 4px;
+            border: 1px solid #334155;
         }
         .adv-disabled-no-pseudo {
-            opacity: 0.25 !important;
+            opacity: 0.2 !important;
             pointer-events: none !important;
             cursor: not-allowed !important;
+            position: relative;
+            overflow: visible !important;
         }
         .adv-code-hint {
-            font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase;
-            letter-spacing: 0.05em; white-space: nowrap; position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none;
+            font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase;
+            letter-spacing: 0.1em; white-space: nowrap; position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; z-index: 30;
+            background: rgba(15,23,42,0.9); padding: 3px 8px; border-radius: 4px;
+            border: 1px solid #334155;
+        }
+
+        /* ===== EDITOR RESIZE HANDLE ===== */
+        .editor-resize-handle {
+            height: 8px; cursor: ns-resize; background: transparent;
+            display: flex; align-items: center; justify-content: center;
+            margin-top: -2px; margin-bottom: -2px; position: relative; z-index: 10;
+        }
+        .editor-resize-handle::after {
+            content: ''; width: 40px; height: 3px; border-radius: 2px;
+            background: #334155; transition: background 0.15s;
+        }
+        .editor-resize-handle:hover::after { background: #60a5fa; }
+
+        /* ===== GROUP GRID VIEW ===== */
+        .group-grid {
+            display: flex; flex-wrap: wrap; gap: 10px;
         }
 
         /* ===== EXPORT DROPDOWN ===== */
@@ -316,7 +481,7 @@
                 <span class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">G</span>
                 GroupLogic IDE
             </h1>
-            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v3.6</p>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v8.1</p>
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
@@ -325,8 +490,8 @@
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             </button>
 
-            <div id="actionBar" class="bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50 flex items-center gap-3" style="transition: border-color 0.15s ease;">
-                <div class="px-2" id="perGroupWrap" style="position:relative">
+            <div id="actionBar" class="bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50 flex items-center gap-3" style="transition: border-color 0.15s ease; overflow: visible;">
+                <div class="px-2 py-1" id="perGroupWrap" style="position:relative; min-width:50px; min-height:36px;">
                     <span class="text-[9px] font-bold text-slate-500 uppercase block">Per Group</span>
                     <input type="number" id="group-size" value="4" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
                 </div>
@@ -366,11 +531,11 @@
         </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
         <!-- ===== EDITOR ===== -->
-        <div class="lg:col-span-7 space-y-4">
-            <div class="editor-container" id="editorContainer">
+        <div class="lg:col-span-7 space-y-3">
+            <div class="editor-container" id="editorContainer" style="height: min(520px, 55vh);">
                 <div class="lang-bar">
                     <button class="lang-tab on-green" id="lt-simple" onclick="switchLang('simple')">Simple</button>
                     <button class="lang-tab" id="lt-advanced" onclick="switchLang('advanced')">Advanced</button>
@@ -379,9 +544,25 @@
                         <svg viewBox="0 0 16 16" fill="currentColor" style="opacity:0.5"><path d="M8 1a2 2 0 00-2 2v2H5a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V6a1 1 0 00-1-1h-1V3a2 2 0 00-2-2zm0 1a1 1 0 011 1v2H7V3a1 1 0 011-1zm0 6a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"/></svg>
                     </button>
                 </div>
-                <div id="editor-highlight"></div>
-                <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie"></textarea>
+                <div class="editor-scroll-wrap" id="editorScrollWrap">
+                    <div id="editor-highlight"></div>
+                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie"></textarea>
+                    <div class="editor-debug" id="editorDebug">
+                        <div class="dbg-hdr">
+                            <span>DEBUG v8.1</span>
+                            <div class="dbg-hdr-btns">
+                                <button class="dbg-btn btn-scan" onclick="dbgDeepScan()" title="Deep scan for issues">SCAN</button>
+                                <button class="dbg-btn btn-copy" onclick="dbgCopyText()" title="Copy debug text to clipboard">COPY</button>
+                                <button class="dbg-btn" onclick="dbgToggleAutoRefresh()" id="dbgAutoBtn" title="Toggle auto-refresh">AUTO</button>
+                                <button class="dbg-btn" onclick="toggleAlignTest()" title="Alignment test: red=TA, green=HL">ALIGN</button>
+                                <button class="dbg-btn btn-close" onclick="toggleEditorDebug()" title="Close debug panel">X</button>
+                            </div>
+                        </div>
+                        <div class="dbg-body" id="editorDebugBody"></div>
+                    </div>
+                </div>
             </div>
+            <div class="editor-resize-handle" id="editorResizeHandle" title="Drag to resize editor"></div>
 
             <!-- Syntax Reference -->
             <div id="ref-simple" class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800">
@@ -392,7 +573,7 @@
                     <div class="text-slate-500 italic">Monte Carlo + Hill Climbing</div>
                     <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 font-bold ml-auto flex items-center gap-1">Docs <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>
                 </div>
-                <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800" id="overflowBar">
+                <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800" id="overflowBar" style="position:relative; min-height:28px;">
                     <span class="text-[9px] text-slate-600 font-bold uppercase self-center mr-1">Overflow:</span>
                     <button onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
                     <button onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
@@ -422,6 +603,8 @@
                         <div><span class="text-purple-300 font-bold">@iterations</span> <span class="text-slate-600">= 5000</span></div>
                         <div><span class="text-purple-300 font-bold">@separate</span> / <span class="text-purple-300 font-bold">@together</span></div>
                         <div><span class="text-purple-300 font-bold">@strict</span> <span class="text-slate-600">= true</span></div>
+                        <div><span class="text-purple-300 font-bold">@rounds</span> <span class="text-slate-600">= </span><span class="text-orange-400 font-bold">mixed</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"Ionic"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">similar</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"PH"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">random</span><span class="text-purple-400 font-bold">"Mollar"</span></div>
+                        <div><span class="text-purple-300 font-bold">@no_repeat_partners</span> <span class="text-slate-600">= true</span></div>
                     </div>
                 </div>
                 <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800">
@@ -443,22 +626,26 @@
                 <span class="cursor-pointer hover:text-slate-400" onclick="showSaveSettings()">Save Settings</span>
                 <span class="text-slate-700">|</span>
                 <span id="fileTypeLabel" class="text-slate-700 font-mono">.gls</span>
+                <span class="text-slate-700">|</span>
+                <span class="cursor-pointer hover:text-yellow-400 text-yellow-600" onclick="toggleEditorDebug()">DBG</span>
             </div>
         </div>
 
         <!-- ===== SIDE PANELS ===== -->
-        <div class="lg:col-span-5 space-y-5">
+        <div class="lg:col-span-5 space-y-3">
             <!-- Roster -->
-            <div id="panel-roster" class="panel" style="height:200px;">
+            <div id="panel-roster" class="panel" style="height: min(230px, 28vh);">
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/10">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Roster</h3>
-                    <div class="flex items-center gap-2" style="position:relative">
-                        <select id="rosterSort" class="sort-select" onchange="renderRoster()">
-                            <option value="editor">Editor</option>
-                            <option value="abc">A-Z</option>
-                            <option value="manual" id="opt-manual">Manual</option>
-                        </select>
-                        <span id="sortAdvHint" class="adv-code-hint" style="display:none;">In code</span>
+                    <div class="flex items-center gap-2" style="min-height:24px;">
+                        <div style="position:relative; display:inline-flex; align-items:center; min-height:22px; overflow:visible;">
+                            <select id="rosterSort" class="sort-select" onchange="renderRoster()">
+                                <option value="editor">Editor</option>
+                                <option value="abc">A-Z</option>
+                                <option value="manual" id="opt-manual">Manual</option>
+                            </select>
+                            <span id="sortAdvHint" class="adv-code-hint" style="display:none;">In code</span>
+                        </div>
                         <span id="student-count" class="text-[10px] text-blue-400 font-mono font-bold">0</span>
                         <button onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
@@ -469,7 +656,7 @@
             </div>
 
             <!-- Live Output -->
-            <div id="panel-output" class="panel" style="height:420px;">
+            <div id="panel-output" class="panel" style="min-height: 260px;">
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/20">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Output</h3>
                     <div class="flex items-center gap-2">
@@ -486,10 +673,10 @@
                         </button>
                     </div>
                 </div>
-                <div id="groups-list" class="scroll-v p-4 flex-1" style="min-height:0;"></div>
+                <div id="groups-list" class="p-4"></div>
                 <div class="p-2.5 text-center border-t border-slate-800 bg-slate-900/30 flex justify-between items-center px-4">
                     <span id="engine-label" class="text-[9px] text-slate-500 font-bold uppercase italic tracking-tighter">Engine: MC 2500 + HC 20</span>
-                    <button onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1">
+                    <button onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1" style="position:relative;">
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                         Group
                     </button>
@@ -537,7 +724,7 @@
 
 <script>
 // ========================================================================
-// GROUPLOGIC IDE v3.6 — ADVANCED BUILD
+// GROUPLOGIC IDE v8.1 — ADVANCED BUILD
 // ========================================================================
 
 const textarea = document.getElementById('editor-textarea');
@@ -549,6 +736,7 @@ const rTooltip = document.getElementById('rTooltip');
 
 let students = {};
 let currentGroups = [];
+let currentRounds = null; // array of {label, groups, violations} when @rounds is used
 let conflictMap = new Map();
 let currentLang = 'simple';
 let directives = {};
@@ -557,6 +745,21 @@ let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
 let isDefaultCode = true;
 let groupViewMode = 'list';
+
+// Syntax highlighting color palette — inline style values.
+// Used by renderSyntax() and the ALIGN test. Defined early so it's
+// available throughout the script.
+var C = {
+    name:     '#60a5fa', op:       '#475569', want:     '#4ade80',
+    avoid:    '#f87171', comment:  '#334155', directive:'#c084fc',
+    key:      '#38bdf8', val:      '#fbbf24', flag:     '#2dd4bf',
+    assign:   '#64748b', score:    '#22d3ee', role:     '#fb923c',
+    weight:   '#f472b6', cond:     '#f59e0b', iff:      '#fb923c',
+    strategy: '#fb923c', roundkey: '#22d3ee', roundname:'#a78bfa',
+    err:      '#eab308', synerr:   '#ef4444', default:  '#94a3b8',
+};
+let simpleModeErrors = []; // lines with advanced syntax in Simple mode
+let simpleErrorToastShown = false; // debounce toast
 
 // Classroom state
 let classrooms = [{ name: 'Class 1', codeSimple: '', codeAdvanced: '', versions: [], lang: 'simple', lock: 'u' }];
@@ -571,7 +774,7 @@ let pendingImportContent = null;
 let pendingImportLang = null;
 
 // Default code
-const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v3.6
+const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v8.1
 // Syntax: Name: +Want -Avoid
 
 Alice: +Bob -Charlie
@@ -580,44 +783,582 @@ Charlie: -Alice +Eve
 Diana: +Eve -Bob
 Eve: +Diana +Charlie`;
 
-const DEFAULT_ADVANCED = `// GroupLogic IDE v3.6 - Advanced Mode
-// Full DSL with scores, roles, directives, conditionals
-// In Advanced mode, grouping is controlled here — not the UI
+const DEFAULT_ADVANCED = `// GroupLogic IDE v8.1 - Advanced Mode
+// Multi-Round Grouping with Overlap Avoidance
+// Science Lab: 3 rounds with different strategies
 
 @group_size = 4
 @balance = gender,scores
 @overflow = even
-@group_name = "Lab %d"
-@name_dynamic = true
 @iterations = 5000
-@arrange_by = score
 @strict = false
+@rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"
+@no_repeat_partners = true
 
-// Students with scores, gender, roles, tags, and bands
-Alice: +Bob -Charlie score=92 gender=F role=leader
+// 20 Students with varied scores, gender, and roles
+Alice: +Bob score=92 gender=F role=leader
 Bob: +Alice -Diana score=78 gender=M role=dev
 Charlie: -Alice +Eve score=85 gender=M role=dev
 Diana: +Eve -Bob score=90 gender=F role=design
 Eve: +Diana +Charlie score=88 gender=F role=dev
-Frank: +Alice score=72 gender=M tag=honors band=low
+Frank: +Alice score=72 gender=M tag=honors
 Grace: -Frank +Diana score=95 gender=F band=high
 Henry: +Bob -Grace score=80 gender=M role=qa
 Ivy: +Eve score=83 gender=F tag=honors leader
-
-// Conditional: if more than 8 students, enforce score balancing
-if(count > 8) { @balance = scores,gender }
-
-// Conditional: if any score >= 95, separate high-band students
-if(any_score >= 95) { @band_width = 12 }`;
+Jack: -Charlie score=68 gender=M band=low
+Karen: +Alice -Jack score=91 gender=F role=leader
+Leo: +Henry score=76 gender=M role=dev
+Maya: +Ivy -Frank score=87 gender=F role=design
+Noah: +Bob score=74 gender=M tag=honors
+Olivia: -Leo +Grace score=93 gender=F role=dev
+Peter: +Frank score=70 gender=M band=low
+Quinn: +Maya score=82 gender=F role=qa
+Ryan: -Peter score=65 gender=M band=low
+Sophie: +Karen score=89 gender=F tag=honors leader
+Tyler: +Noah -Ryan score=77 gender=M role=dev`;
 
 // ===== INIT =====
 textarea.value = DEFAULT_SIMPLE;
 textarea.addEventListener('input', onEditorInput);
 sizeInp.addEventListener('input', runIDE);
-textarea.addEventListener('scroll', function() {
+
+// ===== EDITOR DEBUG MODE (v5.0 Enhanced) =====
+let editorDebugEnabled = false;
+let dbgAutoRefresh = false;
+let dbgAutoInterval = null;
+let dbgLastScanResult = null;
+
+function toggleEditorDebug() {
+    editorDebugEnabled = !editorDebugEnabled;
+    const dbg = document.getElementById('editorDebug');
+    if (editorDebugEnabled) {
+        dbg.classList.add('visible');
+        updateEditorDebug();
+    } else {
+        dbg.classList.remove('visible');
+        if (dbgAutoRefresh) dbgToggleAutoRefresh(); // stop auto on close
+    }
+}
+
+// Helper: format bytes nicely
+function dbgFmtPx(v) { return (typeof v === 'number') ? v.toFixed(1) + 'px' : v; }
+
+// Helper: proper line count for highlighter (count child divs, not textContent splits)
+function dbgCountHL() {
+    var divs = highlighter.querySelectorAll('.hl-line');
+    return divs.length;
+}
+
+// Helper: get per-line heights from highlighter DOM
+function dbgHLLineHeights() {
+    var divs = highlighter.querySelectorAll('.hl-line');
+    var heights = [];
+    for (var i = 0; i < divs.length; i++) {
+        heights.push(divs[i].getBoundingClientRect().height);
+    }
+    return heights;
+}
+
+// Collect ALL debug data into a structured object
+function dbgCollectData() {
+    var d = {};
+
+    // === SCROLL & DIMENSIONS ===
+    d.taSH = textarea.scrollHeight;
+    d.taCH = textarea.clientHeight;
+    d.taMaxScroll = d.taSH - d.taCH;
+    d.hlSH = highlighter.scrollHeight;
+    d.hlCH = highlighter.clientHeight;
+
+    d.taPadB = parseInt(textarea.style.paddingBottom) || 16;
+    d.hlPadB = parseInt(highlighter.style.paddingBottom) || 16;
+    d.padBMatch = d.taPadB === d.hlPadB;
+
+    d.taPadT = parseInt(getComputedStyle(textarea).paddingTop) || 16;
+    d.hlPadT = parseInt(getComputedStyle(highlighter).paddingTop) || 16;
+    d.padTMatch = d.taPadT === d.hlPadT;
+
+    d.taPadR = parseInt(getComputedStyle(textarea).paddingRight) || 20;
+    d.hlPadR = parseInt(getComputedStyle(highlighter).paddingRight) || 20;
+    d.padRMatch = d.taPadR === d.hlPadR;
+
+    d.taPadL = parseInt(getComputedStyle(textarea).paddingLeft) || 20;
+    d.hlPadL = parseInt(getComputedStyle(highlighter).paddingLeft) || 20;
+    d.padLMatch = d.taPadL === d.hlPadL;
+
+    // === WIDTH ===
+    d.taCW = textarea.clientWidth;
+    d.hlCW = highlighter.clientWidth;
+    d.taOW = textarea.offsetWidth;
+    d.hlOW = highlighter.offsetWidth;
+    d.taSBWidth = d.taOW - d.taCW;
+    d.taContentW = d.taCW - d.taPadL - d.taPadR;
+    d.hlContentW = d.hlCW - d.hlPadL - d.hlPadR;
+    d.widthDiff = d.hlContentW - d.taContentW;
+
+    // === LINES ===
+    d.taLines = textarea.value.split('\n').length;
+    d.hlLines = dbgCountHL(); // proper count using DOM divs
+    d.hlLinesText = (highlighter.textContent || '').split('\n').length; // old method for comparison
+
+    // === CONTENT HEIGHT ===
+    d.taContentH = d.taSH - d.taPadT - d.taPadB;
+    d.hlContentH = d.hlSH - d.hlPadT - d.hlPadB;
+    d.taLineH = d.taLines > 0 ? d.taContentH / d.taLines : 0;
+    d.hlLineH = d.hlLines > 0 ? d.hlContentH / d.hlLines : 0;
+    d.lineHDiff = Math.abs(d.taLineH - d.hlLineH);
+
+    // === SCROLL SYNC (v8.1: direct scrollTop/scrollLeft) ===
+    d.hlTransform = 'scrollTop/scrollLeft sync';
+    d.scrollTop = textarea.scrollTop;
+    d.scrollLeft = textarea.scrollLeft;
+    d.hlScrollTop = highlighter.scrollTop;
+    d.hlScrollLeft = highlighter.scrollLeft;
+    d.scrollXMatch = Math.abs(d.hlScrollLeft - d.scrollLeft) < 1;
+    d.scrollYMatch = Math.abs(d.hlScrollTop - d.scrollTop) < 1;
+    d.transformMatch = d.scrollXMatch && d.scrollYMatch;
+
+    // === FONT PROPERTIES ===
+    var taCS = getComputedStyle(textarea);
+    var hlCS = getComputedStyle(highlighter);
+    d.fontMatch = taCS.fontFamily === hlCS.fontFamily && taCS.fontSize === hlCS.fontSize && taCS.lineHeight === hlCS.lineHeight;
+    d.taFont = taCS.fontFamily + ' ' + taCS.fontSize + '/' + taCS.lineHeight;
+    d.hlFont = hlCS.fontFamily + ' ' + hlCS.fontSize + '/' + hlCS.lineHeight;
+    d.taLigatures = taCS.fontVariantLigatures;
+    d.hlLigatures = hlCS.fontVariantLigatures;
+    d.ligaturesMatch = d.taLigatures === d.hlLigatures;
+
+    // === Z-INDEX ===
+    d.taZ = taCS.zIndex;
+    d.hlZ = hlCS.zIndex;
+
+    // === OVERFLOW ===
+    d.taOverflow = taCS.overflowY;
+    d.hlOverflow = hlCS.overflowY;
+
+    // === WHITE-SPACE / WORD-WRAP ===
+    d.taWS = taCS.whiteSpace;
+    d.hlWS = hlCS.whiteSpace;
+    d.wsMatch = d.taWS === d.hlWS;
+    d.taWW = taCS.wordWrap || taCS.overflowWrap;
+    d.hlWW = hlCS.wordWrap || hlCS.overflowWrap;
+
+    // === TAB-SIZE ===
+    d.taTab = taCS.tabSize;
+    d.hlTab = hlCS.tabSize;
+    d.tabMatch = d.taTab === d.hlTab;
+
+    // === BORDER-BOX ===
+    d.taBB = taCS.boxSizing;
+    d.hlBB = hlCS.boxSizing;
+
+    // === SCROLL POSITION (percentage) ===
+    d.scrollPct = d.taMaxScroll > 0 ? (d.scrollTop / d.taMaxScroll * 100) : 0;
+
+    // === PER-LINE HEIGHTS (sample up to 30 lines) ===
+    d.hlLineHeights = dbgHLLineHeights();
+    d.taLineHExpected = 22; // from CSS
+
+    // === CHECK FOR COMMON ISSUES ===
+    d.issues = [];
+    if (d.taLines !== d.hlLines) d.issues.push({ sev: 'err', msg: 'Line count mismatch: TA:' + d.taLines + ' HL(divs):' + d.hlLines });
+    if (Math.abs(d.widthDiff) > 2) d.issues.push({ sev: 'err', msg: 'Content width diff: ' + d.widthDiff.toFixed(1) + 'px' });
+    if (d.lineHDiff > 0.5 && d.hlLines > 0) d.issues.push({ sev: 'err', msg: 'Line height diff: ' + d.lineHDiff.toFixed(2) + 'px/line (' + (d.lineHDiff * d.taLines).toFixed(1) + 'px total drift)' });
+    if (!d.transformMatch && (d.scrollTop > 0 || d.scrollLeft > 0)) d.issues.push({ sev: 'warn', msg: 'Scroll sync off — TA(' + d.scrollLeft + ',' + d.scrollTop + ') HL(' + d.hlScrollLeft + ',' + d.hlScrollTop + ')' });
+    if (!d.padBMatch) d.issues.push({ sev: 'warn', msg: 'Padding-B mismatch: TA:' + d.taPadB + ' HL:' + d.hlPadB });
+    // v6.0: Padding-R difference is INTENTIONAL (scrollbar width compensation)
+    // Don't flag it unless the content widths don't match
+    if (!d.padRMatch && Math.abs(d.widthDiff) > 2) d.issues.push({ sev: 'warn', msg: 'Padding-R mismatch causing width diff: TA:' + d.taPadR + ' HL:' + d.hlPadR });
+    if (!d.fontMatch) d.issues.push({ sev: 'err', msg: 'Font mismatch! TA:' + d.taFont + ' HL:' + d.hlFont });
+    if (!d.ligaturesMatch) d.issues.push({ sev: 'warn', msg: 'Ligatures mismatch: TA:' + d.taLigatures + ' HL:' + d.hlLigatures });
+    if (!d.wsMatch) d.issues.push({ sev: 'warn', msg: 'white-space mismatch: TA:' + d.taWS + ' HL:' + d.hlWS });
+    if (!d.tabMatch) d.issues.push({ sev: 'warn', msg: 'tab-size mismatch: TA:' + d.taTab + ' HL:' + d.hlTab });
+
+    // Check individual line heights for anomalies (v5.0: all should be 22px)
+    var anomalousLines = [];
+    for (var i = 0; i < d.hlLineHeights.length; i++) {
+        if (Math.abs(d.hlLineHeights[i] - 22) > 0.5) {
+            anomalousLines.push({ line: i+1, h: d.hlLineHeights[i].toFixed(1) });
+        }
+    }
+    if (anomalousLines.length > 0) {
+        var sample = anomalousLines.slice(0, 5);
+        var msg = 'Non-22px line heights (' + anomalousLines.length + ' lines): ' +
+            sample.map(function(a) { return 'L' + a.line + '=' + a.h; }).join(', ');
+        if (anomalousLines.length > 5) msg += ' ...';
+        d.issues.push({ sev: 'warn', msg: msg });
+    }
+
+    // v5.1: With white-space:pre on both layers, no wrapping should occur.
+    // If scrollHeight doesn't match expected (numLines * 22 + padding), flag it.
+    var expectedTASH = d.taLines * 22 + d.taPadT + d.taPadB;
+    if (Math.abs(d.taSH - expectedTASH) > 5) {
+        d.issues.push({ sev: 'warn', msg: 'Textarea scrollHeight unexpected: got ' + d.taSH + ' expected ~' + expectedTASH });
+    }
+
+    // Check if highlighter innerHTML has any <br> (shouldn't - lines are <div>s)
+    if (highlighter.innerHTML.indexOf('<br') !== -1) {
+        d.issues.push({ sev: 'warn', msg: 'Highlighter contains <br> tags (should use <div> only)' });
+    }
+
+    return d;
+}
+
+function updateEditorDebug() {
+    if (!editorDebugEnabled) return;
+    var body = document.getElementById('editorDebugBody');
+    var d = dbgCollectData();
+    dbgLastScanResult = d;
+
+    // Overall status
+    var errCount = d.issues.filter(function(i) { return i.sev === 'err'; }).length;
+    var warnCount = d.issues.filter(function(i) { return i.sev === 'warn'; }).length;
+    var statusHtml;
+    if (errCount === 0 && warnCount === 0) {
+        statusHtml = '<span class="dbg-ok">SYNCED</span>';
+    } else if (errCount === 0) {
+        statusHtml = '<span class="dbg-warn">WARNINGS</span> (' + warnCount + ')';
+    } else {
+        statusHtml = '<span class="dbg-err">DESYNC</span> (' + errCount + ' err, ' + warnCount + ' warn)';
+    }
+
+    var html = '';
+
+    // === STATUS BAR ===
+    html += '<div class="dbg-section">';
+    html += '<div class="dbg-status-bar">' + statusHtml + '</div>';
+    // Scroll position visual bar
+    html += '<div class="dbg-timeline"><div class="dbg-timeline-fill" style="width:' + d.scrollPct.toFixed(1) + '%"></div></div>';
+    html += '<span class="dbg-dim">scroll: ' + d.scrollTop.toFixed(0) + '/' + d.taMaxScroll + ' (' + d.scrollPct.toFixed(0) + '%)</span>';
+    html += '</div>';
+
+    // === DIMENSIONS ===
+    html += '<div class="dbg-section">';
+    html += '<div class="dbg-section-title">Dimensions</div>';
+    html += 'TA scrollH:<span class="dbg-val">' + d.taSH + '</span> clientH:<span class="dbg-val">' + d.taCH + '</span> max:<span class="dbg-val">' + d.taMaxScroll + '</span>\n';
+    html += 'HL scrollH:<span class="dbg-val">' + d.hlSH + '</span> clientH:<span class="dbg-val">' + d.hlCH + '</span>';
+    if (d.taSH !== d.hlSH) {
+        html += ' <span class="dbg-warn">diff:' + (d.hlSH - d.taSH) + '</span>';
+    }
+    html += '\n';
+    html += 'TA contentH:<span class="dbg-val">' + d.taContentH + '</span> HL:<span class="dbg-val">' + d.hlContentH + '</span>';
+    html += '</div>';
+
+    // === LINE COMPARISON ===
+    html += '<div class="dbg-section">';
+    html += '<div class="dbg-section-title">Lines</div>';
+    html += 'TA:<span class="dbg-val">' + d.taLines + '</span> HL(divs):<span class="dbg-val">' + d.hlLines + '</span>';
+    html += d.taLines === d.hlLines ? ' <span class="dbg-ok">match</span>' : ' <span class="dbg-err">MISMATCH</span>';
+    // Count wrapped lines (divs taller than 22px = double-height from wrapping)
+    var wrappedCount = 0;
+    for (var w = 0; w < d.hlLineHeights.length; w++) {
+        if (d.hlLineHeights[w] > 23) wrappedCount++;
+    }
+    if (wrappedCount > 0) {
+        html += ' <span class="dbg-warn">wrapped:' + wrappedCount + '</span>';
+    }
+    html += '\n';
+    html += 'HL(textContent):<span class="dbg-dim">' + d.hlLinesText + '</span> <span class="dbg-dim">(old method)</span>\n';
+    html += 'TA lineH:<span class="dbg-val">' + d.taLineH.toFixed(2) + '</span> HL lineH:<span class="dbg-val">' + d.hlLineH.toFixed(2) + '</span> diff:<span class="' + (d.lineHDiff > 0.5 ? 'dbg-err' : 'dbg-ok') + '">' + d.lineHDiff.toFixed(2) + '</span>';
+    html += '</div>';
+
+    // === SCROLL SYNC ===
+    html += '<div class="dbg-section">';
+    html += '<div class="dbg-section-title">Scroll Sync (v8.1 scrollTop)</div>';
+    html += 'TA scrollTop:<span class="dbg-val">' + d.scrollTop.toFixed(1) + '</span> scrollLeft:<span class="dbg-val">' + d.scrollLeft.toFixed(1) + '</span>\n';
+    html += 'HL scrollTop:<span class="dbg-val">' + d.hlScrollTop.toFixed(1) + '</span> scrollLeft:<span class="dbg-val">' + d.hlScrollLeft.toFixed(1) + '</span>\n';
+    html += 'X:<span class="' + (d.scrollXMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.scrollXMatch ? 'OK' : 'OFF') + '</span>';
+    html += ' Y:<span class="' + (d.scrollYMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.scrollYMatch ? 'OK' : 'OFF') + '</span>';
+    html += '</div>';
+
+    // === WIDTH ===
+    html += '<div class="dbg-section">';
+    html += '<div class="dbg-section-title">Width</div>';
+    html += 'TA contentW:<span class="dbg-val">' + d.taContentW + '</span> HL:<span class="dbg-val">' + d.hlContentW + '</span> diff:<span class="' + (Math.abs(d.widthDiff) > 2 ? 'dbg-err' : 'dbg-ok') + '">' + d.widthDiff + 'px</span>\n';
+    html += 'TA clientW:<span class="dbg-val">' + d.taCW + '</span> SB:<span class="dbg-val">' + d.taSBWidth + 'px</span> HL clientW:<span class="dbg-val">' + d.hlCW + '</span>';
+    html += '</div>';
+
+    // === PADDING ===
+    html += '<div class="dbg-section">';
+    html += '<div class="dbg-section-title">Padding</div>';
+    html += 'T:<span class="dbg-val">' + d.taPadT + '</span> R:<span class="dbg-val">' + d.taPadR + '</span> B:<span class="dbg-val">' + d.taPadB + '</span> L:<span class="dbg-val">' + d.taPadL + '</span>\n';
+    html += 'H:<span class="dbg-val">' + d.hlPadT + '</span> R:<span class="' + (d.padRMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlPadR + '</span> B:<span class="' + (d.padBMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlPadB + '</span> L:<span class="dbg-val">' + d.hlPadL + '</span>';
+    html += '</div>';
+
+    // === FONT ===
+    html += '<div class="dbg-section">';
+    html += '<div class="dbg-section-title">Font / Style</div>';
+    html += 'TA:<span class="' + (d.fontMatch ? 'dbg-val' : 'dbg-err') + '">' + d.taFont + '</span>\n';
+    html += 'HL:<span class="' + (d.fontMatch ? 'dbg-val' : 'dbg-err') + '">' + d.hlFont + '</span>\n';
+    html += 'ligatures TA:<span class="dbg-val">' + d.taLigatures + '</span> HL:<span class="' + (d.ligaturesMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlLigatures + '</span>\n';
+    html += 'ws TA:<span class="dbg-val">' + d.taWS + '</span> HL:<span class="' + (d.wsMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlWS + '</span>\n';
+    html += 'tab TA:<span class="dbg-val">' + d.taTab + '</span> HL:<span class="' + (d.tabMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlTab + '</span>\n';
+    html += 'z-index TA:<span class="dbg-val">' + d.taZ + '</span> HL:<span class="dbg-val">' + d.hlZ + '</span>\n';
+    html += 'overflow TA:<span class="dbg-val">' + d.taOverflow + '</span> HL:<span class="dbg-val">' + d.hlOverflow + '</span>';
+    html += '</div>';
+
+    // === ISSUES ===
+    if (d.issues.length > 0) {
+        html += '<div class="dbg-section">';
+        html += '<div class="dbg-section-title">Issues (' + d.issues.length + ')</div>';
+        for (var i = 0; i < d.issues.length; i++) {
+            var cls = d.issues[i].sev === 'err' ? 'dbg-err' : 'dbg-warn';
+            var icon = d.issues[i].sev === 'err' ? '!!' : '!';
+            html += '<span class="' + cls + '">' + icon + ' ' + escHtml(d.issues[i].msg) + '</span>\n';
+        }
+        html += '</div>';
+    }
+
+    body.innerHTML = html;
+}
+
+// HTML escape for debug output
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===== DEEP SCAN =====
+// Runs a thorough analysis and shows extended results
+function dbgDeepScan() {
+    var d = dbgCollectData();
+    var body = document.getElementById('editorDebugBody');
+
+    // First show normal debug
+    updateEditorDebug();
+
+    // Now add the deep scan section
+    var html = body.innerHTML;
+
+    html += '<div class="dbg-section" style="border-top:2px solid #fbbf24;">';
+    html += '<div class="dbg-section-title" style="color:#fbbf24;">Deep Scan Results</div>';
+
+    // 1. Per-line height analysis — with v5.0 all .hl-line divs should be 22px
+    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">PER-LINE HEIGHTS (HL divs, expect 22.0px)</div>';
+    var lineHeights = d.hlLineHeights;
+    var maxSample = Math.min(lineHeights.length, 40);
+    var allCorrect = true;
+    for (var i = 0; i < maxSample; i++) {
+        var h = lineHeights[i];
+        var isAnomaly = Math.abs(h - 22) > 0.5;
+        if (isAnomaly) allCorrect = false;
+        var cls = isAnomaly ? 'dbg-err' : 'dbg-dim';
+        html += '<span class="dbg-linenum">' + (i+1) + '</span><span class="' + cls + '">' + h.toFixed(1) + '</span>';
+        if (isAnomaly) html += ' <span class="dbg-err">(!)</span>';
+        html += '  ';
+        if ((i+1) % 5 === 0) html += '\n';
+    }
+    if (lineHeights.length > maxSample) {
+        html += '\n<span class="dbg-dim">... ' + (lineHeights.length - maxSample) + ' more lines</span>';
+    }
+    if (allCorrect) html += '\n<span class="dbg-ok">All lines at 22px - v5.0 fix working</span>';
+    html += '\n';
+
+    // 2. HL innerHTML structure check
+    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">HL INNERHTML STRUCTURE</div>';
+    var hlHTML = highlighter.innerHTML;
+    var hlDivCount = (hlHTML.match(/<div/g) || []).length;
+    var hlBrCount = (hlHTML.match(/<br/g) || []).length;
+    var hlSpanCount = (hlHTML.match(/<span/g) || []).length;
+    html += 'divs:<span class="dbg-val">' + hlDivCount + '</span> spans:<span class="dbg-val">' + hlSpanCount + '</span> brs:<span class="' + (hlBrCount > 0 ? 'dbg-err' : 'dbg-val') + '">' + hlBrCount + '</span>\n';
+    // Show first 200 chars of innerHTML
+    html += '<span class="dbg-dim">' + escHtml(hlHTML.substring(0, 200)) + '</span>\n';
+
+    // 3. Text comparison (first 5 lines side by side)
+    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">TEXT COMPARISON (first 5 lines)</div>';
+    var taLines = textarea.value.split('\n');
+    var hlDivs = highlighter.querySelectorAll('.hl-line');
+    var compareLines = Math.min(5, taLines.length, hlDivs.length);
+    for (var i = 0; i < compareLines; i++) {
+        var taText = taLines[i] || '';
+        var hlText = hlDivs[i] ? hlDivs[i].textContent : '';
+        var match = taText === hlText;
+        html += '<span class="dbg-linenum">' + (i+1) + '</span>';
+        html += '<span class="' + (match ? 'dbg-ok' : 'dbg-err') + '">' + (match ? '=' : '!') + '</span> ';
+        html += '<span class="dbg-dim">T:</span><span class="dbg-val">' + escHtml(taText.substring(0, 30)) + '</span>\n';
+        if (!match) {
+            html += '     <span class="dbg-dim">H:</span><span class="dbg-warn">' + escHtml(hlText.substring(0, 30)) + '</span>\n';
+        }
+    }
+
+    // 4. Computed style diff
+    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">COMPUTED STYLE DIFF</div>';
+    var taCS = getComputedStyle(textarea);
+    var hlCS = getComputedStyle(highlighter);
+    var propsToCheck = ['fontFamily','fontSize','lineHeight','letterSpacing','wordSpacing',
+        'whiteSpace','wordWrap','overflowWrap','tabSize','fontVariantLigatures',
+        'paddingTop','paddingRight','paddingBottom','paddingLeft',
+        'borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth',
+        'boxSizing','direction','textAlign','textIndent'];
+    var diffs = [];
+    for (var p = 0; p < propsToCheck.length; p++) {
+        var prop = propsToCheck[p];
+        var taVal = taCS[prop];
+        var hlVal = hlCS[prop];
+        if (taVal !== hlVal) {
+            diffs.push(prop + ': TA=' + taVal + ' HL=' + hlVal);
+        }
+    }
+    if (diffs.length === 0) {
+        html += '<span class="dbg-ok">All checked properties match</span>\n';
+    } else {
+        for (var i = 0; i < diffs.length; i++) {
+            html += '<span class="dbg-warn">' + escHtml(diffs[i]) + '</span>\n';
+        }
+    }
+
+    // 5. Position comparison
+    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">POSITION / LAYOUT</div>';
+    var taRect = textarea.getBoundingClientRect();
+    var hlRect = highlighter.getBoundingClientRect();
+    html += 'TA top:<span class="dbg-val">' + taRect.top.toFixed(1) + '</span> left:<span class="dbg-val">' + taRect.left.toFixed(1) + '</span> w:<span class="dbg-val">' + taRect.width.toFixed(1) + '</span> h:<span class="dbg-val">' + taRect.height.toFixed(1) + '</span>\n';
+    html += 'HL top:<span class="dbg-val">' + hlRect.top.toFixed(1) + '</span> left:<span class="dbg-val">' + hlRect.left.toFixed(1) + '</span> w:<span class="dbg-val">' + hlRect.width.toFixed(1) + '</span> h:<span class="dbg-val">' + hlRect.height.toFixed(1) + '</span>\n';
+    var posDiff = { top: Math.abs(taRect.top - hlRect.top), left: Math.abs(taRect.left - hlRect.left), w: Math.abs(taRect.width - hlRect.width), h: Math.abs(taRect.height - hlRect.height) };
+    html += 'diff top:<span class="' + (posDiff.top > 1 ? 'dbg-err' : 'dbg-ok') + '">' + posDiff.top.toFixed(1) + '</span> left:<span class="' + (posDiff.left > 1 ? 'dbg-err' : 'dbg-ok') + '">' + posDiff.left.toFixed(1) + '</span> w:<span class="' + (posDiff.w > 1 ? 'dbg-warn' : 'dbg-ok') + '">' + posDiff.w.toFixed(1) + '</span> h:<span class="' + (posDiff.h > 1 ? 'dbg-warn' : 'dbg-ok') + '">' + posDiff.h.toFixed(1) + '</span>';
+
+    html += '</div>';
+
+    body.innerHTML = html;
+    dbgLastScanResult = d;
+}
+
+// ===== COPY DEBUG TEXT =====
+function dbgCopyText() {
+    var d = dbgLastScanResult || dbgCollectData();
+    var wrappedCount = 0;
+    for (var w = 0; w < d.hlLineHeights.length; w++) {
+        if (d.hlLineHeights[w] > 23) wrappedCount++;
+    }
+    var text = '=== EDITOR DEBUG v8.1 ===\n';
+    text += 'TA scrollH:' + d.taSH + ' clientH:' + d.taCH + ' max:' + d.taMaxScroll + '\n';
+    text += 'HL scrollH:' + d.hlSH + ' clientH:' + d.hlCH + '\n';
+    text += 'scrollTop:' + d.scrollTop + ' HL scrollTop:' + d.hlScrollTop + '\n';
+    text += 'scrollLeft:' + d.scrollLeft + ' HL scrollLeft:' + d.hlScrollLeft + '\n';
+    text += 'scroll match:' + (d.transformMatch ? 'YES' : 'NO') + '\n';
+    text += 'TA lines:' + d.taLines + ' HL lines(divs):' + d.hlLines + ' wrapped:' + wrappedCount + ' HL lines(text):' + d.hlLinesText + '\n';
+    text += 'TA lineH:' + d.taLineH.toFixed(2) + ' HL lineH:' + d.hlLineH.toFixed(2) + ' diff:' + d.lineHDiff.toFixed(2) + '\n';
+    text += 'TA contentW:' + d.taContentW + ' HL contentW:' + d.hlContentW + ' diff:' + d.widthDiff + 'px\n';
+    text += 'TA clientW:' + d.taCW + ' SB:' + d.taSBWidth + 'px HL clientW:' + d.hlCW + '\n';
+    text += 'Padding T:' + d.taPadT + '/' + d.hlPadT + ' R:' + d.taPadR + '/' + d.hlPadR + ' B:' + d.taPadB + '/' + d.hlPadB + ' L:' + d.taPadL + '/' + d.hlPadL + '\n';
+    text += 'Font TA:' + d.taFont + '\n';
+    text += 'Font HL:' + d.hlFont + '\n';
+    text += 'z-index TA:' + d.taZ + ' HL:' + d.hlZ + '\n';
+    text += 'overflow TA:' + d.taOverflow + ' HL:' + d.hlOverflow + '\n';
+    if (wrappedCount > 0) {
+        text += '\nWRAPPED LINES:\n';
+        for (var w = 0; w < d.hlLineHeights.length; w++) {
+            if (d.hlLineHeights[w] > 23) {
+                text += '  L' + (w+1) + '=' + d.hlLineHeights[w].toFixed(1) + 'px\n';
+            }
+        }
+    }
+    if (d.issues.length > 0) {
+        text += '\nISSUES:\n';
+        for (var i = 0; i < d.issues.length; i++) {
+            text += (d.issues[i].sev === 'err' ? '!!' : '!') + ' ' + d.issues[i].msg + '\n';
+        }
+    }
+    navigator.clipboard.writeText(text).then(function() {
+        toast('Debug info copied to clipboard', 'success');
+    }).catch(function() {
+        // Fallback for older browsers
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('Debug info copied', 'success');
+    });
+}
+
+// ===== AUTO-REFRESH =====
+function dbgToggleAutoRefresh() {
+    dbgAutoRefresh = !dbgAutoRefresh;
+    var btn = document.getElementById('dbgAutoBtn');
+    if (dbgAutoRefresh) {
+        btn.style.background = 'rgba(59,130,246,0.3)';
+        btn.style.color = '#60a5fa';
+        btn.style.borderColor = '#3b82f6';
+        dbgAutoInterval = setInterval(function() {
+            if (editorDebugEnabled) updateEditorDebug();
+            else { dbgToggleAutoRefresh(); } // stop if closed
+        }, 500);
+    } else {
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        if (dbgAutoInterval) { clearInterval(dbgAutoInterval); dbgAutoInterval = null; }
+    }
+}
+
+// ===== DEBUG PANEL DRAG =====
+(function() {
+    var dbgEl = null, hdrEl = null;
+    var isDragging = false, startX, startY, startLeft, startTop;
+    document.addEventListener('DOMContentLoaded', function() {
+        dbgEl = document.getElementById('editorDebug');
+        hdrEl = dbgEl ? dbgEl.querySelector('.dbg-hdr') : null;
+        if (hdrEl) {
+            hdrEl.addEventListener('mousedown', function(e) {
+                if (e.target.tagName === 'BUTTON') return; // don't drag on buttons
+                isDragging = true;
+                startX = e.clientX; startY = e.clientY;
+                var rect = dbgEl.getBoundingClientRect();
+                var parentRect = dbgEl.parentElement.getBoundingClientRect();
+                startLeft = rect.left - parentRect.left;
+                startTop = rect.top - parentRect.top;
+                e.preventDefault();
+            });
+        }
+    });
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging || !dbgEl) return;
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        dbgEl.style.left = (startLeft + dx) + 'px';
+        dbgEl.style.top = (startTop + dy) + 'px';
+        dbgEl.style.right = 'auto';
+    });
+    document.addEventListener('mouseup', function() { isDragging = false; });
+})();
+
+// v8.1 SCROLL SYNC: Direct scrollTop/scrollLeft sync.
+// Highlighter (z-index:1, behind) has overflow:auto with hidden scrollbars.
+// We sync its scroll position to match the textarea's scroll position.
+// This replaces the old CSS transform approach which caused text to be
+// cut off — transform moves the entire element, leaving a gap at the bottom.
+// Direct scroll sync keeps the element in place and scrolls its content.
+function syncScroll() {
     highlighter.scrollTop = textarea.scrollTop;
     highlighter.scrollLeft = textarea.scrollLeft;
-});
+    updateEditorDebug();
+}
+
+textarea.addEventListener('scroll', syncScroll);
+
+// ===== ALIGNMENT TEST MODE =====
+// v8.1: Textarea is ON TOP (z-index:2), highlighter is BELOW (z-index:1).
+// In ALIGN mode, we make textarea text visible (red) and highlighter text green
+// so both layers are visible for alignment debugging.
+let alignTestActive = false;
+function toggleAlignTest() {
+    alignTestActive = !alignTestActive;
+    if (alignTestActive) {
+        textarea.style.setProperty('color', 'rgba(255, 100, 100, 0.5)', 'important');
+        textarea.style.setProperty('-webkit-text-fill-color', 'rgba(255, 100, 100, 0.5)', 'important');
+        textarea.style.setProperty('background', 'transparent', 'important');
+        textarea.style.caretColor = '#fff';
+        highlighter.style.color = 'rgba(100, 255, 100, 0.5)';
+        toast('Align test ON — red=textarea, green=highlighter', 'info');
+    } else {
+        textarea.style.setProperty('color', 'transparent', 'important');
+        textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+        textarea.style.setProperty('background', 'transparent', 'important');
+        textarea.style.caretColor = '#60a5fa';
+        highlighter.style.color = C.default;
+        toast('Align test OFF', 'info');
+    }
+}
 
 // Click in editor to insert pending import
 textarea.addEventListener('click', function() {
@@ -637,6 +1378,37 @@ textarea.addEventListener('click', function() {
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); manualSave(); }
 });
+
+// ===== EDITOR RESIZE DRAG =====
+(function() {
+    const handle = document.getElementById('editorResizeHandle');
+    const container = document.getElementById('editorContainer');
+    let isResizing = false, startY = 0, startH = 0;
+
+    handle.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        startY = e.clientY;
+        startH = container.offsetHeight;
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+        const diff = e.clientY - startY;
+        const newH = Math.max(200, Math.min(window.innerHeight - 100, startH + diff));
+        container.style.height = newH + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+})();
 
 // Drag & drop on action bar
 const actionBar = document.getElementById('actionBar');
@@ -719,22 +1491,43 @@ function runIDE() {
     checkEditSave();
     updateFileTypeLabel();
     saveActiveJSON();
+    // v8.1: Ensure scroll sync is correct after content changes.
+    // The textarea may have scrolled during renderSyntax() but the
+    // scroll event may not have fired yet.
+    requestAnimationFrame(syncScroll);
+    // Show toast when Advanced syntax detected in Simple mode
+    if (currentLang === 'simple' && simpleModeErrors.length > 0 && !simpleErrorToastShown) {
+        simpleErrorToastShown = true;
+        toast('Advanced syntax detected — ' + simpleModeErrors.length + ' error' + (simpleModeErrors.length > 1 ? 's' : '') + ' in Simple mode', 'error');
+    } else if (currentLang === 'simple' && simpleModeErrors.length === 0) {
+        simpleErrorToastShown = false;
+    }
 }
 
 // ===== PARSE =====
 function parseRules() {
     const lines = textarea.value.split('\n');
     const nextMap = {};
-    for (const line of lines) {
+    simpleModeErrors = []; // reset errors each parse
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
         if (trimmed.startsWith('@')) {
+            if (currentLang === 'simple') {
+                simpleModeErrors.push({ line: i, text: trimmed, reason: 'Directives (@) are Advanced-only syntax' });
+            }
             const dm = trimmed.match(/^@(\w+)\s*=\s*(.*)/);
             if (dm) directives[dm[1]] = dm[2].trim().replace(/^["']|["']$/g, '');
             continue;
         }
         // If-condition (advanced only)
-        if (trimmed.match(/^if\s*\(/) && currentLang === 'advanced') {
+        if (trimmed.match(/^if\s*\(/)) {
+            if (currentLang === 'simple') {
+                simpleModeErrors.push({ line: i, text: trimmed, reason: 'if() conditionals are Advanced-only syntax' });
+                continue;
+            }
             const ifMatch = trimmed.match(/^if\s*\((.+?)\)\s*\{(.*)\}\s*$/);
             if (ifMatch && evaluateCondition(ifMatch[1], nextMap)) {
                 parseConstraintLine(ifMatch[2], nextMap);
@@ -756,7 +1549,22 @@ function parseRules() {
             nextMap[lowName].originalName = originalName;
         }
         const tokens = body.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-        for (const token of tokens) parseToken(token, nextMap[lowName], nextMap);
+        for (const token of tokens) {
+            // In Simple mode, detect advanced tokens and flag as errors
+            if (currentLang === 'simple') {
+                if (/^(score|gender|age|role|tag|band|capacity)=/.test(token)) {
+                    simpleModeErrors.push({ line: i, text: token, reason: token.split('=')[0] + '= is Advanced-only syntax' });
+                } else if (token === 'leader' || token === 'exclude') {
+                    simpleModeErrors.push({ line: i, text: token, reason: token + ' is Advanced-only syntax' });
+                } else if (/^task=/.test(token)) {
+                    simpleModeErrors.push({ line: i, text: token, reason: 'task= is Advanced-only syntax' });
+                } else if (/@\d+$/.test(token)) {
+                    // weight syntax like +Bob@5 is advanced
+                    simpleModeErrors.push({ line: i, text: token, reason: 'Weight (@N) is Advanced-only syntax' });
+                }
+            }
+            parseToken(token, nextMap[lowName], nextMap);
+        }
     }
     students = nextMap;
     const count = Object.keys(students).filter(k => students[k].defined).length;
@@ -825,6 +1633,24 @@ function ensureStudent(map, origName, lowName) {
 }
 
 // ===== SYNTAX HIGHLIGHTING =====
+// v8.1: ALL colors use inline style attributes instead of CSS classes.
+// This guarantees colors show regardless of CSS specificity conflicts,
+// Tailwind overrides, or browser quirks. The C palette is defined at
+// the top of the script (near line 746) for global access.
+
+function s(color, text) {
+    // Wrap text in a span with inline style color — GUARANTEED visible
+    return '<span style="color:' + color + '">' + text + '</span>';
+}
+function serr(text) {
+    // Syntax error: red wavy underline + red background tint
+    return '<span style="text-decoration:wavy underline;text-decoration-color:#ef4444;text-underline-offset:3px;background:rgba(239,68,68,0.08)">' + text + '</span>';
+}
+function serr2(text) {
+    // Warning: dotted yellow underline (undefined name reference)
+    return '<span style="text-decoration:dotted underline;text-decoration-color:#eab308;text-underline-offset:3px">' + text + '</span>';
+}
+
 function renderSyntax() {
     const lines = textarea.value.split('\n');
     // Build a quick lookup of all defined names (lowercase) to avoid false error highlights
@@ -837,17 +1663,39 @@ function renderSyntax() {
         definedLower.add(trimmed.slice(0, ci).trim().toLowerCase());
     }
 
-    const htmlLines = lines.map(line => {
+    // Build a set of error line indices for Simple mode
+    const errorLines = new Set(simpleModeErrors.map(e => e.line));
+
+    const htmlLines = lines.map(function(line, idx) {
         const trimmed = line.trim();
-        if (trimmed.startsWith('//') || trimmed.startsWith('#')) return '<span class="t-comment">' + esc(line) + '</span>';
+        if (trimmed.startsWith('//') || trimmed.startsWith('#')) return s(C.comment, esc(line));
         if (trimmed.startsWith('@')) {
-            return esc(line).replace(/^(@\w+)(\s*=\s*)(.*)/, '<span class="t-directive">$1</span><span class="t-assign">$2</span><span class="t-val">$3</span>');
+            const dm = esc(line).match(/^(@\w+)(\s*)(=)(\s*)(.*)/);
+            if (dm) {
+                var valHtml;
+                if (dm[1] === '@rounds') {
+                    valHtml = dm[5].replace(/(mixed|similar|random)/g, function(m) { return s(C.strategy, m); })
+                                    .replace(/(score|gender)/g, function(m) { return s(C.roundkey, m); })
+                                    .replace(/(&quot;[^&]*&quot;)/g, function(m) { return s(C.roundname, m); });
+                } else {
+                    valHtml = s(C.val, dm[5]);
+                }
+                var dhtml = s(C.directive, dm[1]) +
+                    dm[2] + s(C.assign, dm[3]) +
+                    dm[4] + valHtml;
+                if (errorLines.has(idx)) dhtml = serr(dhtml);
+                return dhtml;
+            }
+            const base = s(C.directive, esc(line));
+            if (errorLines.has(idx)) return serr(base);
+            return base;
         }
         if (trimmed.match(/^if\s*\(/)) {
             let el = esc(line);
-            el = el.replace(/^(if)(\s*\()/, '<span class="t-if">$1</span><span class="t-op">$2</span>');
-            el = el.replace(/(count|any_score|has_role)/g, '<span class="t-cond">$1</span>');
-            el = el.replace(/(=&gt;|=&lt;|[><=!]+)/g, '<span class="t-op">$1</span>');
+            el = el.replace(/^(if)(\s*\()/, function(m, kw, par) { return s(C.iff, kw) + s(C.op, par); });
+            el = el.replace(/(count|any_score|has_role)/g, function(m) { return s(C.cond, m); });
+            el = el.replace(/(=&gt;|=&lt;|[><=!]+)/g, function(m) { return s(C.op, m); });
+            if (errorLines.has(idx)) return serr(el);
             return el;
         }
 
@@ -856,40 +1704,105 @@ function renderSyntax() {
         if (!dm) return el;
 
         const name = dm[1], op = dm[2];
-        let result = '<span class="t-name">' + name + '</span><span class="t-op">' + op + '</span>';
+        let result = s(C.name, name) + s(C.op, op);
         let rem = el.substring(name.length + op.length);
 
         const parts = rem.split(/(\s+)/);
         const highlighted = parts.map(function(part) {
             if (!part || /^\s+$/.test(part)) return part;
 
+            var tokenized;
             const kvq = part.match(/^(role|task|tag)(=)(&quot;)(.*?)(&quot;)$/);
-            if (kvq) return '<span class="t-key">' + kvq[1] + '</span><span class="t-assign">' + kvq[2] + '</span><span class="t-role">' + kvq[3] + kvq[4] + kvq[5] + '</span>';
+            if (kvq) {
+                const base = s(C.key, kvq[1]) + s(C.assign, kvq[2]) + s(C.role, kvq[3] + kvq[4] + kvq[5]);
+                if (currentLang === 'simple') tokenized = serr(base);
+                else tokenized = base;
+                return tokenized;
+            }
 
             const kv = part.match(/^(score|gender|age|band|capacity)(=)(\S+)$/);
-            if (kv) return '<span class="t-key">' + kv[1] + '</span><span class="t-assign">' + kv[2] + '</span><span class="t-score">' + kv[3] + '</span>';
+            if (kv) {
+                const base = s(C.key, kv[1]) + s(C.assign, kv[2]) + s(C.score, kv[3]);
+                if (currentLang === 'simple') tokenized = serr(base);
+                else tokenized = base;
+                return tokenized;
+            }
 
             const kv2 = part.match(/^(role|task|tag)(=)(\S+)$/);
-            if (kv2) return '<span class="t-key">' + kv2[1] + '</span><span class="t-assign">' + kv2[2] + '</span><span class="t-role">' + kv2[3] + '</span>';
+            if (kv2) {
+                const base = s(C.key, kv2[1]) + s(C.assign, kv2[2]) + s(C.role, kv2[3]);
+                if (currentLang === 'simple') tokenized = serr(base);
+                else tokenized = base;
+                return tokenized;
+            }
 
-            if (part === 'leader' || part === 'exclude') return '<span class="t-flag">' + part + '</span>';
+            if (part === 'leader' || part === 'exclude') {
+                if (currentLang === 'simple') tokenized = serr(part);
+                else tokenized = s(C.flag, part);
+                return tokenized;
+            }
 
             const pm = part.match(/^([+\-])([a-zA-Z0-9_]+)(@\d+)?$/);
             if (pm) {
                 var lt = pm[2].toLowerCase();
                 var isDefined = definedLower.has(lt);
-                var cls = pm[1] === '+' ? 't-want' : 't-avoid';
-                var err = isDefined ? '' : ' t-err';
-                var wh = pm[3] ? '<span class="t-weight">' + pm[3] + '</span>' : '';
-                return '<span class="t-op">' + pm[1] + '</span><span class="' + cls + err + '">' + pm[2] + '</span>' + wh;
+                var cls = pm[1] === '+' ? C.want : C.avoid;
+                var wh = pm[3] ? s(C.weight, pm[3]) : '';
+                if (pm[3] && currentLang === 'simple') {
+                    tokenized = s(C.op, pm[1]) + s(cls, pm[2]) + serr(pm[3]);
+                } else {
+                    tokenized = s(C.op, pm[1]) + (isDefined ? s(cls, pm[2]) : serr2(pm[2])) + wh;
+                }
+                return tokenized;
             }
 
+            // Unrecognized token — return as-is (inherits default color)
             return part;
         }).join('');
 
         return result + highlighted;
     });
-    highlighter.innerHTML = htmlLines.join('\n') + '\n';
+    // v8.1: Wrap each line in a <div class="hl-line"> with min-height:22px,
+    // white-space:pre. This forces each line to be EXACTLY 22px tall
+    // (matching the textarea), preventing line-height drift.
+    highlighter.innerHTML = htmlLines.map(function(line) {
+        return '<div class="hl-line">' + line + '</div>';
+    }).join('');
+
+    syncScroll();
+
+    // Update feasibility status if there are Simple mode errors
+    if (currentLang === 'simple' && simpleModeErrors.length > 0) {
+        const statusEl = document.getElementById('feasibility-status');
+        statusEl.textContent = simpleModeErrors.length + ' ERR';
+        statusEl.className = 'badge bg-red-900/60 text-red-400 uppercase tracking-widest';
+    } else if (currentLang === 'simple') {
+        // Clear error badge if no errors (will be updated by calculateGroups later)
+        const statusEl = document.getElementById('feasibility-status');
+        if (statusEl.textContent.includes('ERR')) {
+            statusEl.textContent = 'Idle';
+            statusEl.className = 'badge bg-slate-800 text-slate-600 uppercase tracking-widest';
+        }
+    }
+
+    // v8.1: FORCE the highlighter's default color via inline style.
+    // All token colors are already inline styles in the HTML, but this sets
+    // the base color for any un-tokenized text.
+    highlighter.style.color = C.default;
+
+    // v8.1: Textarea text stays invisible (transparent) — the highlighter
+    // behind it shows the syntax colors through the textarea's transparent bg.
+    // If highlighter is empty (shouldn't happen), make textarea text visible as fallback.
+    var hlDivs = highlighter.querySelectorAll('.hl-line');
+    if (hlDivs.length > 0) {
+        textarea.style.setProperty('color', 'transparent', 'important');
+        textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+        textarea.style.setProperty('background', 'transparent', 'important');
+    } else {
+        textarea.style.setProperty('color', C.default, 'important');
+        textarea.style.setProperty('-webkit-text-fill-color', C.default, 'important');
+        textarea.style.setProperty('background', '#1e293b', 'important');
+    }
 }
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -1104,12 +2017,98 @@ function setGroupView(mode) {
     document.getElementById('vbtn-list').classList.toggle('on', mode === 'list');
     document.getElementById('vbtn-cards').classList.toggle('on', mode === 'cards');
     renderGroups(currentGroups, conflictMap.size > 0 ? 1 : 0);
+    // Re-render rounds if active
+    if (currentRounds && currentRounds.length > 1) {
+        var rd = currentRounds[activeRoundTab >= 0 ? activeRoundTab : 0];
+        if (rd) renderGroups(rd.groups, rd.violations);
+    }
+}
+
+// ===== CROSS-ROUND OVERLAP AVOIDANCE =====
+function applyNoRepeatPartners(rounds, allKeys) {
+    // Build a map of which pairs have been together in previous rounds
+    // pairs key = "name1|name2" (alphabetically sorted)
+    var previousPairs = {}; // pair -> round index where they were together
+    
+    for (var ri = 0; ri < rounds.length; ri++) {
+        var roundGroups = rounds[ri].groups;
+        if (!roundGroups) continue;
+        
+        // Find conflicting pairs (together in this round AND a previous round)
+        var conflicts = [];
+        for (var gi = 0; gi < roundGroups.length; gi++) {
+            var group = roundGroups[gi];
+            for (var a = 0; a < group.length; a++) {
+                for (var b = a + 1; b < group.length; b++) {
+                    var pairKey = [group[a], group[b]].sort().join('|');
+                    if (previousPairs[pairKey] !== undefined) {
+                        conflicts.push({ pair: pairKey, a: group[a], b: group[b], groupIdx: gi, prevRound: previousPairs[pairKey] });
+                    }
+                }
+            }
+        }
+        
+        // Try to resolve conflicts by swapping students between groups
+        for (var ci = 0; ci < conflicts.length; ci++) {
+            var conflict = conflicts[ci];
+            var group = roundGroups[conflict.groupIdx];
+            if (!group.includes(conflict.a) || !group.includes(conflict.b)) continue; // already resolved
+            
+            // Try to swap one of the conflicting students with a student from another group
+            var swapped = false;
+            var swapTarget = conflict.b; // try moving the second student
+            
+            for (var ogi = 0; ogi < roundGroups.length; ogi++) {
+                if (ogi === conflict.groupIdx) continue;
+                for (var si = 0; si < roundGroups[ogi].length; si++) {
+                    var candidate = roundGroups[ogi][si];
+                    // Check if swapping swapTarget with candidate would create new conflicts
+                    var newPairWithA = [conflict.a, candidate].sort().join('|');
+                    if (previousPairs[newPairWithA] !== undefined) continue; // would create new conflict
+                    
+                    // Do the swap
+                    var srcIdx = group.indexOf(swapTarget);
+                    group[srcIdx] = candidate;
+                    roundGroups[ogi][si] = swapTarget;
+                    swapped = true;
+                    break;
+                }
+                if (swapped) break;
+            }
+        }
+        
+        // Record all pairs for this round (after resolution attempts)
+        for (var gi = 0; gi < roundGroups.length; gi++) {
+            var group = roundGroups[gi];
+            for (var a = 0; a < group.length; a++) {
+                for (var b = a + 1; b < group.length; b++) {
+                    var pairKey = [group[a], group[b]].sort().join('|');
+                    if (previousPairs[pairKey] === undefined) {
+                        previousPairs[pairKey] = ri;
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ===== GROUPING ENGINE =====
 function calculateGroups() {
+    // Block compilation if there are Simple mode syntax errors
+    if (currentLang === 'simple' && simpleModeErrors.length > 0) {
+        const errItems = simpleModeErrors.slice(0, 5).map(e =>
+            '<div class="text-left"><span class="text-red-400 font-bold">Line ' + (e.line + 1) + ':</span> <span class="text-slate-400">' + esc(e.reason) + '</span></div>'
+        ).join('');
+        const more = simpleModeErrors.length > 5 ? '<div class="text-slate-500 mt-1">...and ' + (simpleModeErrors.length - 5) + ' more</div>' : '';
+        groupsBox.innerHTML = '<div class="text-center py-8"><div class="text-red-400 text-xs font-bold uppercase mb-3 flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Advanced Syntax in Simple Mode</div><div class="text-[10px] space-y-1 max-w-xs mx-auto">' + errItems + more + '</div><div class="text-slate-600 text-[10px] mt-3">Remove Advanced syntax or switch to Advanced mode</div></div>';
+        document.getElementById('feasibility-status').textContent = simpleModeErrors.length + ' ERR';
+        document.getElementById('feasibility-status').className = 'badge bg-red-900/60 text-red-400 uppercase tracking-widest';
+        return;
+    }
+
     const keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
     if (keys.length < 2) {
+        currentRounds = null;
         groupsBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-16 font-bold uppercase">Add students to generate groups</div>';
         document.getElementById('feasibility-status').textContent = 'Idle';
         document.getElementById('feasibility-status').className = 'badge bg-slate-800 text-slate-600 uppercase tracking-widest';
@@ -1144,98 +2143,243 @@ function calculateGroups() {
     let totalGroups, groupSizes;
 
     if (effectiveOverflow === 'newgroup') {
-        // New Group: Fill groups to perGroup, leftover students get their own new group
         totalGroups = Math.ceil(totalStudents / perGroup);
         groupSizes = [];
         for (let i = 0; i < totalGroups - 1; i++) groupSizes.push(perGroup);
         const remaining = totalStudents - perGroup * (totalGroups - 1);
         if (remaining > 0) groupSizes.push(remaining);
-        else groupSizes.pop(); // exact fit
+        else groupSizes.pop();
     } else if (effectiveOverflow === 'even') {
-        // Even: Distribute students as evenly as possible
         totalGroups = Math.ceil(totalStudents / perGroup);
         const baseSize = Math.floor(totalStudents / totalGroups);
         const remainder = totalStudents % totalGroups;
         groupSizes = [];
         for (let i = 0; i < totalGroups; i++) groupSizes.push(baseSize + (i < remainder ? 1 : 0));
     } else {
-        // Small: Last group is smaller
         totalGroups = Math.ceil(totalStudents / perGroup);
         groupSizes = [];
         for (let i = 0; i < totalGroups - 1; i++) groupSizes.push(perGroup);
         groupSizes.push(totalStudents - perGroup * (totalGroups - 1));
     }
 
-    let bestTrial = null, minViolations = Infinity, topScore = -Infinity;
-
-    for (let i = 0; i < iterations; i++) {
-        let shuffled = [...keys];
-        if (arrangeBy === 'score' || balance.includes('scores')) {
-            shuffled.sort((a, b) => (students[a].score || 0) - (students[b].score || 0));
-            for (let j = shuffled.length - 1; j > 0; j--) { if (Math.random() < 0.3) { const k = Math.max(0, j - Math.floor(Math.random()*3)-1); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; } }
-        } else if (arrangeBy === 'gender' || balance.includes('gender')) {
-            shuffled.sort((a, b) => students[a].gender.localeCompare(students[b].gender));
-            for (let j = shuffled.length - 1; j > 0; j--) { if (Math.random() < 0.25) { const k = Math.max(0, j - Math.floor(Math.random()*2)-1); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; } }
-        } else {
-            for (let j = shuffled.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; }
-        }
-
-        const trial = groupSizes.map(function() { return []; });
-        let si = 0;
-        for (let g = 0; g < trial.length; g++) { for (let s = 0; s < groupSizes[g] && si < shuffled.length; s++) { trial[g].push(shuffled[si++]); } }
-
-        // @together constraint
-        if (togetherList.length > 1) {
-            const first = togetherList[0];
-            const tg = trial.find(g => g.includes(first));
-            if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
-        }
-        // @separate constraint
-        if (separateList.length > 1) {
-            for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
-        }
-
-        const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
-        if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
-        if (minViolations === 0 && topScore > 0) break;
+    // ===== v6.0: Multi-Round Support =====
+    // Parse @rounds directive, e.g. @rounds = mixed:score, similar:score, random
+    let roundsSpec = null;
+    if (directives.rounds && currentLang === 'advanced') {
+        roundsSpec = directives.rounds.split(',').map(s => s.trim()).filter(Boolean).map(spec => {
+            // Extract custom name in quotes, e.g. mixed:score"Ionic"
+            var nameMatch = spec.match(/"([^"]+)"/);
+            var customName = nameMatch ? nameMatch[1] : null;
+            var cleanSpec = spec.replace(/"[^"]*"/, '').trim();
+            const parts = cleanSpec.split(':');
+            const strategy = parts[0].trim().toLowerCase();
+            const attr = parts.length > 1 ? parts[1].trim().toLowerCase() : null;
+            var label = customName || (attr ? (strategy.charAt(0).toUpperCase() + strategy.slice(1) + ' ' + attr.charAt(0).toUpperCase() + attr.slice(1)) : (strategy.charAt(0).toUpperCase() + strategy.slice(1)));
+            return { strategy, attr, label, customName };
+        });
     }
 
-    // Hill Climbing
-    if (bestTrial) {
-        for (let r = 0; r < hillClimbRounds; r++) {
-            let improved = false;
-            for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
-                for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
-                    const student = bestTrial[gIdx][sIdx];
-                    let hasConflict = false;
-                    bestTrial[gIdx].forEach(peer => { if (peer !== student && (students[student].avoids.has(peer) || students[peer].avoids.has(student))) hasConflict = true; });
-                    if (hasConflict) {
-                        for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
-                            if (gIdx === tgIdx) continue;
-                            const next = bestTrial.map(g => [...g]);
-                            next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
-                            const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
-                            if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
+    // Helper: shuffle students according to a round strategy
+    function shuffleForRound(strategy, attr) {
+        let shuffled = [...keys];
+        if (strategy === 'mixed' && attr) {
+            // Mixed: sort by attr, then snake-draft (1,2,3,3,2,1,1,2,3...)
+            if (attr === 'score') {
+                shuffled.sort((a, b) => (students[b].score || 0) - (students[a].score || 0));
+            } else if (attr === 'gender') {
+                shuffled.sort((a, b) => students[a].gender.localeCompare(students[b].gender));
+            }
+            // Snake draft: distribute high+low together
+            var snakeOrder = [];
+            var numGroups = groupSizes.length;
+            var idx = 0;
+            while (idx < shuffled.length) {
+                // Forward pass: group 0,1,2,...
+                for (var g = 0; g < numGroups && idx < shuffled.length; g++) {
+                    snakeOrder.push(shuffled[idx++]);
+                }
+                // Reverse pass: group N-1,N-2,...,0
+                for (var g = numGroups - 1; g >= 0 && idx < shuffled.length; g--) {
+                    snakeOrder.push(shuffled[idx++]);
+                }
+            }
+            shuffled = snakeOrder;
+        } else if (strategy === 'similar' && attr) {
+            // Similar: sort by attr, then distribute sequentially (highest N in group 1, etc.)
+            if (attr === 'score') {
+                shuffled.sort((a, b) => (students[b].score || 0) - (students[a].score || 0));
+            } else if (attr === 'gender') {
+                shuffled.sort((a, b) => students[a].gender.localeCompare(students[b].gender));
+            }
+            // Sequential distribution: top N to group 0, next N to group 1, etc.
+        } else {
+            // Random: normal shuffle
+            for (let j = shuffled.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; }
+        }
+        return shuffled;
+    }
+
+    // Helper: run one round of grouping with a given shuffle strategy
+    function runSingleRound(shuffled) {
+        let bestTrial = null, minViolations = Infinity, topScore = -Infinity;
+
+        for (let i = 0; i < iterations; i++) {
+            // For non-random strategies, use the pre-arranged shuffle on first iteration, then perturb
+            let trialShuffled;
+            if (i === 0) {
+                trialShuffled = [...shuffled];
+            } else {
+                trialShuffled = [...shuffled];
+                // Add some random perturbation for subsequent iterations
+                for (let j = trialShuffled.length - 1; j > 0; j--) { if (Math.random() < 0.3) { const k = Math.max(0, j - Math.floor(Math.random()*3)-1); [trialShuffled[j], trialShuffled[k]] = [trialShuffled[k], trialShuffled[j]]; } }
+            }
+
+            const trial = groupSizes.map(function() { return []; });
+            let si = 0;
+            for (let g = 0; g < trial.length; g++) { for (let s = 0; s < groupSizes[g] && si < trialShuffled.length; s++) { trial[g].push(trialShuffled[si++]); } }
+
+            // @together constraint
+            if (togetherList.length > 1) {
+                const first = togetherList[0];
+                const tg = trial.find(g => g.includes(first));
+                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
+            }
+            // @separate constraint
+            if (separateList.length > 1) {
+                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
+            }
+
+            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
+            if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
+            if (minViolations === 0 && topScore > 0) break;
+        }
+
+        // Hill Climbing
+        if (bestTrial) {
+            for (let r = 0; r < hillClimbRounds; r++) {
+                let improved = false;
+                for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
+                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
+                        const student = bestTrial[gIdx][sIdx];
+                        let hasConflict = false;
+                        bestTrial[gIdx].forEach(peer => { if (peer !== student && (students[student].avoids.has(peer) || students[peer].avoids.has(student))) hasConflict = true; });
+                        if (hasConflict) {
+                            for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
+                                if (gIdx === tgIdx) continue;
+                                const next = bestTrial.map(g => [...g]);
+                                next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
+                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
+                                if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
+                            }
                         }
+                        if (improved) break;
                     }
                     if (improved) break;
                 }
-                if (improved) break;
+                if (!improved) break;
             }
-            if (!improved) break;
         }
+
+        return { groups: bestTrial, violations: minViolations };
     }
 
-    currentGroups = bestTrial;
-    identifyConflicts(bestTrial);
-    renderGroups(bestTrial, minViolations);
+    // ===== Execute rounds or single round =====
+    if (roundsSpec && roundsSpec.length > 0) {
+        currentRounds = roundsSpec.map(function(spec, ri) {
+            var shuffled = shuffleForRound(spec.strategy, spec.attr);
+            var result = runSingleRound(shuffled);
+            return { label: spec.label, groups: result.groups, violations: result.violations, strategy: spec.strategy, attr: spec.attr };
+        });
+        // Apply cross-round overlap avoidance if @no_repeat_partners = true
+        if (directives.no_repeat_partners === 'true' && currentRounds && currentRounds.length > 1) {
+            applyNoRepeatPartners(currentRounds, keys);
+        }
+        // Set currentGroups to first round for compatibility
+        currentGroups = currentRounds[0].groups;
+        identifyConflicts(currentGroups);
+        renderGroups(currentGroups, currentRounds[0].violations);
 
-    const statusEl = document.getElementById('feasibility-status');
-    if (minViolations === 0) { statusEl.textContent = 'Optimal'; statusEl.className = 'badge bg-emerald-900/50 text-emerald-400 uppercase tracking-widest'; }
-    else { statusEl.textContent = minViolations + ' Conflict' + (minViolations > 1 ? 's' : ''); statusEl.className = 'badge bg-red-900/50 text-red-400 uppercase tracking-widest'; }
+        const totalViolations = currentRounds.reduce((s, r) => s + r.violations, 0);
+        const statusEl = document.getElementById('feasibility-status');
+        if (totalViolations === 0) { statusEl.textContent = currentRounds.length + ' Rounds · Optimal'; statusEl.className = 'badge bg-emerald-900/50 text-emerald-400 uppercase tracking-widest'; }
+        else { statusEl.textContent = currentRounds.length + ' Rounds · ' + totalViolations + ' Conflict' + (totalViolations > 1 ? 's' : ''); statusEl.className = 'badge bg-red-900/50 text-red-400 uppercase tracking-widest'; }
 
-    const el = document.getElementById('engine-label');
-    el.textContent = (strict && minViolations > 0) ? 'STRICT - ' + minViolations + ' unresolved' : 'Engine: MC ' + iterations + ' + HC ' + hillClimbRounds;
+        const el = document.getElementById('engine-label');
+        el.textContent = currentRounds.length + ' rounds · MC ' + iterations + ' + HC ' + hillClimbRounds;
+    } else {
+        // Original single-round behavior
+        currentRounds = null;
+        let bestTrial = null, minViolations = Infinity, topScore = -Infinity;
+
+        for (let i = 0; i < iterations; i++) {
+            let shuffled = [...keys];
+            if (arrangeBy === 'score' || balance.includes('scores')) {
+                shuffled.sort((a, b) => (students[a].score || 0) - (students[b].score || 0));
+                for (let j = shuffled.length - 1; j > 0; j--) { if (Math.random() < 0.3) { const k = Math.max(0, j - Math.floor(Math.random()*3)-1); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; } }
+            } else if (arrangeBy === 'gender' || balance.includes('gender')) {
+                shuffled.sort((a, b) => students[a].gender.localeCompare(students[b].gender));
+                for (let j = shuffled.length - 1; j > 0; j--) { if (Math.random() < 0.25) { const k = Math.max(0, j - Math.floor(Math.random()*2)-1); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; } }
+            } else {
+                for (let j = shuffled.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)); [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]; }
+            }
+
+            const trial = groupSizes.map(function() { return []; });
+            let si = 0;
+            for (let g = 0; g < trial.length; g++) { for (let s = 0; s < groupSizes[g] && si < shuffled.length; s++) { trial[g].push(shuffled[si++]); } }
+
+            // @together constraint
+            if (togetherList.length > 1) {
+                const first = togetherList[0];
+                const tg = trial.find(g => g.includes(first));
+                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
+            }
+            // @separate constraint
+            if (separateList.length > 1) {
+                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
+            }
+
+            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
+            if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
+            if (minViolations === 0 && topScore > 0) break;
+        }
+
+        // Hill Climbing
+        if (bestTrial) {
+            for (let r = 0; r < hillClimbRounds; r++) {
+                let improved = false;
+                for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
+                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
+                        const student = bestTrial[gIdx][sIdx];
+                        let hasConflict = false;
+                        bestTrial[gIdx].forEach(peer => { if (peer !== student && (students[student].avoids.has(peer) || students[peer].avoids.has(student))) hasConflict = true; });
+                        if (hasConflict) {
+                            for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
+                                if (gIdx === tgIdx) continue;
+                                const next = bestTrial.map(g => [...g]);
+                                next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
+                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
+                                if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
+                            }
+                        }
+                        if (improved) break;
+                    }
+                    if (improved) break;
+                }
+                if (!improved) break;
+            }
+        }
+
+        currentGroups = bestTrial;
+        identifyConflicts(bestTrial);
+        renderGroups(bestTrial, minViolations);
+
+        const statusEl = document.getElementById('feasibility-status');
+        if (minViolations === 0) { statusEl.textContent = 'Optimal'; statusEl.className = 'badge bg-emerald-900/50 text-emerald-400 uppercase tracking-widest'; }
+        else { statusEl.textContent = minViolations + ' Conflict' + (minViolations > 1 ? 's' : ''); statusEl.className = 'badge bg-red-900/50 text-red-400 uppercase tracking-widest'; }
+
+        const el = document.getElementById('engine-label');
+        el.textContent = (strict && minViolations > 0) ? 'STRICT - ' + minViolations + ' unresolved' : 'Engine: MC ' + iterations + ' + HC ' + hillClimbRounds;
+    }
 }
 
 function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
@@ -1269,6 +2413,7 @@ function identifyConflicts(groups) {
 }
 
 // ===== RENDER GROUPS =====
+let activeRoundTab = 0; // which round tab is active
 function renderGroups(groups, violations) {
     if (!groups || groups.length === 0) { groupsBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-16 font-bold uppercase">Add students</div>'; return; }
 
@@ -1302,8 +2447,8 @@ function renderGroups(groups, violations) {
         return s;
     }
 
-    if (groupViewMode === 'list') {
-        groupsBox.innerHTML = groups.map(function(g, gi) {
+    function renderGroupsList(gs) {
+        return gs.map(function(g, gi) {
             return '<div class="group-block">' +
                 '<div class="flex justify-between items-center mb-2">' +
                     '<span class="text-[11px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
@@ -1313,8 +2458,10 @@ function renderGroups(groups, violations) {
                 (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
             '</div>';
         }).join('');
-    } else {
-        groupsBox.innerHTML = '<div class="group-carousel">' + groups.map(function(g, gi) {
+    }
+
+    function renderGroupsCards(gs) {
+        return '<div class="group-grid">' + gs.map(function(g, gi) {
             return '<div class="group-card">' +
                 '<div class="flex justify-between items-center mb-2">' +
                     '<span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
@@ -1324,6 +2471,104 @@ function renderGroups(groups, violations) {
                 (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
             '</div>';
         }).join('') + '</div>';
+    }
+
+    // v6.0: Multi-round rendering with tabs
+    if (currentRounds && currentRounds.length > 1) {
+        // Ensure activeRoundTab is in range
+        if (activeRoundTab >= currentRounds.length) activeRoundTab = 0;
+        
+        var roundTabsHtml = '<div class="flex flex-wrap gap-1 mb-3 pb-3 border-b border-slate-700/50">';
+        for (var ri = 0; ri < currentRounds.length; ri++) {
+            var isActive = ri === activeRoundTab;
+            var rv = currentRounds[ri].violations;
+            var tabColor = isActive ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
+            var vBadge = rv === 0 ? '<span class="text-[8px] text-emerald-400 ml-1">✓</span>' : '<span class="text-[8px] text-red-400 ml-1">' + rv + '</span>';
+            roundTabsHtml += '<button onclick="switchRoundTab(' + ri + ')" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + tabColor + ' transition-all hover:bg-blue-600/10">' +
+                'R' + (ri + 1) + ': ' + esc(currentRounds[ri].label) + vBadge + '</button>';
+        }
+        // Cross-Round view tab
+        var isCrossActive = activeRoundTab === -1;
+        var crossColor = isCrossActive ? 'bg-purple-600/20 text-purple-400 border-purple-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
+        roundTabsHtml += '<button onclick="switchRoundTab(-1)" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + crossColor + ' transition-all hover:bg-purple-600/10">Cross-Round</button>';
+        roundTabsHtml += '</div>';
+
+        if (activeRoundTab === -1) {
+            // Cross-Round view: show which students are together across rounds
+            var allNames = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
+            var crossHtml = '<div class="space-y-2">';
+            allNames.forEach(function(name) {
+                var s = students[name];
+                if (!s) return;
+                var partnerCounts = {};
+                for (var cri = 0; cri < currentRounds.length; cri++) {
+                    var roundGroups = currentRounds[cri].groups;
+                    if (!roundGroups) continue;
+                    for (var gi = 0; gi < roundGroups.length; gi++) {
+                        if (roundGroups[gi].includes(name)) {
+                            roundGroups[gi].forEach(function(peer) {
+                                if (peer !== name) {
+                                    if (!partnerCounts[peer]) partnerCounts[peer] = 0;
+                                    partnerCounts[peer]++;
+                                }
+                            });
+                            break;
+                        }
+                    }
+                }
+                var alwaysWith = Object.keys(partnerCounts).filter(p => partnerCounts[p] === currentRounds.length);
+                var sometimesWith = Object.keys(partnerCounts).filter(p => partnerCounts[p] > 0 && partnerCounts[p] < currentRounds.length);
+                var neverWith = allNames.filter(n => n !== name && !partnerCounts[n]);
+
+                crossHtml += '<div class="bg-slate-800/30 rounded-lg p-2.5 border border-slate-700/30">';
+                crossHtml += '<div class="text-[11px] font-bold text-slate-300 mb-1.5">' + esc(s.originalName) + '</div>';
+                if (alwaysWith.length > 0) {
+                    crossHtml += '<div class="text-[9px] text-emerald-400 font-bold mb-0.5">Always together:</div>';
+                    crossHtml += '<div class="flex flex-wrap gap-1 mb-1">' + alwaysWith.map(p => '<span class="text-[9px] bg-emerald-900/30 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-700/30">' + esc(students[p].originalName) + '</span>').join('') + '</div>';
+                }
+                if (sometimesWith.length > 0) {
+                    crossHtml += '<div class="text-[9px] text-amber-400 font-bold mb-0.5">Sometimes together:</div>';
+                    crossHtml += '<div class="flex flex-wrap gap-1 mb-1">' + sometimesWith.map(p => '<span class="text-[9px] bg-amber-900/30 text-amber-300 px-1.5 py-0.5 rounded border border-amber-700/30">' + esc(students[p].originalName) + ' <span class="text-amber-500">(' + partnerCounts[p] + '/' + currentRounds.length + ')</span></span>').join('') + '</div>';
+                }
+                if (neverWith.length > 0 && neverWith.length <= 10) {
+                    crossHtml += '<div class="text-[9px] text-slate-500 font-bold mb-0.5">Never together:</div>';
+                    crossHtml += '<div class="flex flex-wrap gap-1">' + neverWith.map(p => '<span class="text-[9px] bg-slate-800/50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-700/30">' + esc(students[p].originalName) + '</span>').join('') + '</div>';
+                }
+                crossHtml += '</div>';
+            });
+            crossHtml += '</div>';
+            groupsBox.innerHTML = roundTabsHtml + crossHtml;
+        } else {
+            // Show specific round
+            var roundData = currentRounds[activeRoundTab];
+            var roundGroups = roundData ? roundData.groups : groups;
+            // Temporarily update conflict map for this round
+            if (roundData && roundData.groups) identifyConflicts(roundData.groups);
+            var roundHeader = '<div class="text-[9px] text-slate-500 mb-2">Round ' + (activeRoundTab + 1) + ': ' + esc(currentRounds[activeRoundTab].label) + (roundData.violations === 0 ? ' — <span class="text-emerald-400">Optimal</span>' : ' — <span class="text-red-400">' + roundData.violations + ' conflict' + (roundData.violations > 1 ? 's' : '') + '</span>') + '</div>';
+            if (groupViewMode === 'list') {
+                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsList(roundGroups);
+            } else {
+                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsCards(roundGroups);
+            }
+            // Restore conflict map to first round
+            identifyConflicts(currentGroups);
+        }
+    } else {
+        // Single round (original behavior)
+        if (groupViewMode === 'list') {
+            groupsBox.innerHTML = renderGroupsList(groups);
+        } else {
+            groupsBox.innerHTML = renderGroupsCards(groups);
+        }
+    }
+}
+
+function switchRoundTab(idx) {
+    activeRoundTab = idx;
+    if (currentRounds && currentRounds.length > 0) {
+        var roundIdx = idx >= 0 ? idx : 0;
+        var roundData = currentRounds[roundIdx] || currentRounds[0];
+        renderGroups(roundData.groups, roundData.violations);
     }
 }
 
@@ -1374,6 +2619,7 @@ function switchLang(lang) {
     if (lang === currentLang) return;
     cl.lang = currentLang;
     currentLang = lang;
+    simpleErrorToastShown = false; // reset toast flag on language switch
 
     // Update tab visuals
     updateLangTabs();
@@ -1386,6 +2632,9 @@ function switchLang(lang) {
         textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
         if (!cl.codeAdvanced) isDefaultCode = true; else isDefaultCode = false;
     }
+    // v8.1: Reset scroll position on language switch
+    textarea.scrollTop = 0;
+    textarea.scrollLeft = 0;
     updateFileTypeLabel(); runIDE();
 }
 
@@ -1490,14 +2739,32 @@ function copyExport() {
 
         const gnp = dirs.group_name || '';
         const nd = dirs.name_dynamic === 'true';
-        groups.forEach(function(g, gi) {
-            let gn = 'Group ' + (gi + 1);
-            if (gnp) gn = gnp.replace(/%d/g, gi + 1).replace(/%s/g, g.length + '');
-            if (nd && g.length > 0) { const leader = g.find(n => studMap[n].leader); if (leader) gn = studMap[leader].originalName + "'s Group"; }
-            text += gn + ': ' + g.map(n => studMap[n] ? studMap[n].originalName : n).join(', ') + '\n';
-        });
-        const total = groups.reduce((s, g) => s + g.length, 0);
-        text += '--- ' + total + ' students | ' + groups.length + ' groups ---\n';
+
+        // v6.0: Support multi-round export
+        if (isCurrentClass && currentRounds && currentRounds.length > 1) {
+            currentRounds.forEach(function(round, ri) {
+                text += '--- Round ' + (ri + 1) + ': ' + round.label + ' ---\n';
+                if (round.groups) {
+                    round.groups.forEach(function(g, gi) {
+                        let gn = 'Group ' + (gi + 1);
+                        if (gnp) gn = gnp.replace(/%d/g, gi + 1).replace(/%s/g, g.length + '');
+                        if (nd && g.length > 0) { const leader = g.find(n => studMap[n] && studMap[n].leader); if (leader) gn = studMap[leader].originalName + "'s Group"; }
+                        text += gn + ': ' + g.map(n => studMap[n] ? studMap[n].originalName : n).join(', ') + '\n';
+                    });
+                }
+            });
+            const total = (currentRounds[0].groups || []).reduce((s, g) => s + g.length, 0);
+            text += '--- ' + total + ' students | ' + currentRounds.length + ' rounds ---\n';
+        } else {
+            groups.forEach(function(g, gi) {
+                let gn = 'Group ' + (gi + 1);
+                if (gnp) gn = gnp.replace(/%d/g, gi + 1).replace(/%s/g, g.length + '');
+                if (nd && g.length > 0) { const leader = g.find(n => studMap[n].leader); if (leader) gn = studMap[leader].originalName + "'s Group"; }
+                text += gn + ': ' + g.map(n => studMap[n] ? studMap[n].originalName : n).join(', ') + '\n';
+            });
+            const total = groups.reduce((s, g) => s + g.length, 0);
+            text += '--- ' + total + ' students | ' + groups.length + ' groups ---\n';
+        }
         return text;
     }
 
@@ -1626,8 +2893,9 @@ function doExport() {
     classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
     const data = {
-        version: '3.6',
+        version: '3.7',
         exportedAt: new Date().toISOString(),
+        editorHeight: document.getElementById('editorContainer').offsetHeight,
         classrooms: classroomsData,
         activeClassIndex: activeClass
     };
@@ -1897,6 +3165,10 @@ function confirmImport() {
             } else {
                 textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
                 isDefaultCode = !cl.codeAdvanced;
+            }
+            // Restore editor height if saved in the import
+            if (data.editorHeight) {
+                document.getElementById('editorContainer').style.height = data.editorHeight + 'px';
             }
             updateLangTabs();
             closeImport();
@@ -2270,8 +3542,9 @@ function saveActiveJSON() {
         classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
         const data = {
-            version: '3.6',
+            version: '3.7',
             exportedAt: new Date().toISOString(),
+            editorHeight: document.getElementById('editorContainer').offsetHeight,
             classrooms: classroomsData,
             activeClassIndex: activeClass
         };
@@ -2285,7 +3558,7 @@ function saveStorage() {
     if (currentLang === 'simple') cl.codeSimple = textarea.value;
     else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
     cl.lang = currentLang;
-    try { localStorage.setItem('glide_classrooms', JSON.stringify(classrooms)); localStorage.setItem('glide_activeClass', activeClass); localStorage.setItem('glide_saveConfig', JSON.stringify(saveConfig)); localStorage.setItem('glide_overflow', overflowMode); localStorage.setItem('glide_viewMode', groupViewMode); document.getElementById('savedLabel').textContent = 'Saved ' + new Date().toLocaleTimeString(); } catch(e) {}
+    try { localStorage.setItem('glide_classrooms', JSON.stringify(classrooms)); localStorage.setItem('glide_activeClass', activeClass); localStorage.setItem('glide_saveConfig', JSON.stringify(saveConfig)); localStorage.setItem('glide_overflow', overflowMode); localStorage.setItem('glide_viewMode', groupViewMode); localStorage.setItem('glide_editorHeight', document.getElementById('editorContainer').offsetHeight); document.getElementById('savedLabel').textContent = 'Saved ' + new Date().toLocaleTimeString(); } catch(e) {}
     saveActiveJSON();
 }
 
@@ -2312,6 +3585,7 @@ function loadStorage() {
         const sc = localStorage.getItem('glide_saveConfig'); if (sc) saveConfig = JSON.parse(sc);
         const ov = localStorage.getItem('glide_overflow'); if (ov) overflowMode = ov;
         const vm = localStorage.getItem('glide_viewMode'); if (vm) groupViewMode = vm;
+        const eh = localStorage.getItem('glide_editorHeight'); if (eh) document.getElementById('editorContainer').style.height = eh + 'px';
 
         // Restore editor state
         const cl = classrooms[activeClass];
@@ -2437,7 +3711,21 @@ function openDocs() {
         '<p><code>@strict = true</code> — in strict mode, any avoid violation is considered unacceptable. The engine label will show "STRICT" with the number of unresolved violations, making it clear when constraints cannot be satisfied.</p>' +
         '<p><code>capacity=3</code> on a student — limits the group size when that student is present. If a student has capacity=3, no group containing them can exceed 3 members.</p>' +
         '<p><code>exclude</code> flag — excludes the student from group generation entirely. They will not be placed in any group. Useful for tracking students who are absent.</p>' +
-        '<p><b>Scoring system:</b> Fulfilled wants add +500 per pair (scaled by weight). Avoid violations subtract -100000 per pair. Leader conflicts: -500. Solo groups: -5000. Balance penalties vary by type.</p></div></div>'
+        '<p><b>Scoring system:</b> Fulfilled wants add +500 per pair (scaled by weight). Avoid violations subtract -100000 per pair. Leader conflicts: -500. Solo groups: -5000. Balance penalties vary by type.</p></div></div>' +
+
+        // ===== MULTI-ROUND GROUPING =====
+        '<div class="docs-section"><h4>Multi-Round Grouping (@rounds)</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"</code> — generates multiple rounds of groups with different strategies. Each round can have a custom name in quotes that appears in the round tabs.</p>' +
+        '<p><b>Strategies:</b></p>' +
+        '<p><code>mixed:score</code> — groups have MIXED scores (high+low together). Uses snake-draft distribution: sort by score descending, then assign in 1,2,3,3,2,1,1,2,3... pattern so each group gets a mix of high and low scorers. Great for peer tutoring or mixed-ability collaboration.</p>' +
+        '<p><code>similar:score</code> — groups have SIMILAR scores (high+high, low+low). Sort by score descending, then assign sequentially: top N to group 1, next N to group 2, etc. Useful for differentiated instruction where students work with peers at similar levels.</p>' +
+        '<p><code>mixed:gender</code> / <code>similar:gender</code> — same strategies but using gender instead of score.</p>' +
+        '<p><code>random</code> — completely random grouping (standard shuffle).</p>' +
+        '<p><b>Custom round names:</b> Add a quoted name after the strategy to label that round. Example: <code>mixed:score"Ionic"</code> creates a round labeled "Ionic" that uses mixed-score grouping. Names appear in the round tabs and Cross-Round view.</p>' +
+        '<p><b>Overlap avoidance:</b> <code>@no_repeat_partners = true</code> — ensures no two students are placed in the same group together across multiple rounds. After generating groups for each round, the engine checks for repeated pairs and swaps students between groups to minimize overlap. Check the Cross-Round tab to verify that students are with different partners each round.</p>' +
+        '<p><b>Classroom example:</b> A science teacher wants 3 rounds of lab groups: (1) "Ionic" — mixed by grade so stronger students help weaker ones, (2) "PH" — similar by grade for level-appropriate tasks, (3) "Mollar" — random for social mixing. Use <code>@rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"</code> with <code>@no_repeat_partners = true</code> to ensure students work with different partners each round.</p>' +
+        '<p><b>Results display:</b> When @rounds is active, the Live Output panel shows round tabs at the top. Click each tab to view that round\'s groups. A "Cross-Round" tab shows which students are always together, sometimes together, or never together across all rounds.</p>' +
+        '<p><b>Tip:</b> If @rounds is not specified, the engine runs a single round as before.</p></div></div>'
         : '') +
 
         // ===== ARRANGE BY =====
@@ -2465,7 +3753,9 @@ function openDocs() {
         '<p><code>@hill_climb = 30</code> — refinement rounds</p>' +
         '<p><code>@strict = true</code> — no avoid violations allowed</p>' +
         '<p><code>@template = score-lab|gender-balance|leader-projects|basic</code> — load a template</p>' +
-        '<p><code>@tag_balance = honors</code> — spread students with this tag across groups</p></div></div>' +
+        '<p><code>@tag_balance = honors</code> — spread students with this tag across groups</p>' +
+        '<p><code>@rounds = mixed:score"Name", similar:score"Name", random"Name"</code> — multi-round grouping with custom names</p>' +
+        '<p><code>@no_repeat_partners = true</code> — avoid placing same students together across rounds</p></div></div>' +
 
         // ===== FILE TYPES & LOCKS =====
         '<div class="docs-section"><h4>File Types & Locks</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
