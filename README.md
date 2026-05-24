@@ -25,6 +25,12 @@ Three language tiers from simple to full Python integration. Code-driven classro
 7. [Vision](#vision)
 
 ---
+links:
+Some parts of the site can only be accessed by typing in the URL
+
+[Group Logic IDE online](https://sites.google.com/view/grouplogic-ide/)
+[Documentation on website](https://sites.google.com/view/grouplogic-ide/)
+---
 
 ## Why GroupLogic?
 
