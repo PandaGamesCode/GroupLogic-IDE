@@ -197,6 +197,11 @@
         .t-strategy { color: #fb923c; }  /* mixed, similar, random in @rounds */
         .t-round-key { color: #22d3ee; }  /* score, gender in @rounds context */
         .t-round-name { color: #a78bfa; font-weight: 600; }  /* custom round names in quotes */
+        .t-rule { color: #f472b6; font-weight: 700; }  /* @rule keyword */
+        .t-rule-name { color: #e879f9; }  /* custom rule name */
+        .t-rule-cond { color: #38bdf8; }  /* built-in condition functions */
+        .t-rule-arrow { color: #94a3b8; }  /* → arrow */
+        .t-rule-action { color: #4ade80; }  /* built-in action keywords */
 
         /* ===== LANGUAGE TABS ===== */
         .lang-bar {
@@ -624,6 +629,14 @@
                         <div><span class="text-purple-300 font-bold">@rounds</span> <span class="text-slate-600">= </span><span class="text-orange-400 font-bold">mixed</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"Ionic"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">similar</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"PH"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">random</span><span class="text-purple-400 font-bold">"Mollar"</span></div>
                         <div><span class="text-purple-300 font-bold">@no_repeat_partners</span> <span class="text-slate-600">= true</span></div>
                     </div>
+                    <div class="w-full flex flex-col gap-y-0.5 mt-2 pt-2 border-t border-slate-800">
+                        <div class="text-pink-400 font-bold text-[10px] mb-0.5">@rule Custom Rules</div>
+                        <div class="text-[9px] text-slate-500 ml-2">@rule name {</div>
+                        <div class="text-[9px] ml-4"><span class="text-sky-400">condition</span> <span class="text-slate-400">→</span> <span class="text-green-400">action</span></div>
+                        <div class="text-[9px] text-slate-500 ml-2">}</div>
+                        <div class="text-[9px] text-slate-600 mt-1 ml-1">Conditions: <span class="text-sky-400">same_group(attr=val)</span> <span class="text-sky-400">score_spread()</span> <span class="text-sky-400">gender_imbalance()</span> <span class="text-sky-400">leader_count()</span> <span class="text-sky-400">partnered_before()</span></div>
+                        <div class="text-[9px] text-slate-600 ml-1">Actions: <span class="text-green-400">separate</span> <span class="text-green-400">penalty(N)</span> <span class="text-green-400">together</span> <span class="text-green-400">avoid</span> <span class="text-green-400">prefer</span></div>
+                    </div>
                 </div>
                 <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800">
                     <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 text-[9px] font-bold flex items-center gap-1">Full Docs</button>
@@ -762,6 +775,7 @@ let currentRounds = null; // array of {label, groups, violations} when @rounds i
 let conflictMap = new Map();
 let currentLang = 'simple';
 let directives = {};
+let customRules = [];  // parsed @rule blocks: { name, conditions: [{func, args, op, val, action, actionArgs}] }
 let overflowMode = 'even';
 let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
@@ -803,6 +817,11 @@ const DEFAULT_ADVANCED = `// GroupLogic IDE v7.0 - Advanced Mode
 @strict = false
 @rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"
 @no_repeat_partners = true
+
+// Custom rule: max 2 males per group
+@rule max_boys {
+    same_group(gender=M) > 2 → separate
+}
 
 // 20 Students with varied scores, gender, and roles
 Alice: +Bob score=92 gender=F role=leader
@@ -1544,11 +1563,60 @@ function parseRules() {
     const lines = textarea.value.split('\n');
     const nextMap = {};
     simpleModeErrors = []; // reset errors each parse
+    directives = {};
+    customRules = [];
 
+    // First pass: collect @rule blocks (multiline)
+    let inRuleBlock = false, ruleName = '', ruleLines = [], ruleStartLine = -1;
+    for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trim();
+        if (trimmed.match(/^@rule\s+/)) {
+            if (currentLang === 'simple') {
+                simpleModeErrors.push({ line: i, text: trimmed, reason: '@rule is Advanced-only syntax' });
+            }
+            const rm = trimmed.match(/^@rule\s+(\w+)\s*\{?\s*$/);
+            if (rm) {
+                inRuleBlock = true;
+                ruleName = rm[1];
+                ruleLines = [];
+                ruleStartLine = i;
+                // Check if the rule body is on the same line: @rule name { condition → action }
+                const inlineMatch = trimmed.match(/^@rule\s+\w+\s*\{\s*(.+)\s*\}\s*$/);
+                if (inlineMatch) {
+                    ruleLines.push(inlineMatch[1]);
+                    parseRuleBlock(ruleName, ruleLines);
+                    inRuleBlock = false;
+                }
+            }
+            continue;
+        }
+        if (inRuleBlock) {
+            if (trimmed === '}' || trimmed.endsWith('}')) {
+                parseRuleBlock(ruleName, ruleLines);
+                inRuleBlock = false;
+            } else if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('#')) {
+                ruleLines.push(trimmed);
+            }
+            continue;
+        }
+    }
+
+    // Second pass: normal parsing
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+        // Skip @rule blocks (already parsed above)
+        if (trimmed.match(/^@rule\s+/)) {
+            // Skip until closing brace
+            if (!trimmed.match(/^@rule\s+\w+\s*\{.*\}\s*$/)) {
+                while (i < lines.length - 1) {
+                    i++;
+                    if (lines[i].trim() === '}' || lines[i].trim().endsWith('}')) break;
+                }
+            }
+            continue;
+        }
         if (trimmed.startsWith('@')) {
             if (currentLang === 'simple') {
                 simpleModeErrors.push({ line: i, text: trimmed, reason: 'Directives (@) are Advanced-only syntax' });
@@ -1604,6 +1672,79 @@ function parseRules() {
     students = nextMap;
     const count = Object.keys(students).filter(k => students[k].defined).length;
     document.getElementById('student-count').innerText = count + ' STUDENTS';
+}
+
+// Parse a @rule block into condition→action pairs
+function parseRuleBlock(name, bodyLines) {
+    const conditions = [];
+    for (const line of bodyLines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+        // Support both → and -> as arrow
+        const arrowMatch = trimmed.match(/^(.+?)(?:→|->)\s*(.+)$/);
+        if (arrowMatch) {
+            const condPart = arrowMatch[1].trim();
+            const actionPart = arrowMatch[2].trim();
+            const cond = parseRuleCondition(condPart);
+            const act = parseRuleAction(actionPart);
+            if (cond && act) {
+                conditions.push({ ...cond, action: act.action, actionArgs: act.args });
+            }
+        }
+    }
+    if (conditions.length > 0) {
+        customRules.push({ name, conditions });
+    }
+}
+
+// Parse condition like: same_group(gender=M) > 1, score_spread() > 30, has_leader(), partnered_before()
+function parseRuleCondition(cond) {
+    // same_group(attr=val) > N  or  count(attr=val) > N
+    let m = cond.match(/^(same_group|count)\((\w+)=(\w+)\)\s*([><=!]+)\s*(\d+)$/);
+    if (m) return { func: m[1], args: { attr: m[2].toLowerCase(), val: m[3] }, op: m[4], val: parseInt(m[5]) };
+
+    // same_group(attr="val") > N  — quoted values
+    m = cond.match(/^(same_group|count)\((\w+)=["']([^"']+)["']\)\s*([><=!]+)\s*(\d+)$/);
+    if (m) return { func: m[1], args: { attr: m[2].toLowerCase(), val: m[3] }, op: m[4], val: parseInt(m[5]) };
+
+    // score_spread() > N
+    m = cond.match(/^score_spread\(\)\s*([><=!]+)\s*(\d+)$/);
+    if (m) return { func: 'score_spread', args: {}, op: m[1], val: parseInt(m[2]) };
+
+    // gender_imbalance() > N
+    m = cond.match(/^gender_imbalance\(\)\s*([><=!]+)\s*(\d+)$/);
+    if (m) return { func: 'gender_imbalance', args: {}, op: m[1], val: parseInt(m[2]) };
+
+    // leader_count() > N
+    m = cond.match(/^leader_count\(\)\s*([><=!]+)\s*(\d+)$/);
+    if (m) return { func: 'leader_count', args: {}, op: m[1], val: parseInt(m[2]) };
+
+    // has_leader() — true if >0 leaders
+    m = cond.match(/^has_leader\(\)$/);
+    if (m) return { func: 'leader_count', args: {}, op: '>', val: 0 };
+
+    // partnered_before() — for cross-round repeat detection
+    m = cond.match(/^partnered_before\(\)$/);
+    if (m) return { func: 'partnered_before', args: {}, op: '>', val: 0 };
+
+    // no_repeat — alias for partnered_before
+    m = cond.match(/^no_repeat\(\)$/);
+    if (m) return { func: 'partnered_before', args: {}, op: '>', val: 0 };
+
+    return null;
+}
+
+// Parse action like: separate, penalty(500), together, avoid, prefer
+function parseRuleAction(action) {
+    const m = action.match(/^(\w+)(?:\((\d+)\))?$/);
+    if (m) {
+        const act = m[1].toLowerCase();
+        const validActions = ['separate', 'penalty', 'together', 'avoid', 'prefer'];
+        if (validActions.includes(act)) {
+            return { action: act, args: m[2] ? parseInt(m[2]) : null };
+        }
+    }
+    return null;
 }
 
 function parseConstraintLine(body, nextMap) {
@@ -1683,9 +1824,50 @@ function renderSyntax() {
     // Build a set of error line indices for Simple mode
     const errorLines = new Set(simpleModeErrors.map(e => e.line));
 
+    // Track @rule block state for highlighting
+    let inRuleHighlight = false;
+
     const htmlLines = lines.map(function(line, idx) {
         const trimmed = line.trim();
         if (trimmed.startsWith('//') || trimmed.startsWith('#')) return '<span class="t-comment">' + esc(line) + '</span>';
+
+        // @rule block handling
+        if (trimmed.match(/^@rule\s+/)) {
+            inRuleHighlight = true;
+            // @rule name { — highlight @rule, name, and brace
+            const rm = esc(line).match(/^(@rule)(\s+)(\w+)(\s*)(\{?)(.*)/);
+            if (rm) {
+                let rhtml = '<span class="hl-nw"><span class="t-rule">' + rm[1] + '</span></span>' +
+                    rm[2] +
+                    '<span class="hl-nw"><span class="t-rule-name">' + rm[3] + '</span></span>' +
+                    rm[4] + '<span class="t-op">' + rm[5] + '</span>';
+                // Check if inline rule: everything on one line
+                if (rm[6]) {
+                    rhtml += highlightRuleBody(rm[6]);
+                    // Check if closing brace is at the end
+                    if (rm[6].trim().endsWith('}')) inRuleHighlight = false;
+                }
+                if (errorLines.has(idx)) rhtml = '<span class="t-syntax-err">' + rhtml + '</span>';
+                return rhtml;
+            }
+            // Fallback
+            const base = '<span class="hl-nw"><span class="t-rule">' + esc(line) + '</span></span>';
+            if (errorLines.has(idx)) return '<span class="t-syntax-err">' + base + '</span>';
+            return base;
+        }
+        if (inRuleHighlight) {
+            let ruleHtml = '';
+            if (trimmed === '}' || trimmed.endsWith('}')) {
+                inRuleHighlight = false;
+                const inner = esc(line).replace(/\}$/, '');
+                ruleHtml = highlightRuleBody(inner) + '<span class="t-op">}</span>';
+            } else {
+                ruleHtml = highlightRuleBody(esc(line));
+            }
+            if (errorLines.has(idx)) ruleHtml = '<span class="t-syntax-err">' + ruleHtml + '</span>';
+            return ruleHtml;
+        }
+
         if (trimmed.startsWith('@')) {
             // v6.0: Split directive into name, spaces+operator, and value.
             // Special handling for @rounds to highlight strategies and keys.
@@ -1811,6 +1993,31 @@ function renderSyntax() {
     // v7.0 SAFETY NET: Always make textarea transparent since highlighter has content.
     textarea.style.setProperty('color', 'transparent', 'important');
     textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+}
+
+// Highlight the body of a @rule condition→action line (already HTML-escaped input)
+function highlightRuleBody(text) {
+    let h = text;
+    // Highlight → and -> arrows
+    h = h.replace(/(→|-&gt;)/g, '<span class="t-rule-arrow">$1</span>');
+    // Highlight condition functions
+    h = h.replace(/(same_group|count|score_spread|gender_imbalance|leader_count|has_leader|partnered_before|no_repeat)/g, '<span class="t-rule-cond">$1</span>');
+    // Highlight action keywords
+    h = h.replace(/\b(separate|penalty|together|avoid|prefer)\b/g, function(match, p1, offset, str) {
+        // Only highlight if after arrow (not inside a condition function name)
+        const arrowIdx = str.indexOf('<span class="t-rule-arrow">');
+        if (arrowIdx >= 0 && offset > arrowIdx) {
+            return '<span class="t-rule-action">' + p1 + '</span>';
+        }
+        return match;
+    });
+    // Highlight comparison operators
+    h = h.replace(/([><=!]+)/g, '<span class="t-op">$1</span>');
+    // Highlight numbers
+    h = h.replace(/(\d+)/g, '<span class="t-score">$1</span>');
+    // Highlight attr=value pairs
+    h = h.replace(/(\w+)(=)(&quot;[^&]*&quot;|\w+)/g, '<span class="t-key">$1</span><span class="t-assign">$2</span><span class="t-val">$3</span>');
+    return h;
 }
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -2409,8 +2616,112 @@ function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
         if (balance.includes('roles')) { const roles = g.map(n=>students[n].role).filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score-=300; }
         if (tagBalance) { const tc = g.filter(n=>students[n].tag===tagBalance).length; if (tc>1) score-=200*(tc-1); }
         if (g.filter(n=>students[n].leader).length>1) score-=500;
+        // Evaluate custom @rule conditions for this group
+        const ruleResult = evaluateRulesForGroup(g, groups);
+        score += ruleResult.score;
+        violations += ruleResult.violations;
     });
     if (separateList.length>1) { for (let i=0;i<separateList.length-1;i++) for (let j=i+1;j<separateList.length;j++) for (const g of groups) if (g.includes(separateList[i])&&g.includes(separateList[j])) { score-=50000; violations++; } }
+    return { score, violations };
+}
+
+// Evaluate custom @rule conditions for a single group
+function evaluateRulesForGroup(group, allGroups) {
+    let score = 0, violations = 0;
+    if (!customRules || customRules.length === 0) return { score, violations };
+
+    for (const rule of customRules) {
+        for (const cond of rule.conditions) {
+            let actualVal = 0;
+            let triggered = false;
+
+            switch (cond.func) {
+                case 'same_group':
+                case 'count': {
+                    // Count members in this group with attr=val
+                    const attr = cond.args.attr;
+                    const val = cond.args.val;
+                    actualVal = group.filter(n => {
+                        const s = students[n];
+                        if (!s) return false;
+                        if (attr === 'gender') return s.gender === val;
+                        if (attr === 'role') return s.role === val;
+                        if (attr === 'tag') return s.tag === val;
+                        if (attr === 'band') return s.band === val;
+                        if (attr === 'score') return String(s.score) === val;
+                        if (attr === 'age') return String(s.age) === val;
+                        if (attr === 'leader') return s.leader && (val === 'true' || val === '1');
+                        return false;
+                    }).length;
+                    triggered = compareValues(actualVal, cond.op, cond.val);
+                    break;
+                }
+                case 'score_spread': {
+                    const scores = group.map(n => students[n] ? students[n].score || 0 : 0).filter(s => s > 0);
+                    if (scores.length > 1) {
+                        actualVal = Math.max(...scores) - Math.min(...scores);
+                        triggered = compareValues(actualVal, cond.op, cond.val);
+                    }
+                    break;
+                }
+                case 'gender_imbalance': {
+                    const f = group.filter(n => students[n] && students[n].gender === 'F').length;
+                    const m = group.filter(n => students[n] && students[n].gender === 'M').length;
+                    actualVal = Math.abs(f - m);
+                    triggered = compareValues(actualVal, cond.op, cond.val);
+                    break;
+                }
+                case 'leader_count': {
+                    actualVal = group.filter(n => students[n] && students[n].leader).length;
+                    triggered = compareValues(actualVal, cond.op, cond.val);
+                    break;
+                }
+                case 'partnered_before': {
+                    // Check if any pair in this group was together in a previous round
+                    if (currentRounds && currentRounds.length > 0) {
+                        let repeatCount = 0;
+                        for (let i = 0; i < group.length; i++) {
+                            for (let j = i + 1; j < group.length; j++) {
+                                for (const rd of currentRounds) {
+                                    if (rd.groups) {
+                                        for (const g of rd.groups) {
+                                            if (g.includes(group[i]) && g.includes(group[j])) { repeatCount++; break; }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        actualVal = repeatCount;
+                        triggered = compareValues(actualVal, cond.op, cond.val);
+                    }
+                    break;
+                }
+            }
+
+            if (triggered) {
+                // Apply the action
+                switch (cond.action) {
+                    case 'separate':
+                        score -= 50000;
+                        violations++;
+                        break;
+                    case 'penalty':
+                        score -= (cond.actionArgs || 1000);
+                        break;
+                    case 'avoid':
+                        score -= 5000;
+                        break;
+                    case 'prefer':
+                        score += 500;
+                        break;
+                    case 'together':
+                        // Already together, no penalty needed; add small bonus
+                        score += 200;
+                        break;
+                }
+            }
+        }
+    }
     return { score, violations };
 }
 
@@ -3767,7 +4078,46 @@ function openDocs() {
         '<p><code>@template = score-lab|gender-balance|leader-projects|basic</code> — load a template</p>' +
         '<p><code>@tag_balance = honors</code> — spread students with this tag across groups</p>' +
         '<p><code>@rounds = mixed:score"Name", similar:score"Name", random"Name"</code> — multi-round grouping with custom names</p>' +
-        '<p><code>@no_repeat_partners = true</code> — avoid placing same students together across rounds</p></div></div>' +
+        '<p><code>@no_repeat_partners = true</code> — avoid placing same students together across rounds</p>' +
+        '<p><code>@rule name { condition → action }</code> — define custom grouping rules (see Custom Rules section)</p></div></div>' +
+
+        // ===== CUSTOM RULES =====
+        '<div class="docs-section"><h4>Custom Rules (@rule)</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
+        '<p>The <code>@rule</code> directive lets you define your own grouping constraints using built-in condition functions and actions. This gives you fine-grained control over how groups are formed, beyond the built-in directives like <code>@separate</code> and <code>@together</code>. Custom rules are evaluated for every group during the scoring phase, and violations affect the engine\'s group optimization just like built-in constraints.</p>' +
+        '<p><b>Syntax:</b></p>' +
+        '<p><code>@rule name {</code></p>' +
+        '<p><code>    condition → action</code></p>' +
+        '<p><code>}</code></p>' +
+        '<p>Each rule can contain multiple condition→action lines. The arrow can be written as <code>→</code> (Unicode) or <code>-></code> (ASCII). When a condition is met for any group, the corresponding action is applied as a scoring penalty or bonus.</p>' +
+        '<p class="mt-2"><b>Built-in Condition Functions:</b></p>' +
+        '<p><code>same_group(attr=val) > N</code> — triggers when more than N members with <code>attr=val</code> are in the same group. Works with <code>gender=M</code>, <code>gender=F</code>, <code>role="leader"</code>, <code>tag=honors</code>, <code>band=1</code>, etc. Alias: <code>count()</code>.</p>' +
+        '<p><code>score_spread() > N</code> — triggers when the score range (max minus min) in a group exceeds N. Use this to enforce score uniformity within groups.</p>' +
+        '<p><code>gender_imbalance() > N</code> — triggers when the absolute difference between male and female count in a group exceeds N. For example, <code>gender_imbalance() > 1</code> means no group should have a gender difference greater than 1.</p>' +
+        '<p><code>leader_count() > N</code> — triggers when a group has more than N leaders. <code>has_leader()</code> is a shorthand for <code>leader_count() > 0</code>.</p>' +
+        '<p><code>partnered_before()</code> — triggers when any pair of students in a group were together in a previous round. <code>no_repeat()</code> is an alias. Works with multi-round grouping (<code>@rounds</code>).</p>' +
+        '<p class="mt-2"><b>Built-in Actions:</b></p>' +
+        '<p><code>separate</code> — apply a heavy penalty (-50000) and count as a violation. The engine will strongly avoid this configuration, similar to <code>@separate</code>.</p>' +
+        '<p><code>penalty(N)</code> — apply a custom penalty of N points. Use for softer constraints that should be minimized but aren\'t hard violations.</p>' +
+        '<p><code>together</code> — add a bonus (+200). Use to prefer certain configurations.</p>' +
+        '<p><code>avoid</code> — apply a moderate penalty (-5000). Weaker than <code>separate</code> but still discourages the configuration.</p>' +
+        '<p><code>prefer</code> — add a preference bonus (+500). Encourages the configuration when the condition is met.</p>' +
+        '<p class="mt-2"><b>Examples:</b></p>' +
+        '<p><code>@rule no_boys_club {</code></p>' +
+        '<p><code>    same_group(gender=M) > 2 → separate</code></p>' +
+        '<p><code>}</code></p>' +
+        '<p>This ensures no group has more than 2 males. If 3+ males end up together, the engine treats it as a hard violation and tries to separate them.</p>' +
+        '<p><code>@rule spread_leaders {</code></p>' +
+        '<p><code>    leader_count() > 1 → penalty(500)</code></p>' +
+        '<p><code>}</code></p>' +
+        '<p>This applies a 500-point penalty each time a group has more than one leader, encouraging leaders to be spread across groups.</p>' +
+        '<p><code>@rule tight_scores {</code></p>' +
+        '<p><code>    score_spread() > 25 → penalty(200)</code></p>' +
+        '<p><code>}</code></p>' +
+        '<p>This penalizes groups where the score spread exceeds 25 points, encouraging score-uniform groups.</p>' +
+        '<p><code>@rule fresh_partners {</code></p>' +
+        '<p><code>    partnered_before() → separate</code></p>' +
+        '<p><code>}</code></p>' +
+        '<p>This ensures no two students who were together in a previous round end up together again. Equivalent to <code>@no_repeat_partners = true</code> but as a custom rule.</p></div></div>' +
 
         // ===== FILE TYPES & LOCKS =====
         '<div class="docs-section"><h4>File Types & Locks</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
