@@ -23,15 +23,8 @@ Three language tiers from simple to full Python integration. Code-driven classro
 5. [Roadmap](#roadmap)
 6. [Feature Status](#feature-status)
 7. [Vision](#vision)
+8. [Links](#links)
 
----
-
-## links:
-Some parts of the site can only be accessed by typing in the URL
-
-1. [Group Logic IDE online](https://sites.google.com/view/grouplogic-ide/)
-2. [Documentation on website](https://sites.google.com/view/grouplogic-ide/)
-   
 ---
 
 ## Why GroupLogic?
@@ -346,7 +339,13 @@ Major editor rewrite with transparent overlay syntax highlighting (highlighter b
 
 `@rule` · `same_group()` · `score_spread()` · `gender_imbalance()` · `leader_count()` · `partnered_before()` · `penalty(N)` · `editor overlay v8.1` · `panel resize` · `fullscreen mode`
 
-### v8.0 — Official Site + Persistence `[In Progress]`
+### v8.1 — Panel Improvements + Polish `[Shipped]`
+
+Roster panel expanded to show 4-6 names (250px default height). Live output panel expanded to show ~3 groups (360px default height) with scroll and resize handles. Editor overlay scroll sync hardened. Settings gear icon added to header.
+
+`roster 250px` · `output 360px` · `scroll sync v8.1` · `settings gear` · `panel resize handles`
+
+### v8.5 — Official Site + Persistence `[In Progress]`
 
 Full site redesign with better UI, save/load (cloud + local), password-based access (no login), rich export, and improved editor with inline errors and advanced search.
 
@@ -355,7 +354,7 @@ Full site redesign with better UI, save/load (cloud + local), password-based acc
 - **Rich Export:** CSV, PDF export. Copy to clipboard. Print-ready formatting.
 - **Better Editor:** Improved highlighting, inline errors, advanced search.
 
-### v9.0 — GroupLogic.py + Code-Driven Classroom `[Future]`
+### v9.5 — GroupLogic.py + Code-Driven Classroom `[Future]`
 
 Python tier with full library API. Code-driven classroom layout: write your room in code, engine renders the preview with hover-to-inspect. Multi-round assignments. The three-tier editor is the signature UI.
 
@@ -363,7 +362,7 @@ Python tier with full library API. Code-driven classroom layout: write your room
 - **Code-Driven Room:** Code tables and seats, see generated preview. Hover for seatmate info.
 - **Multi-Round:** Week-by-week with no repeat pairings. History tracking.
 
-### v10.0 — Open Source Launch + Collaborative Platform `[Long-Term]`
+### v10.5 — Open Source Launch + Collaborative Platform `[Long-Term]`
 
 GroupLogic IDE goes open source on GitHub. Community contributors can build new language features, optimization algorithms, export formats, and classroom templates. On the platform side, participants submit preferences privately, facilitators define global constraints, and the engine generates groupings respecting everyone's input. Built-in documentation and learning guides for all three language tiers.
 
@@ -372,7 +371,7 @@ GroupLogic IDE goes open source on GitHub. Community contributors can build new 
 - **Private Preferences:** Students submit preferences via form. Teacher sees aggregated constraints, not individual submissions.
 - **Plugin System:** Community-built plugins: custom export formats, new constraint types, integration with LMS platforms.
 
-### v11.0 — AI-Assisted Grouping + LMS Integration `[Long-Term]`
+### v11.5 — AI-Assisted Grouping + LMS Integration `[Long-Term]`
 
 AI suggests optimal grouping strategies based on historical data. Integration with Google Classroom, Canvas, and other LMS platforms for automatic roster sync. The engine learns from past outcomes — which group compositions led to better project results — and adjusts its scoring accordingly. Smart defaults that get smarter over time.
 
@@ -381,7 +380,7 @@ AI suggests optimal grouping strategies based on historical data. Integration wi
 - **Outcome Tracking:** Rate group outcomes. Engine learns which compositions work. Scoring weights adapt over time.
 - **Smart Defaults:** New teacher? AI suggests starting constraints based on class size, subject, and grade level.
 
-### v12.0 — Ecosystem + Mobile `[Long-Term]`
+### v12.5 — Ecosystem + Mobile `[Long-Term]`
 
 The long-term vision: GroupLogic as an ecosystem. Mobile app for on-the-go grouping. Template marketplace where teachers share and sell grouping templates. Multi-school district support with centralized constraint policies. Research partnerships with education departments studying optimal group composition. The language becomes a standard, like SQL for databases, but for people grouping.
 
@@ -402,7 +401,7 @@ Every feature tracked with a live status. Status labels: `Shipped` · `In Progre
 | Role coverage constraint solver | ✅ Shipped |
 | Multi-round assignment with strategies (mixed/similar/random) | ✅ Shipped |
 | Cross-round no-repeat-partner avoidance | ✅ Shipped |
-| Custom @rule constraint system | ✅ Shipped |
+| Custom @rule constraint system (condition → action) | ✅ Shipped |
 | Proximity-aware room constraint solver | 🔮 Future |
 | AI-assisted grouping strategy suggestions | 🔮 Future |
 
@@ -426,13 +425,15 @@ Every feature tracked with a live status. Status labels: `Shipped` · `In Progre
 
 | Feature | Status |
 |---------|--------|
-| Live syntax highlighting (transparent overlay) | ✅ Shipped |
+| Live syntax highlighting (transparent overlay v8.1) | ✅ Shipped |
 | Conflict glow (pulsing red border) | ✅ Shipped |
 | Hover-to-inspect relationship visualization | ✅ Shipped |
-| Resizable panels (editor, roster, output) | ✅ Shipped |
-| Fullscreen panel mode with backdrop | ✅ Shipped |
+| Resizable panels with drag handles (editor, roster, output) | ✅ Shipped |
+| Fullscreen panel mode with backdrop overlay | ✅ Shipped |
 | Drag-and-drop roster reorder | ✅ Shipped |
+| Expanded roster (4-6 names) & output (~3 groups) panels | ✅ Shipped |
 | Built-in documentation & learning guides | ✅ Shipped |
+| Settings gear icon in header | ✅ Shipped |
 | Code-driven classroom layout with hover preview | 📋 Planned |
 | Free-form groups (not rule-based) | 📋 Planned |
 
@@ -446,6 +447,7 @@ Every feature tracked with a live status. Status labels: `Shipped` · `In Progre
 | Upload/import .gls/.gla/.glu/.json/.txt files | ✅ Shipped |
 | Version history with snapshots (max 3) | ✅ Shipped |
 | Auto-save (timed and edit-count) | ✅ Shipped |
+| Multi-class tabs with rename & lock | ✅ Shipped |
 | Export as CSV, PDF | 📋 Planned |
 | Cloud save/load with password | 🔧 In Progress |
 
@@ -502,3 +504,15 @@ The language might evolve domain-specific vocabulary — `seat_near` for events,
 GroupLogic IDE's most ambitious feature — the one that no proprietary tool can replicate — is an open language and engine. When the language is open, teachers can share rule templates. Researchers can publish new optimization strategies. Developers can build integrations with any platform. The community becomes the product's immune system: bugs get found faster, edge cases get covered, and the language evolves based on real classroom needs rather than a product team's assumptions.
 
 This is why v5.0 marks the transition to open source. The project needs contributors who use it in real classrooms, encounter real edge cases, and build real integrations. The three-tier language design makes contribution accessible: you don't need to understand the optimization engine to add a new Advanced syntax feature, and you don't need to understand the DSL parser to add a new Python library function. The architecture is designed for contribution.
+
+---
+
+## Links
+
+Some parts of the site can only be accessed by typing in the URL.
+
+1. [Group Logic IDE Online](https://sites.google.com/view/grouplogic-ide/)
+2. [Documentation on Website](https://sites.google.com/view/grouplogic-ide/)
+3. [GitHub Repository](https://github.com/PandaGamesCode/GroupLogic-IDE)
+
+---
