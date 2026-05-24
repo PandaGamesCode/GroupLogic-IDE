@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GroupLogic IDE v8.1</title>
+    <title>GroupLogic IDE v7.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap');
@@ -26,7 +26,7 @@
             overflow: hidden;
             background: #1e293b;
         }
-        /* ===== EDITOR OVERLAY v8.1 =====
+        /* ===== EDITOR OVERLAY v9.0 =====
            PROVEN UNIVERSAL APPROACH (used by CodeFlask, Prism Live, etc.):
            Highlighter BEHIND (z-index:1): renders colored syntax text
            on an OPAQUE background (#1e293b). This is the "canvas" the user sees.
@@ -35,7 +35,8 @@
            shows through. Its text color is TRANSPARENT (invisible) so only
            the highlighter's colored syntax text is visible. Caret is visible.
            Both use white-space:pre (NO wrapping), identical font metrics.
-           Highlighter scroll is sync'd via CSS transform. */
+           v8.1 FIX: overflow:auto + scrollTop/scrollLeft sync instead of
+           CSS transform (transform caused text cut-off at bottom). */
         #editor-textarea, #editor-highlight {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -51,26 +52,7 @@
             line-height: 22px;
             white-space: pre;
         }
-        /* Highlighter BEHIND — renders colored syntax text on opaque bg.
-           This is the visual layer the user actually sees.
-           z-index:1 puts it behind the textarea.
-           background:#1e293b provides the dark editor background.
-           overflow:auto lets it scroll its own content to match the textarea.
-           Scrollbars are HIDDEN (we see the textarea's scrollbars instead).
-           pointer-events:none so clicks pass through to the textarea.
-           v8.1: Uses scrollTop/scrollLeft sync instead of CSS transform —
-           the transform approach caused text to be cut off when scrolling
-           because it moved the entire element, leaving a gap at the bottom. */
-        #editor-highlight {
-            z-index: 1;
-            overflow: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            pointer-events: none;
-            color: #94a3b8;
-            background: #1e293b;
-        }
-        #editor-highlight::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        .hl-nw { white-space: pre; display: inline; }
         /* Textarea ON TOP — receives keyboard input.
            background:TRANSPARENT so the highlighter's colored text shows through.
            Text is invisible (transparent) so only the highlighter's colored
@@ -93,6 +75,25 @@
         #editor-textarea::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         #editor-textarea::-webkit-scrollbar-track { background: transparent; }
         #editor-textarea::selection { background: rgba(59,130,246,0.3); }
+        /* Highlighter BEHIND — renders colored syntax text on opaque bg.
+           This is the visual layer the user actually sees.
+           z-index:1 puts it behind the textarea.
+           background:#1e293b provides the dark editor background.
+           overflow:auto lets it scroll its own content to match the textarea.
+           Scrollbars are HIDDEN (we see the textarea's scrollbars instead).
+           pointer-events:none so clicks pass through to the textarea.
+           v8.1: Uses scrollTop/scrollLeft sync instead of CSS transform —
+           the transform approach caused text to be cut off when scrolling. */
+        #editor-highlight {
+            z-index: 1;
+            overflow: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            pointer-events: none;
+            color: #94a3b8;
+            background: #1e293b;
+        }
+        #editor-highlight::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
         /* ===== EDITOR DEBUG (v6.0 Enhanced) ===== */
         .editor-debug {
@@ -226,7 +227,12 @@
         }
         .panel-expanded {
             position: fixed; top: 20px; left: 20px; right: 20px; bottom: 20px;
-            z-index: 50; height: auto !important; box-shadow: 0 0 0 1000px rgba(0,0,0,0.8);
+            z-index: 50; height: auto !important;
+        }
+        body.panel-has-expanded { overflow: hidden !important; }
+        body.panel-has-expanded::after {
+            content: ''; position: fixed; inset: 0; z-index: 49;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
         }
         .scroll-v { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
         .scroll-v::-webkit-scrollbar { width: 4px; }
@@ -438,6 +444,18 @@
         }
         .editor-resize-handle:hover::after { background: #60a5fa; }
 
+        /* ===== PANEL RESIZE HANDLE (Roster & Output) ===== */
+        .panel-resize-handle {
+            height: 8px; cursor: ns-resize; background: transparent;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; z-index: 10; flex-shrink: 0;
+        }
+        .panel-resize-handle::after {
+            content: ''; width: 40px; height: 3px; border-radius: 2px;
+            background: #334155; transition: background 0.15s;
+        }
+        .panel-resize-handle:hover::after { background: #4ade80; }
+
         /* ===== GROUP GRID VIEW ===== */
         .group-grid {
             display: flex; flex-wrap: wrap; gap: 10px;
@@ -481,7 +499,7 @@
                 <span class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">G</span>
                 GroupLogic IDE
             </h1>
-            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v8.1</p>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v7.0</p>
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
@@ -549,7 +567,7 @@
                     <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie"></textarea>
                     <div class="editor-debug" id="editorDebug">
                         <div class="dbg-hdr">
-                            <span>DEBUG v8.1</span>
+                            <span>DEBUG v7.0</span>
                             <div class="dbg-hdr-btns">
                                 <button class="dbg-btn btn-scan" onclick="dbgDeepScan()" title="Deep scan for issues">SCAN</button>
                                 <button class="dbg-btn btn-copy" onclick="dbgCopyText()" title="Copy debug text to clipboard">COPY</button>
@@ -623,18 +641,20 @@
                 <span class="text-slate-700">|</span>
                 <span id="langLabel" class="text-green-500 font-bold">SIMPLE</span>
                 <span class="text-slate-700">|</span>
-                <span class="cursor-pointer hover:text-slate-400" onclick="showSaveSettings()">Save Settings</span>
-                <span class="text-slate-700">|</span>
                 <span id="fileTypeLabel" class="text-slate-700 font-mono">.gls</span>
                 <span class="text-slate-700">|</span>
                 <span class="cursor-pointer hover:text-yellow-400 text-yellow-600" onclick="toggleEditorDebug()">DBG</span>
+                <span class="text-slate-700">|</span>
+                <span class="cursor-pointer hover:text-slate-400 transition-colors" onclick="showSaveSettings()" title="Settings">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </span>
             </div>
         </div>
 
         <!-- ===== SIDE PANELS ===== -->
         <div class="lg:col-span-5 space-y-3">
             <!-- Roster -->
-            <div id="panel-roster" class="panel" style="height: min(230px, 28vh);">
+            <div id="panel-roster" class="panel" style="height: 250px;">
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/10">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Roster</h3>
                     <div class="flex items-center gap-2" style="min-height:24px;">
@@ -653,10 +673,11 @@
                     </div>
                 </div>
                 <div id="roster-list" class="scroll-v p-3 space-y-1.5 flex-1"></div>
+                <div class="panel-resize-handle" id="rosterResizeHandle" title="Drag to resize roster"></div>
             </div>
 
             <!-- Live Output -->
-            <div id="panel-output" class="panel" style="min-height: 260px;">
+            <div id="panel-output" class="panel" style="height: 360px;">
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/20">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Output</h3>
                     <div class="flex items-center gap-2">
@@ -673,7 +694,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="groups-list" class="p-4"></div>
+                <div id="groups-list" class="p-4" style="flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#334155 transparent;"></div>
                 <div class="p-2.5 text-center border-t border-slate-800 bg-slate-900/30 flex justify-between items-center px-4">
                     <span id="engine-label" class="text-[9px] text-slate-500 font-bold uppercase italic tracking-tighter">Engine: MC 2500 + HC 20</span>
                     <button onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1" style="position:relative;">
@@ -681,6 +702,7 @@
                         Group
                     </button>
                 </div>
+                <div class="panel-resize-handle" id="outputResizeHandle" title="Drag to resize output"></div>
             </div>
         </div>
     </div>
@@ -724,7 +746,7 @@
 
 <script>
 // ========================================================================
-// GROUPLOGIC IDE v8.1 — ADVANCED BUILD
+// GROUPLOGIC IDE v7.0 — ADVANCED BUILD
 // ========================================================================
 
 const textarea = document.getElementById('editor-textarea');
@@ -745,19 +767,6 @@ let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
 let isDefaultCode = true;
 let groupViewMode = 'list';
-
-// Syntax highlighting color palette — inline style values.
-// Used by renderSyntax() and the ALIGN test. Defined early so it's
-// available throughout the script.
-var C = {
-    name:     '#60a5fa', op:       '#475569', want:     '#4ade80',
-    avoid:    '#f87171', comment:  '#334155', directive:'#c084fc',
-    key:      '#38bdf8', val:      '#fbbf24', flag:     '#2dd4bf',
-    assign:   '#64748b', score:    '#22d3ee', role:     '#fb923c',
-    weight:   '#f472b6', cond:     '#f59e0b', iff:      '#fb923c',
-    strategy: '#fb923c', roundkey: '#22d3ee', roundname:'#a78bfa',
-    err:      '#eab308', synerr:   '#ef4444', default:  '#94a3b8',
-};
 let simpleModeErrors = []; // lines with advanced syntax in Simple mode
 let simpleErrorToastShown = false; // debounce toast
 
@@ -774,7 +783,7 @@ let pendingImportContent = null;
 let pendingImportLang = null;
 
 // Default code
-const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v8.1
+const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v7.0
 // Syntax: Name: +Want -Avoid
 
 Alice: +Bob -Charlie
@@ -783,7 +792,7 @@ Charlie: -Alice +Eve
 Diana: +Eve -Bob
 Eve: +Diana +Charlie`;
 
-const DEFAULT_ADVANCED = `// GroupLogic IDE v8.1 - Advanced Mode
+const DEFAULT_ADVANCED = `// GroupLogic IDE v7.0 - Advanced Mode
 // Multi-Round Grouping with Overlap Avoidance
 // Science Lab: 3 rounds with different strategies
 
@@ -908,15 +917,18 @@ function dbgCollectData() {
     d.hlLineH = d.hlLines > 0 ? d.hlContentH / d.hlLines : 0;
     d.lineHDiff = Math.abs(d.taLineH - d.hlLineH);
 
-    // === SCROLL SYNC (v8.1: direct scrollTop/scrollLeft) ===
-    d.hlTransform = 'scrollTop/scrollLeft sync';
+    // === SCROLL SYNC (v7.0: CSS transform-based) ===
+    d.hlTransform = 'CSS transform sync';
     d.scrollTop = textarea.scrollTop;
     d.scrollLeft = textarea.scrollLeft;
-    d.hlScrollTop = highlighter.scrollTop;
-    d.hlScrollLeft = highlighter.scrollLeft;
-    d.scrollXMatch = Math.abs(d.hlScrollLeft - d.scrollLeft) < 1;
-    d.scrollYMatch = Math.abs(d.hlScrollTop - d.scrollTop) < 1;
-    d.transformMatch = d.scrollXMatch && d.scrollYMatch;
+    var hlTransformStyle = highlighter.style.transform || '';
+    var txMatch = hlTransformStyle.match(/translate\(([^,]+),/);
+    var tyMatch = hlTransformStyle.match(/,\s*([^)]+)\)/);
+    d.hlTx = txMatch ? parseFloat(txMatch[1]) : 0;
+    d.hlTy = tyMatch ? parseFloat(tyMatch[1]) : 0;
+    d.transformXMatch = Math.abs(d.hlTx - (-d.scrollLeft)) < 1;
+    d.transformYMatch = Math.abs(d.hlTy - (-d.scrollTop)) < 1;
+    d.transformMatch = d.transformXMatch && d.transformYMatch;
 
     // === FONT PROPERTIES ===
     var taCS = getComputedStyle(textarea);
@@ -1064,11 +1076,11 @@ function updateEditorDebug() {
 
     // === SCROLL SYNC ===
     html += '<div class="dbg-section">';
-    html += '<div class="dbg-section-title">Scroll Sync (v8.1 scrollTop)</div>';
-    html += 'TA scrollTop:<span class="dbg-val">' + d.scrollTop.toFixed(1) + '</span> scrollLeft:<span class="dbg-val">' + d.scrollLeft.toFixed(1) + '</span>\n';
-    html += 'HL scrollTop:<span class="dbg-val">' + d.hlScrollTop.toFixed(1) + '</span> scrollLeft:<span class="dbg-val">' + d.hlScrollLeft.toFixed(1) + '</span>\n';
-    html += 'X:<span class="' + (d.scrollXMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.scrollXMatch ? 'OK' : 'OFF') + '</span>';
-    html += ' Y:<span class="' + (d.scrollYMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.scrollYMatch ? 'OK' : 'OFF') + '</span>';
+    html += '<div class="dbg-section-title">Scroll Sync (v7.0 transform)</div>';
+    html += 'scrollTop:<span class="dbg-val">' + d.scrollTop.toFixed(1) + '</span> scrollLeft:<span class="dbg-val">' + d.scrollLeft.toFixed(1) + '</span>\n';
+    html += 'HL tx:<span class="dbg-val">' + d.hlTx.toFixed(1) + '</span> ty:<span class="dbg-val">' + d.hlTy.toFixed(1) + '</span>\n';
+    html += 'X:<span class="' + (d.transformXMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.transformXMatch ? 'OK' : 'OFF') + '</span>';
+    html += ' Y:<span class="' + (d.transformYMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.transformYMatch ? 'OK' : 'OFF') + '</span>';
     html += '</div>';
 
     // === WIDTH ===
@@ -1228,11 +1240,11 @@ function dbgCopyText() {
     for (var w = 0; w < d.hlLineHeights.length; w++) {
         if (d.hlLineHeights[w] > 23) wrappedCount++;
     }
-    var text = '=== EDITOR DEBUG v8.1 ===\n';
+    var text = '=== EDITOR DEBUG v7.0 ===\n';
     text += 'TA scrollH:' + d.taSH + ' clientH:' + d.taCH + ' max:' + d.taMaxScroll + '\n';
     text += 'HL scrollH:' + d.hlSH + ' clientH:' + d.hlCH + '\n';
-    text += 'scrollTop:' + d.scrollTop + ' HL scrollTop:' + d.hlScrollTop + '\n';
-    text += 'scrollLeft:' + d.scrollLeft + ' HL scrollLeft:' + d.hlScrollLeft + '\n';
+    text += 'scrollTop:' + d.scrollTop + ' hlTy:' + d.hlTy + '\n';
+    text += 'scrollLeft:' + d.scrollLeft + ' hlTx:' + d.hlTx + '\n';
     text += 'scroll match:' + (d.transformMatch ? 'YES' : 'NO') + '\n';
     text += 'TA lines:' + d.taLines + ' HL lines(divs):' + d.hlLines + ' wrapped:' + wrappedCount + ' HL lines(text):' + d.hlLinesText + '\n';
     text += 'TA lineH:' + d.taLineH.toFixed(2) + ' HL lineH:' + d.hlLineH.toFixed(2) + ' diff:' + d.lineHDiff.toFixed(2) + '\n';
@@ -1323,11 +1335,9 @@ function dbgToggleAutoRefresh() {
 })();
 
 // v8.1 SCROLL SYNC: Direct scrollTop/scrollLeft sync.
-// Highlighter (z-index:1, behind) has overflow:auto with hidden scrollbars.
-// We sync its scroll position to match the textarea's scroll position.
-// This replaces the old CSS transform approach which caused text to be
-// cut off — transform moves the entire element, leaving a gap at the bottom.
-// Direct scroll sync keeps the element in place and scrolls its content.
+// The highlighter has overflow:auto and scrolls independently.
+// We sync its scroll position to match the textarea's.
+// This replaces the old CSS transform approach which caused text cut-off.
 function syncScroll() {
     highlighter.scrollTop = textarea.scrollTop;
     highlighter.scrollLeft = textarea.scrollLeft;
@@ -1337,25 +1347,23 @@ function syncScroll() {
 textarea.addEventListener('scroll', syncScroll);
 
 // ===== ALIGNMENT TEST MODE =====
-// v8.1: Textarea is ON TOP (z-index:2), highlighter is BELOW (z-index:1).
-// In ALIGN mode, we make textarea text visible (red) and highlighter text green
-// so both layers are visible for alignment debugging.
+// v7.0: Textarea is ON TOP (z-index:2), highlighter is BELOW (z-index:1).
+// In ALIGN mode, we make textarea text visible (red) and highlighter text (green).
+// If they align, you see yellow (red+green overlap).
 let alignTestActive = false;
 function toggleAlignTest() {
     alignTestActive = !alignTestActive;
     if (alignTestActive) {
         textarea.style.setProperty('color', 'rgba(255, 100, 100, 0.5)', 'important');
         textarea.style.setProperty('-webkit-text-fill-color', 'rgba(255, 100, 100, 0.5)', 'important');
-        textarea.style.setProperty('background', 'transparent', 'important');
         textarea.style.caretColor = '#fff';
         highlighter.style.color = 'rgba(100, 255, 100, 0.5)';
         toast('Align test ON — red=textarea, green=highlighter', 'info');
     } else {
         textarea.style.setProperty('color', 'transparent', 'important');
         textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
-        textarea.style.setProperty('background', 'transparent', 'important');
         textarea.style.caretColor = '#60a5fa';
-        highlighter.style.color = C.default;
+        highlighter.style.color = '#94a3b8';
         toast('Align test OFF', 'info');
     }
 }
@@ -1409,6 +1417,37 @@ document.addEventListener('keydown', function(e) {
         }
     });
 })();
+
+// ===== PANEL RESIZE DRAG (Roster & Output) =====
+function setupPanelResize(handleId, panelId) {
+    var handle = document.getElementById(handleId);
+    var panel = document.getElementById(panelId);
+    if (!handle || !panel) return;
+    var isResizing = false, startY = 0, startH = 0;
+    handle.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        startY = e.clientY;
+        startH = panel.offsetHeight;
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+        var diff = e.clientY - startY;
+        var newH = Math.max(100, Math.min(window.innerHeight - 100, startH + diff));
+        panel.style.height = newH + 'px';
+    });
+    document.addEventListener('mouseup', function() {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+}
+setupPanelResize('rosterResizeHandle', 'panel-roster');
+setupPanelResize('outputResizeHandle', 'panel-output');
 
 // Drag & drop on action bar
 const actionBar = document.getElementById('actionBar');
@@ -1491,10 +1530,6 @@ function runIDE() {
     checkEditSave();
     updateFileTypeLabel();
     saveActiveJSON();
-    // v8.1: Ensure scroll sync is correct after content changes.
-    // The textarea may have scrolled during renderSyntax() but the
-    // scroll event may not have fired yet.
-    requestAnimationFrame(syncScroll);
     // Show toast when Advanced syntax detected in Simple mode
     if (currentLang === 'simple' && simpleModeErrors.length > 0 && !simpleErrorToastShown) {
         simpleErrorToastShown = true;
@@ -1633,24 +1668,6 @@ function ensureStudent(map, origName, lowName) {
 }
 
 // ===== SYNTAX HIGHLIGHTING =====
-// v8.1: ALL colors use inline style attributes instead of CSS classes.
-// This guarantees colors show regardless of CSS specificity conflicts,
-// Tailwind overrides, or browser quirks. The C palette is defined at
-// the top of the script (near line 746) for global access.
-
-function s(color, text) {
-    // Wrap text in a span with inline style color — GUARANTEED visible
-    return '<span style="color:' + color + '">' + text + '</span>';
-}
-function serr(text) {
-    // Syntax error: red wavy underline + red background tint
-    return '<span style="text-decoration:wavy underline;text-decoration-color:#ef4444;text-underline-offset:3px;background:rgba(239,68,68,0.08)">' + text + '</span>';
-}
-function serr2(text) {
-    // Warning: dotted yellow underline (undefined name reference)
-    return '<span style="text-decoration:dotted underline;text-decoration-color:#eab308;text-underline-offset:3px">' + text + '</span>';
-}
-
 function renderSyntax() {
     const lines = textarea.value.split('\n');
     // Build a quick lookup of all defined names (lowercase) to avoid false error highlights
@@ -1668,34 +1685,38 @@ function renderSyntax() {
 
     const htmlLines = lines.map(function(line, idx) {
         const trimmed = line.trim();
-        if (trimmed.startsWith('//') || trimmed.startsWith('#')) return s(C.comment, esc(line));
+        if (trimmed.startsWith('//') || trimmed.startsWith('#')) return '<span class="t-comment">' + esc(line) + '</span>';
         if (trimmed.startsWith('@')) {
+            // v6.0: Split directive into name, spaces+operator, and value.
+            // Special handling for @rounds to highlight strategies and keys.
             const dm = esc(line).match(/^(@\w+)(\s*)(=)(\s*)(.*)/);
             if (dm) {
                 var valHtml;
                 if (dm[1] === '@rounds') {
-                    valHtml = dm[5].replace(/(mixed|similar|random)/g, function(m) { return s(C.strategy, m); })
-                                    .replace(/(score|gender)/g, function(m) { return s(C.roundkey, m); })
-                                    .replace(/(&quot;[^&]*&quot;)/g, function(m) { return s(C.roundname, m); });
+                    // Highlight mixed, similar, random as .t-strategy; score, gender as .t-round-key; custom names in quotes as .t-round-name
+                    valHtml = dm[5].replace(/(mixed|similar|random)/g, '<span class="t-strategy">$1</span>')
+                                    .replace(/(score|gender)/g, '<span class="t-round-key">$1</span>')
+                                    .replace(/(&quot;[^&]*&quot;)/g, '<span class="t-round-name">$1</span>');
                 } else {
-                    valHtml = s(C.val, dm[5]);
+                    valHtml = '<span class="t-val">' + dm[5] + '</span>';
                 }
-                var dhtml = s(C.directive, dm[1]) +
-                    dm[2] + s(C.assign, dm[3]) +
-                    dm[4] + valHtml;
-                if (errorLines.has(idx)) dhtml = serr(dhtml);
+                var dhtml = '<span class="hl-nw"><span class="t-directive">' + dm[1] + '</span></span>' +
+                    dm[2] + '<span class="hl-nw"><span class="t-assign">' + dm[3] + '</span></span>' +
+                    dm[4] + '<span class="hl-nw">' + valHtml + '</span>';
+                if (errorLines.has(idx)) dhtml = '<span class="t-syntax-err">' + dhtml + '</span>';
                 return dhtml;
             }
-            const base = s(C.directive, esc(line));
-            if (errorLines.has(idx)) return serr(base);
+            // Fallback: no = sign, just highlight the directive
+            const base = '<span class="hl-nw"><span class="t-directive">' + esc(line) + '</span></span>';
+            if (errorLines.has(idx)) return '<span class="t-syntax-err">' + base + '</span>';
             return base;
         }
         if (trimmed.match(/^if\s*\(/)) {
             let el = esc(line);
-            el = el.replace(/^(if)(\s*\()/, function(m, kw, par) { return s(C.iff, kw) + s(C.op, par); });
-            el = el.replace(/(count|any_score|has_role)/g, function(m) { return s(C.cond, m); });
-            el = el.replace(/(=&gt;|=&lt;|[><=!]+)/g, function(m) { return s(C.op, m); });
-            if (errorLines.has(idx)) return serr(el);
+            el = el.replace(/^(if)(\s*\()/, '<span class="hl-nw"><span class="t-if">$1</span><span class="t-op">$2</span></span>');
+            el = el.replace(/(count|any_score|has_role)/g, '<span class="hl-nw"><span class="t-cond">$1</span></span>');
+            el = el.replace(/(=&gt;|=&lt;|[><=!]+)/g, '<span class="hl-nw"><span class="t-op">$1</span></span>');
+            if (errorLines.has(idx)) return '<span class="t-syntax-err">' + el + '</span>';
             return el;
         }
 
@@ -1704,7 +1725,7 @@ function renderSyntax() {
         if (!dm) return el;
 
         const name = dm[1], op = dm[2];
-        let result = s(C.name, name) + s(C.op, op);
+        let result = '<span class="t-name">' + name + '</span><span class="t-op">' + op + '</span>';
         let rem = el.substring(name.length + op.length);
 
         const parts = rem.split(/(\s+)/);
@@ -1714,55 +1735,57 @@ function renderSyntax() {
             var tokenized;
             const kvq = part.match(/^(role|task|tag)(=)(&quot;)(.*?)(&quot;)$/);
             if (kvq) {
-                const base = s(C.key, kvq[1]) + s(C.assign, kvq[2]) + s(C.role, kvq[3] + kvq[4] + kvq[5]);
-                if (currentLang === 'simple') tokenized = serr(base);
+                const base = '<span class="t-key">' + kvq[1] + '</span><span class="t-assign">' + kvq[2] + '</span><span class="t-role">' + kvq[3] + kvq[4] + kvq[5] + '</span>';
+                if (currentLang === 'simple') tokenized = '<span class="t-syntax-err">' + base + '</span>';
                 else tokenized = base;
-                return tokenized;
+                return '<span class="hl-nw">' + tokenized + '</span>';
             }
 
             const kv = part.match(/^(score|gender|age|band|capacity)(=)(\S+)$/);
             if (kv) {
-                const base = s(C.key, kv[1]) + s(C.assign, kv[2]) + s(C.score, kv[3]);
-                if (currentLang === 'simple') tokenized = serr(base);
+                const base = '<span class="t-key">' + kv[1] + '</span><span class="t-assign">' + kv[2] + '</span><span class="t-score">' + kv[3] + '</span>';
+                if (currentLang === 'simple') tokenized = '<span class="t-syntax-err">' + base + '</span>';
                 else tokenized = base;
-                return tokenized;
+                return '<span class="hl-nw">' + tokenized + '</span>';
             }
 
             const kv2 = part.match(/^(role|task|tag)(=)(\S+)$/);
             if (kv2) {
-                const base = s(C.key, kv2[1]) + s(C.assign, kv2[2]) + s(C.role, kv2[3]);
-                if (currentLang === 'simple') tokenized = serr(base);
+                const base = '<span class="t-key">' + kv2[1] + '</span><span class="t-assign">' + kv2[2] + '</span><span class="t-role">' + kv2[3] + '</span>';
+                if (currentLang === 'simple') tokenized = '<span class="t-syntax-err">' + base + '</span>';
                 else tokenized = base;
-                return tokenized;
+                return '<span class="hl-nw">' + tokenized + '</span>';
             }
 
             if (part === 'leader' || part === 'exclude') {
-                if (currentLang === 'simple') tokenized = serr(part);
-                else tokenized = s(C.flag, part);
-                return tokenized;
+                if (currentLang === 'simple') tokenized = '<span class="t-syntax-err">' + part + '</span>';
+                else tokenized = '<span class="t-flag">' + part + '</span>';
+                return '<span class="hl-nw">' + tokenized + '</span>';
             }
 
             const pm = part.match(/^([+\-])([a-zA-Z0-9_]+)(@\d+)?$/);
             if (pm) {
                 var lt = pm[2].toLowerCase();
                 var isDefined = definedLower.has(lt);
-                var cls = pm[1] === '+' ? C.want : C.avoid;
-                var wh = pm[3] ? s(C.weight, pm[3]) : '';
+                var cls = pm[1] === '+' ? 't-want' : 't-avoid';
+                var err = isDefined ? '' : ' t-err';
+                var wh = pm[3] ? '<span class="t-weight">' + pm[3] + '</span>' : '';
+                // Weight syntax @N is advanced
                 if (pm[3] && currentLang === 'simple') {
-                    tokenized = s(C.op, pm[1]) + s(cls, pm[2]) + serr(pm[3]);
+                    tokenized = '<span class="t-op">' + pm[1] + '</span><span class="' + cls + err + '">' + pm[2] + '</span><span class="t-syntax-err">' + pm[3] + '</span>';
                 } else {
-                    tokenized = s(C.op, pm[1]) + (isDefined ? s(cls, pm[2]) : serr2(pm[2])) + wh;
+                    tokenized = '<span class="t-op">' + pm[1] + '</span><span class="' + cls + err + '">' + pm[2] + '</span>' + wh;
                 }
-                return tokenized;
+                return '<span class="hl-nw">' + tokenized + '</span>';
             }
 
-            // Unrecognized token — return as-is (inherits default color)
-            return part;
+            // Unrecognized token — still wrap in hl-nw for consistent rendering
+            return '<span class="hl-nw">' + part + '</span>';
         }).join('');
 
-        return result + highlighted;
+        return '<span class="hl-nw">' + result + '</span>' + highlighted;
     });
-    // v8.1: Wrap each line in a <div class="hl-line"> with min-height:22px,
+    // v7.0: Wrap each line in a <div class="hl-line"> with min-height:22px,
     // white-space:pre. This forces each line to be EXACTLY 22px tall
     // (matching the textarea), preventing line-height drift.
     highlighter.innerHTML = htmlLines.map(function(line) {
@@ -1785,24 +1808,9 @@ function renderSyntax() {
         }
     }
 
-    // v8.1: FORCE the highlighter's default color via inline style.
-    // All token colors are already inline styles in the HTML, but this sets
-    // the base color for any un-tokenized text.
-    highlighter.style.color = C.default;
-
-    // v8.1: Textarea text stays invisible (transparent) — the highlighter
-    // behind it shows the syntax colors through the textarea's transparent bg.
-    // If highlighter is empty (shouldn't happen), make textarea text visible as fallback.
-    var hlDivs = highlighter.querySelectorAll('.hl-line');
-    if (hlDivs.length > 0) {
-        textarea.style.setProperty('color', 'transparent', 'important');
-        textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
-        textarea.style.setProperty('background', 'transparent', 'important');
-    } else {
-        textarea.style.setProperty('color', C.default, 'important');
-        textarea.style.setProperty('-webkit-text-fill-color', C.default, 'important');
-        textarea.style.setProperty('background', '#1e293b', 'important');
-    }
+    // v7.0 SAFETY NET: Always make textarea transparent since highlighter has content.
+    textarea.style.setProperty('color', 'transparent', 'important');
+    textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
 }
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -2632,9 +2640,6 @@ function switchLang(lang) {
         textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
         if (!cl.codeAdvanced) isDefaultCode = true; else isDefaultCode = false;
     }
-    // v8.1: Reset scroll position on language switch
-    textarea.scrollTop = 0;
-    textarea.scrollLeft = 0;
     updateFileTypeLabel(); runIDE();
 }
 
@@ -3447,7 +3452,12 @@ function switchClassroom(idx) {
 }
 
 // ===== PANEL EXPAND =====
-function toggleExpand(id) { document.getElementById(id).classList.toggle('panel-expanded'); }
+function toggleExpand(id) {
+    var el = document.getElementById(id);
+    var isExpanding = !el.classList.contains('panel-expanded');
+    el.classList.toggle('panel-expanded');
+    document.body.classList.toggle('panel-has-expanded', isExpanding || document.querySelector('.panel-expanded'));
+}
 
 // ===== VERSIONS =====
 function showVersions() {
@@ -3558,7 +3568,7 @@ function saveStorage() {
     if (currentLang === 'simple') cl.codeSimple = textarea.value;
     else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
     cl.lang = currentLang;
-    try { localStorage.setItem('glide_classrooms', JSON.stringify(classrooms)); localStorage.setItem('glide_activeClass', activeClass); localStorage.setItem('glide_saveConfig', JSON.stringify(saveConfig)); localStorage.setItem('glide_overflow', overflowMode); localStorage.setItem('glide_viewMode', groupViewMode); localStorage.setItem('glide_editorHeight', document.getElementById('editorContainer').offsetHeight); document.getElementById('savedLabel').textContent = 'Saved ' + new Date().toLocaleTimeString(); } catch(e) {}
+    try { localStorage.setItem('glide_classrooms', JSON.stringify(classrooms)); localStorage.setItem('glide_activeClass', activeClass); localStorage.setItem('glide_saveConfig', JSON.stringify(saveConfig)); localStorage.setItem('glide_overflow', overflowMode); localStorage.setItem('glide_viewMode', groupViewMode); localStorage.setItem('glide_editorHeight', document.getElementById('editorContainer').offsetHeight); localStorage.setItem('glide_rosterHeight', document.getElementById('panel-roster').offsetHeight); localStorage.setItem('glide_outputPanelHeight', document.getElementById('panel-output').offsetHeight); document.getElementById('savedLabel').textContent = 'Saved ' + new Date().toLocaleTimeString(); } catch(e) {}
     saveActiveJSON();
 }
 
@@ -3586,6 +3596,8 @@ function loadStorage() {
         const ov = localStorage.getItem('glide_overflow'); if (ov) overflowMode = ov;
         const vm = localStorage.getItem('glide_viewMode'); if (vm) groupViewMode = vm;
         const eh = localStorage.getItem('glide_editorHeight'); if (eh) document.getElementById('editorContainer').style.height = eh + 'px';
+        const rh = localStorage.getItem('glide_rosterHeight'); if (rh) document.getElementById('panel-roster').style.height = rh + 'px';
+        const oph = localStorage.getItem('glide_outputPanelHeight'); if (oph) document.getElementById('panel-output').style.height = oph + 'px';
 
         // Restore editor state
         const cl = classrooms[activeClass];
