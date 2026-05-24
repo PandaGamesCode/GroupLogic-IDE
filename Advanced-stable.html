@@ -449,7 +449,7 @@
 
 <!-- Global tooltip element -->
 <div class="r-tooltip" id="rTooltip"></div>
-<div class="toast-container" id="toastContainer"></div>
+<div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
 <div class="max-w-7xl mx-auto">
     <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -463,7 +463,7 @@
 
         <div class="flex items-center gap-3 flex-wrap">
             <div class="c-tabs-wrap" id="cTabs"></div>
-            <button onclick="addClassroom()" class="text-slate-600 hover:text-slate-400 transition-colors flex items-center" title="New Classroom">
+            <button type="button" onclick="addClassroom()" class="text-slate-600 hover:text-slate-400 transition-colors flex items-center" title="New Classroom">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             </button>
 
@@ -473,12 +473,12 @@
                     <input type="number" id="group-size" value="2" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
                 </div>
                 <div class="flex items-center gap-1">
-                    <button onclick="copyExport()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5" title="Copy formatted results">
+                    <button type="button" onclick="copyExport()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5" title="Copy formatted results">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"/></svg>
                         Copy
                     </button>
                     <div class="export-dropdown">
-                        <button onclick="toggleExportMenu()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Export">
+                        <button type="button" onclick="toggleExportMenu()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Export">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Export
                             <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -498,7 +498,7 @@
                             </div>
                         </div>
                     </div>
-                    <button onclick="triggerFileImport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Load file">
+                    <button type="button" onclick="triggerFileImport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Load file">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         Load
                     </button>
@@ -514,16 +514,16 @@
         <div class="lg:col-span-7 space-y-3">
             <div class="editor-container" id="editorContainer" style="height: min(520px, 55vh);">
                 <div class="lang-bar">
-                    <button class="lang-tab on-green" id="lt-simple" onclick="switchLang('simple')">Simple</button>
-                    <button class="lang-tab" id="lt-advanced" onclick="switchLang('advanced')">Advanced</button>
-                    <button class="lang-tab locked" id="lt-python" onclick="event.preventDefault()">
+                    <button type="button" class="lang-tab on-green" id="lt-simple" onclick="switchLang('simple')">Simple</button>
+                    <button type="button" class="lang-tab" id="lt-advanced" onclick="switchLang('advanced')">Advanced</button>
+                    <button type="button" class="lang-tab locked" id="lt-python" onclick="event.preventDefault()">
                         GroupLogic.py
                         <svg viewBox="0 0 16 16" fill="currentColor" style="opacity:0.5"><path d="M8 1a2 2 0 00-2 2v2H5a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V6a1 1 0 00-1-1h-1V3a2 2 0 00-2-2zm0 1a1 1 0 011 1v2H7V3a1 1 0 011-1zm0 6a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"/></svg>
                     </button>
                 </div>
                 <div class="editor-scroll-wrap" id="editorScrollWrap">
                     <div id="editor-highlight"></div>
-                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie"></textarea>
+                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie" role="textbox" aria-multiline="true" aria-label="Group rules editor"></textarea>
 
                 </div>
             </div>
@@ -536,13 +536,13 @@
                     <div class="flex items-center gap-2"><span class="text-green-400 font-bold">+Target</span> <span class="text-slate-600">Want</span></div>
                     <div class="flex items-center gap-2"><span class="text-red-400 font-bold">-Target</span> <span class="text-slate-600">Avoid</span></div>
                     <div class="text-slate-500 italic">Monte Carlo + Hill Climbing</div>
-                    <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 font-bold ml-auto flex items-center gap-1">Docs <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>
+                    <button type="button" onclick="openDocs()" class="text-blue-400 hover:text-blue-300 font-bold ml-auto flex items-center gap-1">Docs <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>
                 </div>
                 <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800" id="overflowBar" style="position:relative; min-height:28px;">
                     <span class="text-[9px] text-slate-600 font-bold uppercase self-center mr-1">Overflow:</span>
-                    <button onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
-                    <button onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
-                    <button onclick="setOverflowMode('small')" id="btn-overflow-small" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Small Last</button>
+                    <button type="button" onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
+                    <button type="button" onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
+                    <button type="button" onclick="setOverflowMode('small')" id="btn-overflow-small" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Small Last</button>
                 </div>
             </div>
             <div id="ref-advanced" class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800" style="display:none;">
@@ -582,7 +582,7 @@
                     </div>
                 </div>
                 <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800">
-                    <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 text-[9px] font-bold flex items-center gap-1">Full Docs</button>
+                    <button type="button" onclick="openDocs()" class="text-blue-400 hover:text-blue-300 text-[9px] font-bold flex items-center gap-1">Full Docs</button>
                 </div>
             </div>
 
@@ -621,7 +621,7 @@
                             <span id="sortAdvHint" class="adv-code-hint" style="display:none;">In code</span>
                         </div>
                         <span id="student-count" class="text-[10px] text-blue-400 font-mono font-bold">0</span>
-                        <button onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
+                        <button type="button" onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                         </button>
                     </div>
@@ -635,15 +635,15 @@
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/20">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Output</h3>
                     <div class="flex items-center gap-2">
-                        <button class="view-btn on" id="vbtn-list" onclick="setGroupView('list')" title="List view">
+                        <button type="button" class="view-btn on" id="vbtn-list" onclick="setGroupView('list')" title="List view">
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
                         </button>
-                        <button class="view-btn" id="vbtn-cards" onclick="setGroupView('cards')" title="Card view">
+                        <button type="button" class="view-btn" id="vbtn-cards" onclick="setGroupView('cards')" title="Card view">
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
                         </button>
-                        <button onclick="calculateGroups()" class="text-[9px] font-black bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-600 transition-colors uppercase ml-1">Shuffle</button>
+                        <button type="button" onclick="calculateGroups()" class="text-[9px] font-black bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-600 transition-colors uppercase ml-1">Shuffle</button>
                         <div id="feasibility-status" class="badge bg-slate-800 text-slate-600 uppercase tracking-widest">Idle</div>
-                        <button onclick="toggleExpand('panel-output')" class="text-slate-500 hover:text-white">
+                        <button type="button" onclick="toggleExpand('panel-output')" class="text-slate-500 hover:text-white">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                         </button>
                     </div>
@@ -651,7 +651,7 @@
                 <div id="groups-list" class="p-4" style="flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#334155 transparent;"></div>
                 <div class="p-2.5 text-center border-t border-slate-800 bg-slate-900/30 flex justify-between items-center px-4">
                     <span id="engine-label" class="text-[9px] text-slate-500 font-bold uppercase italic tracking-tighter">Engine: MC 2500 + HC 20</span>
-                    <button onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1" style="position:relative;">
+                    <button type="button" onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1" style="position:relative;">
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                         Group
                     </button>
@@ -668,7 +668,7 @@
         <h3 class="text-sm font-bold text-white mb-3" id="import-modal-title">Load File</h3>
         <div id="import-content-area"></div>
         <div class="flex justify-end mt-4">
-            <button onclick="closeImport()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
+            <button type="button" onclick="closeImport()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
         </div>
     </div>
 </div>
@@ -678,12 +678,12 @@
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4">
         <h3 class="text-sm font-bold text-white mb-3">Version History <span class="text-slate-600 font-normal">(3 max)</span></h3>
         <div id="version-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
-        <div class="flex justify-end mt-3"><button onclick="closeVersions()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Close</button></div>
+        <div class="flex justify-end mt-3"><button type="button" onclick="closeVersions()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Close</button></div>
     </div>
 </div>
 
 <!-- Save Settings Modal -->
-<div id="save-modal" class="modal-bg" style="display:none;">
+<div id="save-modal" class="modal-bg" style="display:none;" role="dialog" aria-modal="true" aria-label="Settings">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4">
         <h3 class="text-sm font-bold text-white mb-3">Save Settings</h3>
         <div class="space-y-2">
@@ -697,8 +697,8 @@
             <div class="save-row"><span class="save-label">Comment</span><input type="range" id="comment-brightness" min="0" max="100" value="25" class="flex-1 accent-blue-500 h-1.5"><span id="comment-brightness-val" class="text-[10px] text-slate-500 w-8 text-right">25%</span></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-            <button onclick="closeSaveSettings()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
-            <button onclick="applySaveSettings()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg">Apply</button>
+            <button type="button" onclick="closeSaveSettings()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
+            <button type="button" onclick="applySaveSettings()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg">Apply</button>
         </div>
     </div>
 </div>
@@ -866,7 +866,7 @@ function setupPanelResize(handleId, panelId) {
     var handle = document.getElementById(handleId);
     var panel = document.getElementById(panelId);
     if (!handle || !panel) return;
-    var isResizing = false, startY = 0, startH = 0;
+    let isResizing = false, startY = 0, startH = 0;
     handle.addEventListener('mousedown', function(e) {
         isResizing = true;
         startY = e.clientY;
@@ -948,6 +948,8 @@ runIDE();
 function toast(msg, type) {
     type = type || 'info';
     const c = document.getElementById('toastContainer');
+    // Limit to 3 visible toasts — remove oldest if exceeding
+    while (c.children.length >= 3) c.removeChild(c.firstChild);
     const t = document.createElement('div');
     t.className = 'toast toast-' + type;
     t.textContent = msg;
@@ -956,10 +958,33 @@ function toast(msg, type) {
 }
 
 // ===== EDITOR INPUT =====
+let ideDebounce = null;
 function onEditorInput() {
     if (isDefaultCode) isDefaultCode = false;
     editCountSinceSave++;
-    runIDE();
+    // Lightweight: syntax + roster update immediately
+    directives = {};
+    parseRules();
+    renderSyntax();
+    renderRoster();
+    updateFileTypeLabel();
+    // Debounced: heavy computation + saves
+    clearTimeout(ideDebounce);
+    const statusEl = document.getElementById('feasibility-status');
+    if (statusEl) { statusEl.textContent = 'Calculating...'; statusEl.className = 'badge bg-blue-900/50 text-blue-400 uppercase tracking-widest'; }
+    ideDebounce = setTimeout(function() {
+        calculateGroups();
+        scheduleAutoSave();
+        checkEditSave();
+        saveActiveJSON();
+    }, 150);
+    // Show toast when Advanced syntax detected in Simple mode
+    if (currentLang === 'simple' && simpleModeErrors.length > 0 && !simpleErrorToastShown) {
+        simpleErrorToastShown = true;
+        toast('Advanced syntax detected — ' + simpleModeErrors.length + ' error' + (simpleModeErrors.length > 1 ? 's' : '') + ' in Simple mode', 'error');
+    } else if (currentLang === 'simple' && simpleModeErrors.length === 0) {
+        simpleErrorToastShown = false;
+    }
 }
 
 // ===== MAIN LOOP =====
@@ -1220,7 +1245,7 @@ function evaluateCondition(cond, studentMap) {
 function compareValues(a, op, b) {
     if (op === '>') return a > b; if (op === '<') return a < b;
     if (op === '>=' || op === '=>') return a >= b; if (op === '<=' || op === '=<') return a <= b;
-    if (op === '==' || op === '=') return a == b; if (op === '!=') return a != b;
+    if (op === '==' || op === '=') return a === b; if (op === '!=') return a !== b;
     return false;
 }
 
@@ -1430,10 +1455,7 @@ function renderSyntax() {
 function highlightRuleBody(text) {
     let h = text;
     // 1. Highlight comparison operators FIRST (before adding any HTML spans)
-    //    so we don't accidentally match < or > inside HTML tags.
-    //    After esc(), > is &gt; and < is &lt;, so [><] won't match entity text.
-    //    We need to match = and the literal >/< that esc() produced as &gt;/&lt;
-    //    But we must do this BEFORE adding any <span> tags.
+    //    After esc(), > is &gt; and < is &lt;.
     h = h.replace(/(&gt;|&lt;|[=!]+)/g, '<span class="t-op">$1</span>');
     // 2. Highlight → and -> arrows
     h = h.replace(/(→|-&gt;)/g, '<span class="t-rule-arrow">$1</span>');
@@ -1448,16 +1470,20 @@ function highlightRuleBody(text) {
         }
         return match;
     });
-    // 5. Highlight numbers (but not inside HTML tags)
-    h = h.replace(/(?<![\w"=])>(\d+)<(?![/\w])/g, function(m) { return m; }); // skip numbers in tags
-    h = h.replace(/(^|[^\w"=])(\d+)(?![\w"=])/g, '$1<span class="t-score">$2</span>');
-    // 6. Highlight attr=value pairs (but not inside HTML tag attributes like class=)
-    //    Only match word=word or word="val" that are NOT inside <span ...>
-    h = h.replace(/(\b(?!class\b|style\b|span\b|data\b|id\b|href\b|title\b|type\b|onclick\b|onmouseenter\b|onmouseleave\b)(\w+))(=)(&quot;[^&]*&quot;|\w+)/g, '<span class="t-key">$2</span><span class="t-assign">$3</span><span class="t-val">$4</span>');
+    // 5. Highlight numbers — skip numbers that appear inside HTML entity codes (e.g., &#39;)
+    //    Match standalone digits not preceded by & or # and not inside HTML tags
+    h = h.replace(/(^|[^&#\w"=])(\d+)(?![\w"=])/g, '$1<span class="t-score">$2</span>');
+    // 6. Highlight attr=value pairs (skip HTML attribute names)
+    const htmlAttrs = new Set(['class','style','span','data','id','href','title','type','onclick','onmouseenter','onmouseleave']);
+    h = h.replace(/(\b(\w+))(=)(&quot;[^&]*&quot;|\w+)/g, function(m, g1, g2, g3, g4) {
+        if (htmlAttrs.has(g2)) return m;
+        return '<span class="t-key">' + g2 + '</span><span class="t-assign">' + g3 + '</span><span class="t-val">' + g4 + '</span>';
+    });
     return h;
 }
 
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/`/g,'&#96;'); }
+function escJS(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/`/g, '\\`'); }
 
 // ===== ROSTER =====
 function renderRoster() {
@@ -1485,7 +1511,8 @@ function renderRoster() {
         for (const k of keys) { if (!editorOrder.includes(k)) editorOrder.push(k); }
         keys = editorOrder;
     }
-    manualRosterOrder = [...keys];
+    // Only update manualRosterOrder when not in manual sort mode (to preserve drag reorder)
+    if (rosterSort !== 'manual') manualRosterOrder = [...keys];
 
     document.getElementById('student-count').textContent = keys.length;
 
@@ -1521,8 +1548,8 @@ function renderRoster() {
         return '<div class="r-item flex items-center justify-between p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/50"' +
             ' draggable="' + (canDrag ? 'true' : 'false') + '"' +
             ' data-key="' + esc(k) + '" data-idx="' + idx + '"' +
-            ' ondblclick="startRename(this, \'' + esc(k) + '\')"' +
-            ' onmouseenter="showRosterTip(event, \'' + esc(k) + '\')"' +
+            ' ondblclick="startRename(this, \'' + escJS(k) + '\')"' +
+            ' onmouseenter="showRosterTip(event, \'' + escJS(k) + '\')"' +
             ' onmouseleave="hideRosterTip()"' +
             (canDrag ? ' ondragstart="rDragStart(event,' + idx + ')" ondragover="rDragOver(event)" ondrop="rDrop(event,' + idx + ')" ondragend="rDragEnd(event)"' : '') +
             '>' +
@@ -1678,6 +1705,11 @@ function setGroupView(mode) {
 
 // ===== CROSS-ROUND OVERLAP AVOIDANCE =====
 function applyNoRepeatPartners(rounds, allKeys) {
+    // Deep-clone rounds to avoid mutating the original data
+    rounds = rounds.map(r => ({
+        ...r,
+        groups: r.groups ? r.groups.map(g => [...g]) : null
+    }));
     // Build a map of which pairs have been together in previous rounds
     // pairs key = "name1|name2" (alphabetically sorted)
     var previousPairs = {}; // pair -> round index where they were together
@@ -1742,6 +1774,7 @@ function applyNoRepeatPartners(rounds, allKeys) {
             }
         }
     }
+    return rounds;
 }
 
 // ===== GROUPING ENGINE =====
@@ -1760,9 +1793,11 @@ function calculateGroups() {
 
     // Apply @template directive if specified
     if (directives.template && TEMPLATES[directives.template]) {
-        textarea.value = TEMPLATES[directives.template].code;
-        delete directives.template;
+        const templateName = directives.template;
+        delete directives.template; // Prevent infinite loop before re-running
+        textarea.value = TEMPLATES[templateName].code;
         runIDE();
+        toast('Loaded template: ' + templateName, 'success');
         return;
     }
 
@@ -1775,7 +1810,7 @@ function calculateGroups() {
         return;
     }
 
-    let perGroup = parseInt(sizeInp.value) || 2;
+    let perGroup = Math.max(2, Math.min(50, parseInt(sizeInp.value) || 2));
     if (directives.group_size) perGroup = Math.max(2, parseInt(directives.group_size) || perGroup);
 
     // Determine overflow mode - advanced code directive takes precedence
@@ -1890,6 +1925,25 @@ function calculateGroups() {
         return shuffled;
     }
 
+    // Pre-build a Set of previous pairs for partnered_before optimization
+    function buildPrevPairs() {
+        const pairs = new Set();
+        if (currentRounds && currentRounds.length > 0) {
+            for (const rd of currentRounds) {
+                if (!rd.groups) continue;
+                for (const g of rd.groups) {
+                    for (let a = 0; a < g.length; a++) {
+                        for (let b = a + 1; b < g.length; b++) {
+                            pairs.add([g[a], g[b]].sort().join('|'));
+                        }
+                    }
+                }
+            }
+        }
+        return pairs;
+    }
+    const prevPairs = buildPrevPairs();
+
     // Helper: run one round of grouping with a given shuffle strategy
     function runSingleRound(shuffled) {
         let bestTrial = null, minViolations = Infinity, topScore = -Infinity;
@@ -1920,32 +1974,54 @@ function calculateGroups() {
                 for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
             }
 
-            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
+            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance, prevPairs);
             if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
             if (minViolations === 0 && topScore > 0) break;
         }
 
-        // Hill Climbing
+        // Hill Climbing (inside runSingleRound)
         if (bestTrial) {
+            // Phase 1: Move students with avoid conflicts
             for (let r = 0; r < hillClimbRounds; r++) {
                 let improved = false;
                 for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
                     for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
                         const student = bestTrial[gIdx][sIdx];
                         let hasConflict = false;
-                        bestTrial[gIdx].forEach(peer => { if (peer !== student && (students[student].avoids.has(peer) || students[peer].avoids.has(student))) hasConflict = true; });
+                        bestTrial[gIdx].forEach(peer => { if (peer !== student && students[student] && (students[student].avoids.has(peer) || students[peer] && students[peer].avoids.has(student))) hasConflict = true; });
                         if (hasConflict) {
                             for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
                                 if (gIdx === tgIdx) continue;
                                 const next = bestTrial.map(g => [...g]);
                                 next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
-                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
+                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
                                 if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
                             }
                         }
                         if (improved) break;
                     }
                     if (improved) break;
+                }
+                if (!improved) break;
+            }
+            // Phase 2: Try beneficial swaps for balance improvement
+            for (let r = 0; r < hillClimbRounds; r++) {
+                let improved = false;
+                for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
+                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
+                        const student = bestTrial[gIdx][sIdx];
+                        for (let tgIdx = gIdx + 1; tgIdx < bestTrial.length && !improved; tgIdx++) {
+                            for (let tsIdx = 0; tsIdx < bestTrial[tgIdx].length && !improved; tsIdx++) {
+                                const next = bestTrial.map(g => [...g]);
+                                next[gIdx][sIdx] = bestTrial[tgIdx][tsIdx];
+                                next[tgIdx][tsIdx] = student;
+                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
+                                if (res.violations < minViolations || (res.violations === minViolations && res.score > topScore + 50)) {
+                                    minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true;
+                                }
+                            }
+                        }
+                    }
                 }
                 if (!improved) break;
             }
@@ -1963,7 +2039,7 @@ function calculateGroups() {
         });
         // Apply cross-round overlap avoidance if @no_repeat_partners = true
         if (directives.no_repeat_partners === 'true' && currentRounds && currentRounds.length > 1) {
-            applyNoRepeatPartners(currentRounds, keys);
+            currentRounds = applyNoRepeatPartners(currentRounds, keys);
         }
         // Set currentGroups to first round for compatibility
         currentGroups = currentRounds[0].groups;
@@ -2010,32 +2086,54 @@ function calculateGroups() {
                 for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
             }
 
-            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
+            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance, prevPairs);
             if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
             if (minViolations === 0 && topScore > 0) break;
         }
 
-        // Hill Climbing
+        // Hill Climbing (single-round path)
         if (bestTrial) {
+            // Phase 1: Move students with avoid conflicts
             for (let r = 0; r < hillClimbRounds; r++) {
                 let improved = false;
                 for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
                     for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
                         const student = bestTrial[gIdx][sIdx];
                         let hasConflict = false;
-                        bestTrial[gIdx].forEach(peer => { if (peer !== student && (students[student].avoids.has(peer) || students[peer].avoids.has(student))) hasConflict = true; });
+                        bestTrial[gIdx].forEach(peer => { if (peer !== student && students[student] && (students[student].avoids.has(peer) || students[peer] && students[peer].avoids.has(student))) hasConflict = true; });
                         if (hasConflict) {
                             for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
                                 if (gIdx === tgIdx) continue;
                                 const next = bestTrial.map(g => [...g]);
                                 next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
-                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
+                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
                                 if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
                             }
                         }
                         if (improved) break;
                     }
                     if (improved) break;
+                }
+                if (!improved) break;
+            }
+            // Phase 2: Try beneficial swaps for balance improvement
+            for (let r = 0; r < hillClimbRounds; r++) {
+                let improved = false;
+                for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
+                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
+                        const student = bestTrial[gIdx][sIdx];
+                        for (let tgIdx = gIdx + 1; tgIdx < bestTrial.length && !improved; tgIdx++) {
+                            for (let tsIdx = 0; tsIdx < bestTrial[tgIdx].length && !improved; tsIdx++) {
+                                const next = bestTrial.map(g => [...g]);
+                                next[gIdx][sIdx] = bestTrial[tgIdx][tsIdx];
+                                next[tgIdx][tsIdx] = student;
+                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
+                                if (res.violations < minViolations || (res.violations === minViolations && res.score > topScore + 50)) {
+                                    minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true;
+                                }
+                            }
+                        }
+                    }
                 }
                 if (!improved) break;
             }
@@ -2055,7 +2153,19 @@ function calculateGroups() {
     }
 }
 
-function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
+// Scoring constants
+const SCORE_WANT_FULFILLED = 500;
+const SCORE_AVOID_VIOLATION = -100000;
+const SCORE_SOLO_GROUP = -5000;
+const SCORE_LEADER_CONFLICT = -500;
+const SCORE_ROLE_UNDIVERSITY = -300;
+const SCORE_TAG_OVERLAP = -200;
+const SCORE_GENDER_IMBALANCE = -150;
+const SCORE_BAND_OVERFLOW = -200;
+const SCORE_CAPACITY_VIOLATION = -50000;
+const SCORE_SEPARATE_VIOLATION = -50000;
+
+function scoreTrial(groups, balance, separateList, bandWidth, tagBalance, prevPairs) {
     let score = 0, violations = 0;
     groups.forEach((g, gi) => {
         const groupLabel = 'Group ' + (gi + 1);
@@ -2063,38 +2173,38 @@ function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
             const a = g[i], b = g[j];
             const sa = students[a], sb = students[b];
             if (!sa || !sb) continue;
-            if (sa.wants.has(b)) { score += 500 * ((sa.wantWeights[b] || 5) / 5); }
-            if (sb.wants.has(a)) { score += 500 * ((sb.wantWeights[a] || 5) / 5); }
-            if (sa.avoids.has(b)) { score -= 100000; violations++; }
-            if (sb.avoids.has(a)) { score -= 100000; violations++; }
-        } if (g.length === 1) score -= 5000; }
+            if (sa.wants.has(b)) { score += SCORE_WANT_FULFILLED * ((sa.wantWeights[b] || 5) / 5); }
+            if (sb.wants.has(a)) { score += SCORE_WANT_FULFILLED * ((sb.wantWeights[a] || 5) / 5); }
+            if (sa.avoids.has(b)) { score += SCORE_AVOID_VIOLATION; violations++; }
+            if (sb.avoids.has(a)) { score += SCORE_AVOID_VIOLATION; violations++; }
+        } if (g.length === 1) score += SCORE_SOLO_GROUP; }
         if (balance.includes('scores') || directives.arrange_by === 'score') {
             const scores = g.map(n => students[n] ? students[n].score || 0 : 0);
             if (scores.length > 1) { const avg = scores.reduce((a,b)=>a+b,0)/scores.length; score -= scores.reduce((s,v)=>s+(v-avg)*(v-avg),0)/10; if (Math.max(...scores)-Math.min(...scores) > bandWidth) score -= 200; }
         }
-        if (balance.includes('gender')) { const f = g.filter(n=>students[n]&&students[n].gender==='F').length; const m = g.filter(n=>students[n]&&students[n].gender==='M').length; score -= Math.abs(f-m)*150; }
+        if (balance.includes('gender')) { const f = g.filter(n=>students[n]&&students[n].gender==='F').length; const m = g.filter(n=>students[n]&&students[n].gender==='M').length; score += SCORE_GENDER_IMBALANCE * Math.abs(f-m); }
         if (balance.includes('age')) { const ages = g.map(n=>students[n]?students[n].age||0:0).filter(Boolean); if (ages.length>1) { const avg=ages.reduce((a,b)=>a+b,0)/ages.length; score-=ages.reduce((s,v)=>s+(v-avg)*(v-avg),0); } }
-        if (balance.includes('roles')) { const roles = g.map(n=>students[n]?students[n].role:'').filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score-=300; }
-        if (tagBalance) { const tc = g.filter(n=>students[n]&&students[n].tag===tagBalance).length; if (tc>1) score-=200*(tc-1); }
-        if (g.filter(n=>students[n]&&students[n].leader).length>1) score-=500;
+        if (balance.includes('roles')) { const roles = g.map(n=>students[n]?students[n].role:'').filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score+=SCORE_ROLE_UNDIVERSITY; }
+        if (tagBalance) { const tc = g.filter(n=>students[n]&&students[n].tag===tagBalance).length; if (tc>1) score+=SCORE_TAG_OVERLAP*(tc-1); }
+        if (g.filter(n=>students[n]&&students[n].leader).length>1) score+=SCORE_LEADER_CONFLICT;
         // Capacity enforcement
         for (const n of g) {
             if (students[n] && students[n].capacity && g.length > students[n].capacity) {
-                score -= 50000; violations++;
+                score += SCORE_CAPACITY_VIOLATION; violations++;
             }
         }
         // Evaluate custom @rule conditions for this group
-        const ruleResult = evaluateRulesForGroup(g, groups, groupLabel);
+        const ruleResult = evaluateRulesForGroup(g, groups, groupLabel, false, prevPairs);
         score += ruleResult.score;
         violations += ruleResult.violations;
     });
-    if (separateList.length>1) { for (let i=0;i<separateList.length-1;i++) for (let j=i+1;j<separateList.length;j++) for (const g of groups) if (g.includes(separateList[i])&&g.includes(separateList[j])) { score-=50000; violations++; } }
+    if (separateList.length>1) { for (let i=0;i<separateList.length-1;i++) for (let j=i+1;j<separateList.length;j++) for (const g of groups) if (g.includes(separateList[i])&&g.includes(separateList[j])) { score+=SCORE_SEPARATE_VIOLATION; violations++; } }
     return { score, violations };
 }
 
 // Evaluate custom @rule conditions for a single group
 // collectConflicts: false during scoring (fast), true only for final display
-function evaluateRulesForGroup(group, allGroups, groupLabel, collectConflicts) {
+function evaluateRulesForGroup(group, allGroups, groupLabel, collectConflicts, prevPairs) {
     let score = 0, violations = 0;
     if (!customRules || customRules.length === 0) return { score, violations };
 
@@ -2151,7 +2261,19 @@ function evaluateRulesForGroup(group, allGroups, groupLabel, collectConflicts) {
                     break;
                 }
                 case 'partnered_before': {
-                    if (currentRounds && currentRounds.length > 0) {
+                    if (prevPairs && prevPairs.size > 0) {
+                        // Fast path: use pre-built pair Set from before MC loop
+                        let repeatCount = 0;
+                        for (let i = 0; i < group.length; i++) {
+                            for (let j = i + 1; j < group.length; j++) {
+                                const pairKey = [group[i], group[j]].sort().join('|');
+                                if (prevPairs.has(pairKey)) repeatCount++;
+                            }
+                        }
+                        actualVal = repeatCount;
+                        triggered = compareValues(actualVal, cond.op, cond.val);
+                    } else if (currentRounds && currentRounds.length > 0) {
+                        // Slow fallback: iterate over round data (for display/collectConflicts)
                         let repeatCount = 0;
                         for (let i = 0; i < group.length; i++) {
                             for (let j = i + 1; j < group.length; j++) {
@@ -2268,7 +2390,7 @@ function renderGroups(groups, violations) {
             }
             return '<span class="chip px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-600 bg-slate-700/50 text-slate-300' + (isConflict ? ' conflict-glow' : '') + '"' +
                 (tooltip ? ' title="' + esc(tooltip) + '"' : '') +
-                ' onmouseenter="inspect(\'' + name + '\')"' +
+                ' onmouseenter="inspect(\'' + escJS(name) + '\')"' +
                 ' onmouseleave="uninspect()">' + esc(s.originalName) + '</span>';
         }).join(' ');
     }
@@ -2339,13 +2461,13 @@ function renderGroups(groups, violations) {
             var rv = currentRounds[ri].violations;
             var tabColor = isActive ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
             var vBadge = rv === 0 ? '<span class="text-[8px] text-emerald-400 ml-1">✓</span>' : '<span class="text-[8px] text-red-400 ml-1">' + rv + '</span>';
-            roundTabsHtml += '<button onclick="switchRoundTab(' + ri + ')" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + tabColor + ' transition-all hover:bg-blue-600/10">' +
+            roundTabsHtml += '<button type="button" onclick="switchRoundTab(' + ri + ')" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + tabColor + ' transition-all hover:bg-blue-600/10">' +
                 'R' + (ri + 1) + ': ' + esc(currentRounds[ri].label) + vBadge + '</button>';
         }
         // Cross-Round view tab
         var isCrossActive = activeRoundTab === -1;
         var crossColor = isCrossActive ? 'bg-purple-600/20 text-purple-400 border-purple-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
-        roundTabsHtml += '<button onclick="switchRoundTab(-1)" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + crossColor + ' transition-all hover:bg-purple-600/10">Cross-Round</button>';
+        roundTabsHtml += '<button type="button" onclick="switchRoundTab(-1)" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + crossColor + ' transition-all hover:bg-purple-600/10">Cross-Round</button>';
         roundTabsHtml += '</div>';
 
         if (activeRoundTab === -1) {
@@ -2461,6 +2583,7 @@ function setOverflowMode(mode) {
     const id = mode === 'newgroup' ? 'btn-overflow-newgroup' : mode === 'distributed' ? 'btn-overflow-dist' : 'btn-overflow-' + mode;
     const btn = document.getElementById(id);
     if (btn) { btn.classList.remove('bg-slate-800','text-slate-400','border-slate-700'); btn.classList.add('bg-blue-600','text-white','border-blue-500'); }
+    else { console.warn('setOverflowMode: unknown mode "' + mode + '", button #' + id + ' not found'); }
     runIDE();
 }
 
@@ -2698,62 +2821,10 @@ function doExportFile(type) {
 
 // ===== EXPORT AS JSON =====
 function doExport() {
-    // Save current editor to the active classroom first
-    const activeCl = classrooms[activeClass];
-    if (currentLang === 'simple') activeCl.codeSimple = textarea.value;
-    else if (currentLang === 'advanced') activeCl.codeAdvanced = textarea.value;
-
     // Close export menu
     document.getElementById('exportMenu').classList.remove('show');
 
-    // Helper: generate formatted DSL code with a header comment
-    function formatGeneratedCode(code, modeLabel, className, fileExt) {
-        const header = '// GroupLogic ' + modeLabel + ' \u2014 Class: ' + className + '\n// Copy this code into a .' + fileExt + ' file\n';
-        return header + code;
-    }
-
-    // Helper: determine fileType from lock
-    function lockToFileType(lock) {
-        if (lock === 's') return 'gls';
-        if (lock === 'a') return 'gla';
-        return 'glu';
-    }
-
-    // Build the classrooms array from ALL classrooms
-    const classroomsData = classrooms.map(function(cl) {
-        const lock = cl.lock || 'u';
-        const ft = lockToFileType(lock);
-        return {
-            name: cl.name,
-            lock: lock,
-            fileType: ft,
-            codeSimple: cl.codeSimple || '',
-            codeAdvanced: cl.codeAdvanced || '',
-            generated_code_simple: cl.codeSimple ? formatGeneratedCode(cl.codeSimple, 'Simple', cl.name, 'gls') : '',
-            generated_code_advanced: cl.codeAdvanced ? formatGeneratedCode(cl.codeAdvanced, 'Advanced', cl.name, 'gla') : '',
-            groupSize: parseInt(sizeInp.value) || 2,
-            overflowMode: overflowMode,
-            students: [],
-            groups: []
-        };
-    });
-
-    // Populate the active classroom's students/groups from the live parse state
-    classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
-        name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
-        score: students[k].score, gender: students[k].gender, age: students[k].age,
-        role: students[k].role, leader: students[k].leader, tasks: students[k].tasks,
-        tag: students[k].tag, band: students[k].band, capacity: students[k].capacity, exclude: students[k].exclude
-    }));
-    classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
-
-    const data = {
-        version: '3.7',
-        exportedAt: new Date().toISOString(),
-        editorHeight: document.getElementById('editorContainer').offsetHeight,
-        classrooms: classroomsData,
-        activeClassIndex: activeClass
-    };
+    const data = buildExportData(true);
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -2856,11 +2927,11 @@ function showImportModal(content, fileType) {
         html = '<div class="mb-4">' +
             '<div class="text-[10px] text-slate-400 mb-2 uppercase font-bold">Import as:</div>' +
             '<div class="flex gap-2 mb-4">' +
-                '<button onclick="selectImportTier(\'simple\')" class="import-option tier-opt flex-1 text-center" data-tier="simple">' +
+                '<button type="button" onclick="selectImportTier(\'simple\')" class="import-option tier-opt flex-1 text-center" data-tier="simple">' +
                     '<div class="text-[10px] font-bold text-green-400">Simple</div>' +
                     '<div class="text-[8px] text-slate-500">.gls mode</div>' +
                 '</button>' +
-                '<button onclick="selectImportTier(\'advanced\')" class="import-option tier-opt flex-1 text-center" data-tier="advanced">' +
+                '<button type="button" onclick="selectImportTier(\'advanced\')" class="import-option tier-opt flex-1 text-center" data-tier="advanced">' +
                     '<div class="text-[10px] font-bold text-blue-400">Advanced</div>' +
                     '<div class="text-[8px] text-slate-500">.gla mode</div>' +
                 '</button>' +
@@ -2884,14 +2955,14 @@ function showImportModal(content, fileType) {
     html += '<div class="mb-4">' +
         '<div class="text-[10px] text-slate-400 mb-2 uppercase font-bold">How to import:</div>' +
         '<div class="space-y-2">' +
-            '<button onclick="selectImportMethod(\'override\')" class="import-option override-opt w-full text-left flex items-center gap-3" data-method="override">' +
+            '<button type="button" onclick="selectImportMethod(\'override\')" class="import-option override-opt w-full text-left flex items-center gap-3" data-method="override">' +
                 '<svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>' +
                 '<div>' +
                     '<div class="text-[10px] font-bold text-red-400">Override Everything</div>' +
                     '<div class="text-[8px] text-slate-500">Replace all current editor content</div>' +
                 '</div>' +
             '</button>' +
-            '<button onclick="selectImportMethod(\'cursor\')" class="import-option w-full text-left flex items-center gap-3" data-method="cursor">' +
+            '<button type="button" onclick="selectImportMethod(\'cursor\')" class="import-option w-full text-left flex items-center gap-3" data-method="cursor">' +
                 '<svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>' +
                 '<div>' +
                     '<div class="text-[10px] font-bold text-blue-400">Insert at Cursor</div>' +
@@ -2910,7 +2981,7 @@ function showImportModal(content, fileType) {
 
     // Confirm button
     html += '<div class="flex justify-end mt-4">' +
-        '<button onclick="confirmImport()" id="import-confirm-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg opacity-50 cursor-not-allowed" disabled>Select options above</button>' +
+        '<button type="button" onclick="confirmImport()" id="import-confirm-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg opacity-50 cursor-not-allowed" disabled>Select options above</button>' +
     '</div>';
 
     area.innerHTML = html;
@@ -3165,7 +3236,7 @@ function renderClassTabs() {
         const lock = c.lock || 'u';
         const lockLabel = lock === 's' ? 'S' : lock === 'a' ? 'A' : 'U';
         const lockClass = 'lock-' + lock;
-        return '<button class="c-tab' + on + '" data-cidx="' + i + '">' +
+        return '<button type="button" class="c-tab' + on + '" data-cidx="' + i + '">' +
             '<svg class="c-edit" viewBox="0 0 16 16" fill="currentColor" onclick="startClassRename(event,' + i + ')" title="Rename"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.1a.25.25 0 00-.064.108l-.624 2.182 2.182-.624a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.353l-1.248-1.249z"/></svg>' +
             '<span class="c-name">' + esc(c.name) + '</span>' +
             '<span class="c-lock ' + lockClass + '" title="Lock: ' + (lock === 's' ? 'Simple only' : lock === 'a' ? 'Advanced only' : 'Universal') + '" onclick="cycleClassLock(event,' + i + ')">' + lockLabel + '</span>' +
@@ -3308,12 +3379,19 @@ function toggleExpand(id) {
     el.classList.toggle('panel-expanded');
     document.body.classList.toggle('panel-has-expanded', isExpanding || document.querySelector('.panel-expanded'));
 }
+// Click backdrop to close expanded panel
+document.addEventListener('click', function(e) {
+    if (document.body.classList.contains('panel-has-expanded') && !e.target.closest('.panel-expanded') && !e.target.closest('button')) {
+        document.querySelectorAll('.panel-expanded').forEach(function(p) { p.classList.remove('panel-expanded'); });
+        document.body.classList.remove('panel-has-expanded');
+    }
+});
 
 // ===== VERSIONS =====
 function showVersions() {
     const cl = classrooms[activeClass]; const list = document.getElementById('version-list');
     if (!cl.versions || cl.versions.length === 0) { list.innerHTML = '<div class="text-slate-600 text-[10px] text-center py-4">No versions saved</div>'; }
-    else { list.innerHTML = cl.versions.map(function(v, i) { const date = new Date(v.time).toLocaleString(); const preview = (v.code||'').substring(0,60).replace(/\n/g,' '); return '<div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50"><div><div class="text-[10px] text-slate-400 font-bold">v'+(i+1)+' - '+date+'</div><div class="text-[9px] text-slate-600 font-mono truncate max-w-[250px]">'+esc(preview)+'</div></div><button onclick="restoreVersion('+i+')" class="text-[9px] text-blue-400 hover:text-blue-300 font-bold">Restore</button></div>'; }).join(''); }
+    else { list.innerHTML = cl.versions.map(function(v, i) { const date = new Date(v.time).toLocaleString(); const preview = (v.code||'').substring(0,60).replace(/\n/g,' '); return '<div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50"><div><div class="text-[10px] text-slate-400 font-bold">v'+(i+1)+' - '+date+'</div><div class="text-[9px] text-slate-600 font-mono truncate max-w-[250px]">'+esc(preview)+'</div></div><button type="button" onclick="restoreVersion('+i+')" class="text-[9px] text-blue-400 hover:text-blue-300 font-bold">Restore</button></div>'; }).join(''); }
     document.getElementById('version-modal').style.display = 'flex';
 }
 function closeVersions() { document.getElementById('version-modal').style.display = 'none'; }
@@ -3331,15 +3409,17 @@ function pushVersion() {
 
 // ===== SAVE =====
 function scheduleAutoSave() {
-    if (autoSaveTimer) clearTimeout(autoSaveTimer);
-    if (!saveConfig.timed && !saveConfig.edits) return; // Don't schedule if no auto-save mode
-    autoSaveTimer = setTimeout(function() {
-        if (saveConfig.timed) {
+    // Only start the periodic timer if timed saving is enabled and no timer is running
+    if (!saveConfig.timed && !saveConfig.edits) return;
+    if (autoSaveTimer) return; // Timer already running, don't reset it
+    if (saveConfig.timed) {
+        autoSaveTimer = setTimeout(function() {
+            autoSaveTimer = null; // Clear so it can be rescheduled
             saveStorage();
             document.getElementById('savedLabel').textContent = 'Auto-saved ' + new Date().toLocaleTimeString();
-            scheduleAutoSave(); // Only reschedule from within timed save
-        }
-    }, (saveConfig.timedInterval||60)*1000);
+            scheduleAutoSave(); // Reschedule for next interval
+        }, (saveConfig.timedInterval||60)*1000);
+    }
 }
 function checkEditSave() {
     if (saveConfig.edits && editCountSinceSave >= (saveConfig.editsCount||25)) {
@@ -3358,56 +3438,69 @@ function manualSave() {
 }
 
 // ===== ACTIVE JSON BACKUP =====
-function saveActiveJSON() {
-    try {
-        const cl = classrooms[activeClass];
-        // Save current editor to correct slot first
-        if (currentLang === 'simple') cl.codeSimple = textarea.value;
-        else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
+// Shared helper: build export data object for both JSON export and active backup
+function buildExportData(includeAllStudentFields) {
+    const cl = classrooms[activeClass];
+    // Save current editor to correct slot first
+    if (currentLang === 'simple') cl.codeSimple = textarea.value;
+    else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
 
-        // Helper: generate formatted DSL code with a header comment
-        function formatGeneratedCode(code, modeLabel, className, fileExt) {
-            const header = '// GroupLogic ' + modeLabel + ' \u2014 Class: ' + className + '\n// Copy this code into a .' + fileExt + ' file\n';
-            return header + code;
-        }
-        function lockToFileType(lock) {
-            if (lock === 's') return 'gls';
-            if (lock === 'a') return 'gla';
-            return 'glu';
-        }
+    function formatGeneratedCode(code, modeLabel, className, fileExt) {
+        const header = '// GroupLogic ' + modeLabel + ' \u2014 Class: ' + className + '\n// Copy this code into a .' + fileExt + ' file\n';
+        return header + code;
+    }
+    function lockToFileType(lock) {
+        if (lock === 's') return 'gls';
+        if (lock === 'a') return 'gla';
+        return 'glu';
+    }
 
-        const classroomsData = classrooms.map(function(c) {
-            const lock = c.lock || 'u';
-            const ft = lockToFileType(lock);
-            return {
-                name: c.name,
-                lock: lock,
-                fileType: ft,
-                codeSimple: c.codeSimple || '',
-                codeAdvanced: c.codeAdvanced || '',
-                generated_code_simple: c.codeSimple ? formatGeneratedCode(c.codeSimple, 'Simple', c.name, 'gls') : '',
-                generated_code_advanced: c.codeAdvanced ? formatGeneratedCode(c.codeAdvanced, 'Advanced', c.name, 'gla') : '',
-                groupSize: parseInt(sizeInp.value) || 2,
-                overflowMode: overflowMode,
-                students: [],
-                groups: []
-            };
-        });
+    const classroomsData = classrooms.map(function(c) {
+        const lock = c.lock || 'u';
+        const ft = lockToFileType(lock);
+        return {
+            name: c.name,
+            lock: lock,
+            fileType: ft,
+            codeSimple: c.codeSimple || '',
+            codeAdvanced: c.codeAdvanced || '',
+            generated_code_simple: c.codeSimple ? formatGeneratedCode(c.codeSimple, 'Simple', c.name, 'gls') : '',
+            generated_code_advanced: c.codeAdvanced ? formatGeneratedCode(c.codeAdvanced, 'Advanced', c.name, 'gla') : '',
+            groupSize: parseInt(sizeInp.value) || 2,
+            overflowMode: overflowMode,
+            students: [],
+            groups: []
+        };
+    });
 
-        // Populate active classroom's live data
+    // Populate active classroom's live data
+    if (includeAllStudentFields) {
+        classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
+            name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
+            score: students[k].score, gender: students[k].gender, age: students[k].age,
+            role: students[k].role, leader: students[k].leader, tasks: students[k].tasks,
+            tag: students[k].tag, band: students[k].band, capacity: students[k].capacity, exclude: students[k].exclude
+        }));
+    } else {
         classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
             name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
             score: students[k].score, gender: students[k].gender, role: students[k].role
         }));
-        classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
+    }
+    classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
-        const data = {
-            version: '3.7',
-            exportedAt: new Date().toISOString(),
-            editorHeight: document.getElementById('editorContainer').offsetHeight,
-            classrooms: classroomsData,
-            activeClassIndex: activeClass
-        };
+    return {
+        version: '3.7',
+        exportedAt: new Date().toISOString(),
+        editorHeight: document.getElementById('editorContainer').offsetHeight,
+        classrooms: classroomsData,
+        activeClassIndex: activeClass
+    };
+}
+
+function saveActiveJSON() {
+    try {
+        const data = buildExportData(false);
         localStorage.setItem('glide_active_json', JSON.stringify(data));
     } catch(e) {}
 }
@@ -3514,17 +3607,17 @@ function openDocs() {
     overlay.innerHTML = '<div class="docs-panel">' +
         '<div class="flex justify-between items-center mb-4"><h2 class="text-white font-black text-lg">GroupLogic IDE Docs</h2>' +
         '<div class="flex items-center gap-3">' +
-        '<button class="ai-copy-btn-ide" id="aiCopyBtn" onclick="copyAIPromptIDE(this)" title="Copy full project context as an AI prompt">' +
+        '<button type="button" class="ai-copy-btn-ide" id="aiCopyBtn" onclick="copyAIPromptIDE(this)" title="Copy full project context as an AI prompt">' +
             '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>' +
             'Copy AI Prompt' +
         '</button>' +
-        '<button onclick="document.getElementById(\'docsOverlay\').remove()" class="text-slate-500 hover:text-white text-xl font-bold flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700">' +
+        '<button type="button" onclick="document.getElementById(\'docsOverlay\').remove()" class="text-slate-500 hover:text-white text-xl font-bold flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700">' +
             '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
         '</button></div></div>' +
 
         // ===== LOAD EXAMPLE BUTTON =====
         '<div class="mb-4 p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">' +
-        '<button onclick="loadExample()" class="inline-flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-xs font-bold transition-all" title="Load the built-in example code">' +
+        '<button type="button" onclick="loadExample()" class="inline-flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-xs font-bold transition-all" title="Load the built-in example code">' +
             '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
             'Load Example Code' +
         '</button>' +
