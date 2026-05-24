@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GroupLogic IDE v7.0</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap');
 
         * { box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; min-height: 100vh; margin: 0; }
@@ -95,73 +95,6 @@
         }
         #editor-highlight::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
-        /* ===== EDITOR DEBUG (v6.0 Enhanced) ===== */
-        .editor-debug {
-            position: absolute; top: 4px; right: 4px; z-index: 100;
-            background: rgba(2,6,23,0.96); border: 1px solid #334155; border-radius: 10px;
-            font-family: 'Fira Code', monospace; font-size: 9px;
-            color: #94a3b8; line-height: 1.5; white-space: pre;
-            display: none; max-width: 460px; max-height: 90%; overflow-y: auto;
-            scrollbar-width: thin; scrollbar-color: #334155 transparent;
-            pointer-events: auto;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-        }
-        .editor-debug.visible { display: flex; flex-direction: column; }
-        .editor-debug::-webkit-scrollbar { width: 4px; }
-        .editor-debug::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-        .editor-debug .dbg-warn { color: #fbbf24; }
-        .editor-debug .dbg-err { color: #f87171; }
-        .editor-debug .dbg-ok { color: #4ade80; }
-        .editor-debug .dbg-info { color: #60a5fa; }
-        .editor-debug .dbg-dim { color: #475569; }
-        .editor-debug .dbg-hdr {
-            background: rgba(51,65,85,0.5); padding: 6px 10px; border-radius: 10px 10px 0 0;
-            font-weight: 700; font-size: 10px; color: #e2e8f0; display: flex;
-            align-items: center; justify-content: space-between;
-            border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 5;
-            cursor: grab; user-select: none;
-        }
-        .editor-debug .dbg-hdr:active { cursor: grabbing; }
-        .editor-debug .dbg-hdr-btns { display: flex; gap: 4px; }
-        .editor-debug .dbg-btn {
-            background: rgba(51,65,85,0.6); border: 1px solid #475569; border-radius: 4px;
-            color: #94a3b8; font-size: 8px; font-weight: 700; padding: 2px 6px;
-            cursor: pointer; font-family: 'Fira Code', monospace; text-transform: uppercase;
-            transition: all 0.1s;
-        }
-        .editor-debug .dbg-btn:hover { background: rgba(59,130,246,0.2); color: #60a5fa; border-color: #3b82f6; }
-        .editor-debug .dbg-btn:active { transform: scale(0.95); }
-        .editor-debug .dbg-btn.btn-copy:hover { background: rgba(74,222,128,0.2); color: #4ade80; border-color: #22c55e; }
-        .editor-debug .dbg-btn.btn-scan:hover { background: rgba(251,191,36,0.2); color: #fbbf24; border-color: #d97706; }
-        .editor-debug .dbg-btn.btn-close:hover { background: rgba(239,68,68,0.2); color: #f87171; border-color: #ef4444; }
-        .editor-debug .dbg-body { padding: 8px 10px; overflow-y: auto; }
-        .editor-debug .dbg-section {
-            border-bottom: 1px solid rgba(51,65,85,0.4); padding-bottom: 6px; margin-bottom: 6px;
-        }
-        .editor-debug .dbg-section:last-child { border-bottom: none; margin-bottom: 0; }
-        .editor-debug .dbg-section-title {
-            color: #60a5fa; font-weight: 700; font-size: 9px; margin-bottom: 2px;
-            text-transform: uppercase; letter-spacing: 0.05em;
-        }
-        .editor-debug .dbg-line-sample {
-            display: flex; align-items: flex-start; gap: 6px; padding: 1px 0;
-        }
-        .editor-debug .dbg-linenum {
-            color: #475569; min-width: 24px; text-align: right; flex-shrink: 0;
-        }
-        .editor-debug .dbg-val { color: #e2e8f0; }
-        .editor-debug .dbg-status-bar {
-            background: rgba(51,65,85,0.3); border-radius: 4px; padding: 4px 8px;
-            margin-top: 4px; font-weight: 700; text-align: center; font-size: 10px;
-        }
-        .editor-debug .dbg-timeline {
-            background: #1e293b; border-radius: 3px; height: 6px; position: relative;
-            margin: 3px 0; overflow: hidden;
-        }
-        .editor-debug .dbg-timeline-fill {
-            position: absolute; top: 0; left: 0; bottom: 0; background: #3b82f6; border-radius: 3px;
-            transition: width 0.1s;
-        }
         /* Syntax error indicators — use text-decoration ONLY (no border/margin/padding)
            border-bottom adds extra height and shifts all text below it, causing
            highlighter/textarea misalignment. text-decoration is purely visual. */
@@ -181,7 +114,7 @@
         .t-op { color: #475569; }
         .t-want { color: #4ade80; }
         .t-avoid { color: #f87171; }
-        .t-comment { color: #334155; }
+        .t-comment { color: var(--comment-color, #334155); }
         .t-err { text-decoration: dotted underline; text-decoration-color: #eab308; text-underline-offset: 3px; }
         .t-directive { color: #c084fc; }
         .t-key { color: #38bdf8; }
@@ -591,19 +524,7 @@
                 <div class="editor-scroll-wrap" id="editorScrollWrap">
                     <div id="editor-highlight"></div>
                     <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie"></textarea>
-                    <div class="editor-debug" id="editorDebug">
-                        <div class="dbg-hdr">
-                            <span>DEBUG v7.0</span>
-                            <div class="dbg-hdr-btns">
-                                <button class="dbg-btn btn-scan" onclick="dbgDeepScan()" title="Deep scan for issues">SCAN</button>
-                                <button class="dbg-btn btn-copy" onclick="dbgCopyText()" title="Copy debug text to clipboard">COPY</button>
-                                <button class="dbg-btn" onclick="dbgToggleAutoRefresh()" id="dbgAutoBtn" title="Toggle auto-refresh">AUTO</button>
-                                <button class="dbg-btn" onclick="toggleAlignTest()" title="Alignment test: red=TA, green=HL">ALIGN</button>
-                                <button class="dbg-btn btn-close" onclick="toggleEditorDebug()" title="Close debug panel">X</button>
-                            </div>
-                        </div>
-                        <div class="dbg-body" id="editorDebugBody"></div>
-                    </div>
+
                 </div>
             </div>
             <div class="editor-resize-handle" id="editorResizeHandle" title="Drag to resize editor"></div>
@@ -677,8 +598,6 @@
                 <span id="langLabel" class="text-green-500 font-bold">SIMPLE</span>
                 <span class="text-slate-700">|</span>
                 <span id="fileTypeLabel" class="text-slate-700 font-mono">.gls</span>
-                <span class="text-slate-700">|</span>
-                <span class="cursor-pointer hover:text-yellow-400 text-yellow-600" onclick="toggleEditorDebug()">DBG</span>
                 <span class="text-slate-700">|</span>
                 <span class="cursor-pointer hover:text-slate-400 transition-colors" onclick="showSaveSettings()" title="Settings">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -772,6 +691,11 @@
             <div class="save-row"><span class="save-label">Timed</span><input type="checkbox" id="save-timed" class="w-4 h-4 accent-blue-500"><input type="number" id="save-timed-interval" value="60" min="10" class="save-input"><span class="text-[10px] text-slate-500">sec</span></div>
             <div class="save-row"><span class="save-label">Edit Count</span><input type="checkbox" id="save-edits" class="w-4 h-4 accent-blue-500"><input type="number" id="save-edits-count" value="25" min="1" class="save-input"><span class="text-[10px] text-slate-500">edits</span></div>
         </div>
+        <hr class="border-slate-700 my-3">
+        <h3 class="text-sm font-bold text-white mb-3">Editor</h3>
+        <div class="space-y-2">
+            <div class="save-row"><span class="save-label">Comment</span><input type="range" id="comment-brightness" min="0" max="100" value="25" class="flex-1 accent-blue-500 h-1.5"><span id="comment-brightness-val" class="text-[10px] text-slate-500 w-8 text-right">25%</span></div>
+        </div>
         <div class="flex justify-end gap-2 mt-4">
             <button onclick="closeSaveSettings()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
             <button onclick="applySaveSettings()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg">Apply</button>
@@ -814,6 +738,14 @@ let activeClass = 0;
 let autoSaveTimer = null;
 let editCountSinceSave = 0;
 let saveConfig = { manual: true, timed: false, timedInterval: 60, edits: false, editsCount: 25 };
+let commentBrightness = 25; // 0-100, maps to HSL lightness 10%-55%
+
+function applyCommentBrightness() {
+    // Map 0-100 slider to HSL lightness 10%-55% (0=very dim, 100=very bright)
+    // Default 25 → lightness ~21% ≈ current #334155
+    const lightness = 10 + (commentBrightness / 100) * 45;
+    document.documentElement.style.setProperty('--comment-color', 'hsl(215, 38%, ' + lightness + '%)');
+}
 
 // Pending import for "insert at cursor" mode
 let pendingImportContent = null;
@@ -868,509 +800,6 @@ textarea.value = '';
 textarea.addEventListener('input', onEditorInput);
 sizeInp.addEventListener('input', runIDE);
 
-// ===== EDITOR DEBUG MODE (v5.0 Enhanced) =====
-let editorDebugEnabled = false;
-let dbgAutoRefresh = false;
-let dbgAutoInterval = null;
-let dbgLastScanResult = null;
-
-function toggleEditorDebug() {
-    editorDebugEnabled = !editorDebugEnabled;
-    const dbg = document.getElementById('editorDebug');
-    if (editorDebugEnabled) {
-        dbg.classList.add('visible');
-        updateEditorDebug();
-    } else {
-        dbg.classList.remove('visible');
-        if (dbgAutoRefresh) dbgToggleAutoRefresh(); // stop auto on close
-    }
-}
-
-// Helper: format bytes nicely
-function dbgFmtPx(v) { return (typeof v === 'number') ? v.toFixed(1) + 'px' : v; }
-
-// Helper: proper line count for highlighter (count child divs, not textContent splits)
-function dbgCountHL() {
-    var divs = highlighter.querySelectorAll('.hl-line');
-    return divs.length;
-}
-
-// Helper: get per-line heights from highlighter DOM
-function dbgHLLineHeights() {
-    var divs = highlighter.querySelectorAll('.hl-line');
-    var heights = [];
-    for (var i = 0; i < divs.length; i++) {
-        heights.push(divs[i].getBoundingClientRect().height);
-    }
-    return heights;
-}
-
-// Collect ALL debug data into a structured object
-function dbgCollectData() {
-    var d = {};
-
-    // === SCROLL & DIMENSIONS ===
-    d.taSH = textarea.scrollHeight;
-    d.taCH = textarea.clientHeight;
-    d.taMaxScroll = d.taSH - d.taCH;
-    d.hlSH = highlighter.scrollHeight;
-    d.hlCH = highlighter.clientHeight;
-
-    d.taPadB = parseInt(textarea.style.paddingBottom) || 16;
-    d.hlPadB = parseInt(highlighter.style.paddingBottom) || 16;
-    d.padBMatch = d.taPadB === d.hlPadB;
-
-    d.taPadT = parseInt(getComputedStyle(textarea).paddingTop) || 16;
-    d.hlPadT = parseInt(getComputedStyle(highlighter).paddingTop) || 16;
-    d.padTMatch = d.taPadT === d.hlPadT;
-
-    d.taPadR = parseInt(getComputedStyle(textarea).paddingRight) || 20;
-    d.hlPadR = parseInt(getComputedStyle(highlighter).paddingRight) || 20;
-    d.padRMatch = d.taPadR === d.hlPadR;
-
-    d.taPadL = parseInt(getComputedStyle(textarea).paddingLeft) || 20;
-    d.hlPadL = parseInt(getComputedStyle(highlighter).paddingLeft) || 20;
-    d.padLMatch = d.taPadL === d.hlPadL;
-
-    // === WIDTH ===
-    d.taCW = textarea.clientWidth;
-    d.hlCW = highlighter.clientWidth;
-    d.taOW = textarea.offsetWidth;
-    d.hlOW = highlighter.offsetWidth;
-    d.taSBWidth = d.taOW - d.taCW;
-    d.taContentW = d.taCW - d.taPadL - d.taPadR;
-    d.hlContentW = d.hlCW - d.hlPadL - d.hlPadR;
-    d.widthDiff = d.hlContentW - d.taContentW;
-
-    // === LINES ===
-    d.taLines = textarea.value.split('\n').length;
-    d.hlLines = dbgCountHL(); // proper count using DOM divs
-    d.hlLinesText = (highlighter.textContent || '').split('\n').length; // old method for comparison
-
-    // === CONTENT HEIGHT ===
-    d.taContentH = d.taSH - d.taPadT - d.taPadB;
-    d.hlContentH = d.hlSH - d.hlPadT - d.hlPadB;
-    d.taLineH = d.taLines > 0 ? d.taContentH / d.taLines : 0;
-    d.hlLineH = d.hlLines > 0 ? d.hlContentH / d.hlLines : 0;
-    d.lineHDiff = Math.abs(d.taLineH - d.hlLineH);
-
-    // === SCROLL SYNC (v7.0: CSS transform-based) ===
-    d.hlTransform = 'CSS transform sync';
-    d.scrollTop = textarea.scrollTop;
-    d.scrollLeft = textarea.scrollLeft;
-    var hlTransformStyle = highlighter.style.transform || '';
-    var txMatch = hlTransformStyle.match(/translate\(([^,]+),/);
-    var tyMatch = hlTransformStyle.match(/,\s*([^)]+)\)/);
-    d.hlTx = txMatch ? parseFloat(txMatch[1]) : 0;
-    d.hlTy = tyMatch ? parseFloat(tyMatch[1]) : 0;
-    d.transformXMatch = Math.abs(d.hlTx - (-d.scrollLeft)) < 1;
-    d.transformYMatch = Math.abs(d.hlTy - (-d.scrollTop)) < 1;
-    d.transformMatch = d.transformXMatch && d.transformYMatch;
-
-    // === FONT PROPERTIES ===
-    var taCS = getComputedStyle(textarea);
-    var hlCS = getComputedStyle(highlighter);
-    d.fontMatch = taCS.fontFamily === hlCS.fontFamily && taCS.fontSize === hlCS.fontSize && taCS.lineHeight === hlCS.lineHeight;
-    d.taFont = taCS.fontFamily + ' ' + taCS.fontSize + '/' + taCS.lineHeight;
-    d.hlFont = hlCS.fontFamily + ' ' + hlCS.fontSize + '/' + hlCS.lineHeight;
-    d.taLigatures = taCS.fontVariantLigatures;
-    d.hlLigatures = hlCS.fontVariantLigatures;
-    d.ligaturesMatch = d.taLigatures === d.hlLigatures;
-
-    // === Z-INDEX ===
-    d.taZ = taCS.zIndex;
-    d.hlZ = hlCS.zIndex;
-
-    // === OVERFLOW ===
-    d.taOverflow = taCS.overflowY;
-    d.hlOverflow = hlCS.overflowY;
-
-    // === WHITE-SPACE / WORD-WRAP ===
-    d.taWS = taCS.whiteSpace;
-    d.hlWS = hlCS.whiteSpace;
-    d.wsMatch = d.taWS === d.hlWS;
-    d.taWW = taCS.wordWrap || taCS.overflowWrap;
-    d.hlWW = hlCS.wordWrap || hlCS.overflowWrap;
-
-    // === TAB-SIZE ===
-    d.taTab = taCS.tabSize;
-    d.hlTab = hlCS.tabSize;
-    d.tabMatch = d.taTab === d.hlTab;
-
-    // === BORDER-BOX ===
-    d.taBB = taCS.boxSizing;
-    d.hlBB = hlCS.boxSizing;
-
-    // === SCROLL POSITION (percentage) ===
-    d.scrollPct = d.taMaxScroll > 0 ? (d.scrollTop / d.taMaxScroll * 100) : 0;
-
-    // === PER-LINE HEIGHTS (sample up to 30 lines) ===
-    d.hlLineHeights = dbgHLLineHeights();
-    d.taLineHExpected = 22; // from CSS
-
-    // === CHECK FOR COMMON ISSUES ===
-    d.issues = [];
-    if (d.taLines !== d.hlLines) d.issues.push({ sev: 'err', msg: 'Line count mismatch: TA:' + d.taLines + ' HL(divs):' + d.hlLines });
-    if (Math.abs(d.widthDiff) > 2) d.issues.push({ sev: 'err', msg: 'Content width diff: ' + d.widthDiff.toFixed(1) + 'px' });
-    if (d.lineHDiff > 0.5 && d.hlLines > 0) d.issues.push({ sev: 'err', msg: 'Line height diff: ' + d.lineHDiff.toFixed(2) + 'px/line (' + (d.lineHDiff * d.taLines).toFixed(1) + 'px total drift)' });
-    if (!d.transformMatch && (d.scrollTop > 0 || d.scrollLeft > 0)) d.issues.push({ sev: 'warn', msg: 'Scroll sync off — TA(' + d.scrollLeft + ',' + d.scrollTop + ') HL(' + d.hlScrollLeft + ',' + d.hlScrollTop + ')' });
-    if (!d.padBMatch) d.issues.push({ sev: 'warn', msg: 'Padding-B mismatch: TA:' + d.taPadB + ' HL:' + d.hlPadB });
-    // v6.0: Padding-R difference is INTENTIONAL (scrollbar width compensation)
-    // Don't flag it unless the content widths don't match
-    if (!d.padRMatch && Math.abs(d.widthDiff) > 2) d.issues.push({ sev: 'warn', msg: 'Padding-R mismatch causing width diff: TA:' + d.taPadR + ' HL:' + d.hlPadR });
-    if (!d.fontMatch) d.issues.push({ sev: 'err', msg: 'Font mismatch! TA:' + d.taFont + ' HL:' + d.hlFont });
-    if (!d.ligaturesMatch) d.issues.push({ sev: 'warn', msg: 'Ligatures mismatch: TA:' + d.taLigatures + ' HL:' + d.hlLigatures });
-    if (!d.wsMatch) d.issues.push({ sev: 'warn', msg: 'white-space mismatch: TA:' + d.taWS + ' HL:' + d.hlWS });
-    if (!d.tabMatch) d.issues.push({ sev: 'warn', msg: 'tab-size mismatch: TA:' + d.taTab + ' HL:' + d.hlTab });
-
-    // Check individual line heights for anomalies (v5.0: all should be 22px)
-    var anomalousLines = [];
-    for (var i = 0; i < d.hlLineHeights.length; i++) {
-        if (Math.abs(d.hlLineHeights[i] - 22) > 0.5) {
-            anomalousLines.push({ line: i+1, h: d.hlLineHeights[i].toFixed(1) });
-        }
-    }
-    if (anomalousLines.length > 0) {
-        var sample = anomalousLines.slice(0, 5);
-        var msg = 'Non-22px line heights (' + anomalousLines.length + ' lines): ' +
-            sample.map(function(a) { return 'L' + a.line + '=' + a.h; }).join(', ');
-        if (anomalousLines.length > 5) msg += ' ...';
-        d.issues.push({ sev: 'warn', msg: msg });
-    }
-
-    // v5.1: With white-space:pre on both layers, no wrapping should occur.
-    // If scrollHeight doesn't match expected (numLines * 22 + padding), flag it.
-    var expectedTASH = d.taLines * 22 + d.taPadT + d.taPadB;
-    if (Math.abs(d.taSH - expectedTASH) > 5) {
-        d.issues.push({ sev: 'warn', msg: 'Textarea scrollHeight unexpected: got ' + d.taSH + ' expected ~' + expectedTASH });
-    }
-
-    // Check if highlighter innerHTML has any <br> (shouldn't - lines are <div>s)
-    if (highlighter.innerHTML.indexOf('<br') !== -1) {
-        d.issues.push({ sev: 'warn', msg: 'Highlighter contains <br> tags (should use <div> only)' });
-    }
-
-    return d;
-}
-
-function updateEditorDebug() {
-    if (!editorDebugEnabled) return;
-    var body = document.getElementById('editorDebugBody');
-    var d = dbgCollectData();
-    dbgLastScanResult = d;
-
-    // Overall status
-    var errCount = d.issues.filter(function(i) { return i.sev === 'err'; }).length;
-    var warnCount = d.issues.filter(function(i) { return i.sev === 'warn'; }).length;
-    var statusHtml;
-    if (errCount === 0 && warnCount === 0) {
-        statusHtml = '<span class="dbg-ok">SYNCED</span>';
-    } else if (errCount === 0) {
-        statusHtml = '<span class="dbg-warn">WARNINGS</span> (' + warnCount + ')';
-    } else {
-        statusHtml = '<span class="dbg-err">DESYNC</span> (' + errCount + ' err, ' + warnCount + ' warn)';
-    }
-
-    var html = '';
-
-    // === STATUS BAR ===
-    html += '<div class="dbg-section">';
-    html += '<div class="dbg-status-bar">' + statusHtml + '</div>';
-    // Scroll position visual bar
-    html += '<div class="dbg-timeline"><div class="dbg-timeline-fill" style="width:' + d.scrollPct.toFixed(1) + '%"></div></div>';
-    html += '<span class="dbg-dim">scroll: ' + d.scrollTop.toFixed(0) + '/' + d.taMaxScroll + ' (' + d.scrollPct.toFixed(0) + '%)</span>';
-    html += '</div>';
-
-    // === DIMENSIONS ===
-    html += '<div class="dbg-section">';
-    html += '<div class="dbg-section-title">Dimensions</div>';
-    html += 'TA scrollH:<span class="dbg-val">' + d.taSH + '</span> clientH:<span class="dbg-val">' + d.taCH + '</span> max:<span class="dbg-val">' + d.taMaxScroll + '</span>\n';
-    html += 'HL scrollH:<span class="dbg-val">' + d.hlSH + '</span> clientH:<span class="dbg-val">' + d.hlCH + '</span>';
-    if (d.taSH !== d.hlSH) {
-        html += ' <span class="dbg-warn">diff:' + (d.hlSH - d.taSH) + '</span>';
-    }
-    html += '\n';
-    html += 'TA contentH:<span class="dbg-val">' + d.taContentH + '</span> HL:<span class="dbg-val">' + d.hlContentH + '</span>';
-    html += '</div>';
-
-    // === LINE COMPARISON ===
-    html += '<div class="dbg-section">';
-    html += '<div class="dbg-section-title">Lines</div>';
-    html += 'TA:<span class="dbg-val">' + d.taLines + '</span> HL(divs):<span class="dbg-val">' + d.hlLines + '</span>';
-    html += d.taLines === d.hlLines ? ' <span class="dbg-ok">match</span>' : ' <span class="dbg-err">MISMATCH</span>';
-    // Count wrapped lines (divs taller than 22px = double-height from wrapping)
-    var wrappedCount = 0;
-    for (var w = 0; w < d.hlLineHeights.length; w++) {
-        if (d.hlLineHeights[w] > 23) wrappedCount++;
-    }
-    if (wrappedCount > 0) {
-        html += ' <span class="dbg-warn">wrapped:' + wrappedCount + '</span>';
-    }
-    html += '\n';
-    html += 'HL(textContent):<span class="dbg-dim">' + d.hlLinesText + '</span> <span class="dbg-dim">(old method)</span>\n';
-    html += 'TA lineH:<span class="dbg-val">' + d.taLineH.toFixed(2) + '</span> HL lineH:<span class="dbg-val">' + d.hlLineH.toFixed(2) + '</span> diff:<span class="' + (d.lineHDiff > 0.5 ? 'dbg-err' : 'dbg-ok') + '">' + d.lineHDiff.toFixed(2) + '</span>';
-    html += '</div>';
-
-    // === SCROLL SYNC ===
-    html += '<div class="dbg-section">';
-    html += '<div class="dbg-section-title">Scroll Sync (v7.0 transform)</div>';
-    html += 'scrollTop:<span class="dbg-val">' + d.scrollTop.toFixed(1) + '</span> scrollLeft:<span class="dbg-val">' + d.scrollLeft.toFixed(1) + '</span>\n';
-    html += 'HL tx:<span class="dbg-val">' + d.hlTx.toFixed(1) + '</span> ty:<span class="dbg-val">' + d.hlTy.toFixed(1) + '</span>\n';
-    html += 'X:<span class="' + (d.transformXMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.transformXMatch ? 'OK' : 'OFF') + '</span>';
-    html += ' Y:<span class="' + (d.transformYMatch ? 'dbg-ok' : 'dbg-err') + '">' + (d.transformYMatch ? 'OK' : 'OFF') + '</span>';
-    html += '</div>';
-
-    // === WIDTH ===
-    html += '<div class="dbg-section">';
-    html += '<div class="dbg-section-title">Width</div>';
-    html += 'TA contentW:<span class="dbg-val">' + d.taContentW + '</span> HL:<span class="dbg-val">' + d.hlContentW + '</span> diff:<span class="' + (Math.abs(d.widthDiff) > 2 ? 'dbg-err' : 'dbg-ok') + '">' + d.widthDiff + 'px</span>\n';
-    html += 'TA clientW:<span class="dbg-val">' + d.taCW + '</span> SB:<span class="dbg-val">' + d.taSBWidth + 'px</span> HL clientW:<span class="dbg-val">' + d.hlCW + '</span>';
-    html += '</div>';
-
-    // === PADDING ===
-    html += '<div class="dbg-section">';
-    html += '<div class="dbg-section-title">Padding</div>';
-    html += 'T:<span class="dbg-val">' + d.taPadT + '</span> R:<span class="dbg-val">' + d.taPadR + '</span> B:<span class="dbg-val">' + d.taPadB + '</span> L:<span class="dbg-val">' + d.taPadL + '</span>\n';
-    html += 'H:<span class="dbg-val">' + d.hlPadT + '</span> R:<span class="' + (d.padRMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlPadR + '</span> B:<span class="' + (d.padBMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlPadB + '</span> L:<span class="dbg-val">' + d.hlPadL + '</span>';
-    html += '</div>';
-
-    // === FONT ===
-    html += '<div class="dbg-section">';
-    html += '<div class="dbg-section-title">Font / Style</div>';
-    html += 'TA:<span class="' + (d.fontMatch ? 'dbg-val' : 'dbg-err') + '">' + d.taFont + '</span>\n';
-    html += 'HL:<span class="' + (d.fontMatch ? 'dbg-val' : 'dbg-err') + '">' + d.hlFont + '</span>\n';
-    html += 'ligatures TA:<span class="dbg-val">' + d.taLigatures + '</span> HL:<span class="' + (d.ligaturesMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlLigatures + '</span>\n';
-    html += 'ws TA:<span class="dbg-val">' + d.taWS + '</span> HL:<span class="' + (d.wsMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlWS + '</span>\n';
-    html += 'tab TA:<span class="dbg-val">' + d.taTab + '</span> HL:<span class="' + (d.tabMatch ? 'dbg-val' : 'dbg-warn') + '">' + d.hlTab + '</span>\n';
-    html += 'z-index TA:<span class="dbg-val">' + d.taZ + '</span> HL:<span class="dbg-val">' + d.hlZ + '</span>\n';
-    html += 'overflow TA:<span class="dbg-val">' + d.taOverflow + '</span> HL:<span class="dbg-val">' + d.hlOverflow + '</span>';
-    html += '</div>';
-
-    // === ISSUES ===
-    if (d.issues.length > 0) {
-        html += '<div class="dbg-section">';
-        html += '<div class="dbg-section-title">Issues (' + d.issues.length + ')</div>';
-        for (var i = 0; i < d.issues.length; i++) {
-            var cls = d.issues[i].sev === 'err' ? 'dbg-err' : 'dbg-warn';
-            var icon = d.issues[i].sev === 'err' ? '!!' : '!';
-            html += '<span class="' + cls + '">' + icon + ' ' + escHtml(d.issues[i].msg) + '</span>\n';
-        }
-        html += '</div>';
-    }
-
-    body.innerHTML = html;
-}
-
-// HTML escape for debug output
-function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ===== DEEP SCAN =====
-// Runs a thorough analysis and shows extended results
-function dbgDeepScan() {
-    var d = dbgCollectData();
-    var body = document.getElementById('editorDebugBody');
-
-    // First show normal debug
-    updateEditorDebug();
-
-    // Now add the deep scan section
-    var html = body.innerHTML;
-
-    html += '<div class="dbg-section" style="border-top:2px solid #fbbf24;">';
-    html += '<div class="dbg-section-title" style="color:#fbbf24;">Deep Scan Results</div>';
-
-    // 1. Per-line height analysis — with v5.0 all .hl-line divs should be 22px
-    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">PER-LINE HEIGHTS (HL divs, expect 22.0px)</div>';
-    var lineHeights = d.hlLineHeights;
-    var maxSample = Math.min(lineHeights.length, 40);
-    var allCorrect = true;
-    for (var i = 0; i < maxSample; i++) {
-        var h = lineHeights[i];
-        var isAnomaly = Math.abs(h - 22) > 0.5;
-        if (isAnomaly) allCorrect = false;
-        var cls = isAnomaly ? 'dbg-err' : 'dbg-dim';
-        html += '<span class="dbg-linenum">' + (i+1) + '</span><span class="' + cls + '">' + h.toFixed(1) + '</span>';
-        if (isAnomaly) html += ' <span class="dbg-err">(!)</span>';
-        html += '  ';
-        if ((i+1) % 5 === 0) html += '\n';
-    }
-    if (lineHeights.length > maxSample) {
-        html += '\n<span class="dbg-dim">... ' + (lineHeights.length - maxSample) + ' more lines</span>';
-    }
-    if (allCorrect) html += '\n<span class="dbg-ok">All lines at 22px - v5.0 fix working</span>';
-    html += '\n';
-
-    // 2. HL innerHTML structure check
-    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">HL INNERHTML STRUCTURE</div>';
-    var hlHTML = highlighter.innerHTML;
-    var hlDivCount = (hlHTML.match(/<div/g) || []).length;
-    var hlBrCount = (hlHTML.match(/<br/g) || []).length;
-    var hlSpanCount = (hlHTML.match(/<span/g) || []).length;
-    html += 'divs:<span class="dbg-val">' + hlDivCount + '</span> spans:<span class="dbg-val">' + hlSpanCount + '</span> brs:<span class="' + (hlBrCount > 0 ? 'dbg-err' : 'dbg-val') + '">' + hlBrCount + '</span>\n';
-    // Show first 200 chars of innerHTML
-    html += '<span class="dbg-dim">' + escHtml(hlHTML.substring(0, 200)) + '</span>\n';
-
-    // 3. Text comparison (first 5 lines side by side)
-    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">TEXT COMPARISON (first 5 lines)</div>';
-    var taLines = textarea.value.split('\n');
-    var hlDivs = highlighter.querySelectorAll('.hl-line');
-    var compareLines = Math.min(5, taLines.length, hlDivs.length);
-    for (var i = 0; i < compareLines; i++) {
-        var taText = taLines[i] || '';
-        var hlText = hlDivs[i] ? hlDivs[i].textContent : '';
-        var match = taText === hlText;
-        html += '<span class="dbg-linenum">' + (i+1) + '</span>';
-        html += '<span class="' + (match ? 'dbg-ok' : 'dbg-err') + '">' + (match ? '=' : '!') + '</span> ';
-        html += '<span class="dbg-dim">T:</span><span class="dbg-val">' + escHtml(taText.substring(0, 30)) + '</span>\n';
-        if (!match) {
-            html += '     <span class="dbg-dim">H:</span><span class="dbg-warn">' + escHtml(hlText.substring(0, 30)) + '</span>\n';
-        }
-    }
-
-    // 4. Computed style diff
-    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">COMPUTED STYLE DIFF</div>';
-    var taCS = getComputedStyle(textarea);
-    var hlCS = getComputedStyle(highlighter);
-    var propsToCheck = ['fontFamily','fontSize','lineHeight','letterSpacing','wordSpacing',
-        'whiteSpace','wordWrap','overflowWrap','tabSize','fontVariantLigatures',
-        'paddingTop','paddingRight','paddingBottom','paddingLeft',
-        'borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth',
-        'boxSizing','direction','textAlign','textIndent'];
-    var diffs = [];
-    for (var p = 0; p < propsToCheck.length; p++) {
-        var prop = propsToCheck[p];
-        var taVal = taCS[prop];
-        var hlVal = hlCS[prop];
-        if (taVal !== hlVal) {
-            diffs.push(prop + ': TA=' + taVal + ' HL=' + hlVal);
-        }
-    }
-    if (diffs.length === 0) {
-        html += '<span class="dbg-ok">All checked properties match</span>\n';
-    } else {
-        for (var i = 0; i < diffs.length; i++) {
-            html += '<span class="dbg-warn">' + escHtml(diffs[i]) + '</span>\n';
-        }
-    }
-
-    // 5. Position comparison
-    html += '<div class="dbg-section-title" style="color:#94a3b8; font-size:8px; margin-top:4px;">POSITION / LAYOUT</div>';
-    var taRect = textarea.getBoundingClientRect();
-    var hlRect = highlighter.getBoundingClientRect();
-    html += 'TA top:<span class="dbg-val">' + taRect.top.toFixed(1) + '</span> left:<span class="dbg-val">' + taRect.left.toFixed(1) + '</span> w:<span class="dbg-val">' + taRect.width.toFixed(1) + '</span> h:<span class="dbg-val">' + taRect.height.toFixed(1) + '</span>\n';
-    html += 'HL top:<span class="dbg-val">' + hlRect.top.toFixed(1) + '</span> left:<span class="dbg-val">' + hlRect.left.toFixed(1) + '</span> w:<span class="dbg-val">' + hlRect.width.toFixed(1) + '</span> h:<span class="dbg-val">' + hlRect.height.toFixed(1) + '</span>\n';
-    var posDiff = { top: Math.abs(taRect.top - hlRect.top), left: Math.abs(taRect.left - hlRect.left), w: Math.abs(taRect.width - hlRect.width), h: Math.abs(taRect.height - hlRect.height) };
-    html += 'diff top:<span class="' + (posDiff.top > 1 ? 'dbg-err' : 'dbg-ok') + '">' + posDiff.top.toFixed(1) + '</span> left:<span class="' + (posDiff.left > 1 ? 'dbg-err' : 'dbg-ok') + '">' + posDiff.left.toFixed(1) + '</span> w:<span class="' + (posDiff.w > 1 ? 'dbg-warn' : 'dbg-ok') + '">' + posDiff.w.toFixed(1) + '</span> h:<span class="' + (posDiff.h > 1 ? 'dbg-warn' : 'dbg-ok') + '">' + posDiff.h.toFixed(1) + '</span>';
-
-    html += '</div>';
-
-    body.innerHTML = html;
-    dbgLastScanResult = d;
-}
-
-// ===== COPY DEBUG TEXT =====
-function dbgCopyText() {
-    var d = dbgLastScanResult || dbgCollectData();
-    var wrappedCount = 0;
-    for (var w = 0; w < d.hlLineHeights.length; w++) {
-        if (d.hlLineHeights[w] > 23) wrappedCount++;
-    }
-    var text = '=== EDITOR DEBUG v7.0 ===\n';
-    text += 'TA scrollH:' + d.taSH + ' clientH:' + d.taCH + ' max:' + d.taMaxScroll + '\n';
-    text += 'HL scrollH:' + d.hlSH + ' clientH:' + d.hlCH + '\n';
-    text += 'scrollTop:' + d.scrollTop + ' hlTy:' + d.hlTy + '\n';
-    text += 'scrollLeft:' + d.scrollLeft + ' hlTx:' + d.hlTx + '\n';
-    text += 'scroll match:' + (d.transformMatch ? 'YES' : 'NO') + '\n';
-    text += 'TA lines:' + d.taLines + ' HL lines(divs):' + d.hlLines + ' wrapped:' + wrappedCount + ' HL lines(text):' + d.hlLinesText + '\n';
-    text += 'TA lineH:' + d.taLineH.toFixed(2) + ' HL lineH:' + d.hlLineH.toFixed(2) + ' diff:' + d.lineHDiff.toFixed(2) + '\n';
-    text += 'TA contentW:' + d.taContentW + ' HL contentW:' + d.hlContentW + ' diff:' + d.widthDiff + 'px\n';
-    text += 'TA clientW:' + d.taCW + ' SB:' + d.taSBWidth + 'px HL clientW:' + d.hlCW + '\n';
-    text += 'Padding T:' + d.taPadT + '/' + d.hlPadT + ' R:' + d.taPadR + '/' + d.hlPadR + ' B:' + d.taPadB + '/' + d.hlPadB + ' L:' + d.taPadL + '/' + d.hlPadL + '\n';
-    text += 'Font TA:' + d.taFont + '\n';
-    text += 'Font HL:' + d.hlFont + '\n';
-    text += 'z-index TA:' + d.taZ + ' HL:' + d.hlZ + '\n';
-    text += 'overflow TA:' + d.taOverflow + ' HL:' + d.hlOverflow + '\n';
-    if (wrappedCount > 0) {
-        text += '\nWRAPPED LINES:\n';
-        for (var w = 0; w < d.hlLineHeights.length; w++) {
-            if (d.hlLineHeights[w] > 23) {
-                text += '  L' + (w+1) + '=' + d.hlLineHeights[w].toFixed(1) + 'px\n';
-            }
-        }
-    }
-    if (d.issues.length > 0) {
-        text += '\nISSUES:\n';
-        for (var i = 0; i < d.issues.length; i++) {
-            text += (d.issues[i].sev === 'err' ? '!!' : '!') + ' ' + d.issues[i].msg + '\n';
-        }
-    }
-    navigator.clipboard.writeText(text).then(function() {
-        toast('Debug info copied to clipboard', 'success');
-    }).catch(function() {
-        // Fallback for older browsers
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        toast('Debug info copied', 'success');
-    });
-}
-
-// ===== AUTO-REFRESH =====
-function dbgToggleAutoRefresh() {
-    dbgAutoRefresh = !dbgAutoRefresh;
-    var btn = document.getElementById('dbgAutoBtn');
-    if (dbgAutoRefresh) {
-        btn.style.background = 'rgba(59,130,246,0.3)';
-        btn.style.color = '#60a5fa';
-        btn.style.borderColor = '#3b82f6';
-        dbgAutoInterval = setInterval(function() {
-            if (editorDebugEnabled) updateEditorDebug();
-            else { dbgToggleAutoRefresh(); } // stop if closed
-        }, 500);
-    } else {
-        btn.style.background = '';
-        btn.style.color = '';
-        btn.style.borderColor = '';
-        if (dbgAutoInterval) { clearInterval(dbgAutoInterval); dbgAutoInterval = null; }
-    }
-}
-
-// ===== DEBUG PANEL DRAG =====
-(function() {
-    var dbgEl = null, hdrEl = null;
-    var isDragging = false, startX, startY, startLeft, startTop;
-    document.addEventListener('DOMContentLoaded', function() {
-        dbgEl = document.getElementById('editorDebug');
-        hdrEl = dbgEl ? dbgEl.querySelector('.dbg-hdr') : null;
-        if (hdrEl) {
-            hdrEl.addEventListener('mousedown', function(e) {
-                if (e.target.tagName === 'BUTTON') return; // don't drag on buttons
-                isDragging = true;
-                startX = e.clientX; startY = e.clientY;
-                var rect = dbgEl.getBoundingClientRect();
-                var parentRect = dbgEl.parentElement.getBoundingClientRect();
-                startLeft = rect.left - parentRect.left;
-                startTop = rect.top - parentRect.top;
-                e.preventDefault();
-            });
-        }
-    });
-    document.addEventListener('mousemove', function(e) {
-        if (!isDragging || !dbgEl) return;
-        var dx = e.clientX - startX;
-        var dy = e.clientY - startY;
-        dbgEl.style.left = (startLeft + dx) + 'px';
-        dbgEl.style.top = (startTop + dy) + 'px';
-        dbgEl.style.right = 'auto';
-    });
-    document.addEventListener('mouseup', function() { isDragging = false; });
-})();
-
 // v8.1 SCROLL SYNC: Direct scrollTop/scrollLeft sync.
 // The highlighter has overflow:auto and scrolls independently.
 // We sync its scroll position to match the textarea's.
@@ -1378,32 +807,9 @@ function dbgToggleAutoRefresh() {
 function syncScroll() {
     highlighter.scrollTop = textarea.scrollTop;
     highlighter.scrollLeft = textarea.scrollLeft;
-    updateEditorDebug();
 }
 
 textarea.addEventListener('scroll', syncScroll);
-
-// ===== ALIGNMENT TEST MODE =====
-// v7.0: Textarea is ON TOP (z-index:2), highlighter is BELOW (z-index:1).
-// In ALIGN mode, we make textarea text visible (red) and highlighter text (green).
-// If they align, you see yellow (red+green overlap).
-let alignTestActive = false;
-function toggleAlignTest() {
-    alignTestActive = !alignTestActive;
-    if (alignTestActive) {
-        textarea.style.setProperty('color', 'rgba(255, 100, 100, 0.5)', 'important');
-        textarea.style.setProperty('-webkit-text-fill-color', 'rgba(255, 100, 100, 0.5)', 'important');
-        textarea.style.caretColor = '#fff';
-        highlighter.style.color = 'rgba(100, 255, 100, 0.5)';
-        toast('Align test ON — red=textarea, green=highlighter', 'info');
-    } else {
-        textarea.style.setProperty('color', 'transparent', 'important');
-        textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
-        textarea.style.caretColor = '#60a5fa';
-        highlighter.style.color = '#94a3b8';
-        toast('Align test OFF', 'info');
-    }
-}
 
 // Click in editor to insert pending import
 textarea.addEventListener('click', function() {
@@ -2047,11 +1453,11 @@ function highlightRuleBody(text) {
     h = h.replace(/(^|[^\w"=])(\d+)(?![\w"=])/g, '$1<span class="t-score">$2</span>');
     // 6. Highlight attr=value pairs (but not inside HTML tag attributes like class=)
     //    Only match word=word or word="val" that are NOT inside <span ...>
-    h = h.replace(/(\b(?!class\b|style\b|span\b)(\w+))(=)(&quot;[^&]*&quot;|\w+)/g, '<span class="t-key">$2</span><span class="t-assign">$3</span><span class="t-val">$4</span>');
+    h = h.replace(/(\b(?!class\b|style\b|span\b|data\b|id\b|href\b|title\b|type\b|onclick\b|onmouseenter\b|onmouseleave\b)(\w+))(=)(&quot;[^&]*&quot;|\w+)/g, '<span class="t-key">$2</span><span class="t-assign">$3</span><span class="t-val">$4</span>');
     return h;
 }
 
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // ===== ROSTER =====
 function renderRoster() {
@@ -2352,6 +1758,14 @@ function calculateGroups() {
         return;
     }
 
+    // Apply @template directive if specified
+    if (directives.template && TEMPLATES[directives.template]) {
+        textarea.value = TEMPLATES[directives.template].code;
+        delete directives.template;
+        runIDE();
+        return;
+    }
+
     const keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
     if (keys.length < 2) {
         currentRounds = null;
@@ -2406,6 +1820,17 @@ function calculateGroups() {
         groupSizes = [];
         for (let i = 0; i < totalGroups - 1; i++) groupSizes.push(perGroup);
         groupSizes.push(totalStudents - perGroup * (totalGroups - 1));
+    }
+
+    // Apply @min_group and @max_group bounds
+    const minGroup = parseInt(directives.min_group) || 0;
+    const maxGroup = parseInt(directives.max_group) || 0;
+    if (minGroup > 0 || maxGroup > 0) {
+        groupSizes = groupSizes.map(s => {
+            if (minGroup > 0 && s < minGroup) return minGroup;
+            if (maxGroup > 0 && s > maxGroup) return maxGroup;
+            return s;
+        });
     }
 
     // ===== v6.0: Multi-Round Support =====
@@ -2636,20 +2061,28 @@ function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
         const groupLabel = 'Group ' + (gi + 1);
         for (let i = 0; i < g.length; i++) { for (let j = i + 1; j < g.length; j++) {
             const a = g[i], b = g[j];
-            if (students[a].wants.has(b)) { score += 500 * ((students[a].wantWeights[b] || 5) / 5); }
-            if (students[b].wants.has(a)) { score += 500 * ((students[b].wantWeights[a] || 5) / 5); }
-            if (students[a].avoids.has(b)) { score -= 100000; violations++; }
-            if (students[b].avoids.has(a)) { score -= 100000; violations++; }
+            const sa = students[a], sb = students[b];
+            if (!sa || !sb) continue;
+            if (sa.wants.has(b)) { score += 500 * ((sa.wantWeights[b] || 5) / 5); }
+            if (sb.wants.has(a)) { score += 500 * ((sb.wantWeights[a] || 5) / 5); }
+            if (sa.avoids.has(b)) { score -= 100000; violations++; }
+            if (sb.avoids.has(a)) { score -= 100000; violations++; }
         } if (g.length === 1) score -= 5000; }
         if (balance.includes('scores') || directives.arrange_by === 'score') {
-            const scores = g.map(n => students[n].score || 0);
+            const scores = g.map(n => students[n] ? students[n].score || 0 : 0);
             if (scores.length > 1) { const avg = scores.reduce((a,b)=>a+b,0)/scores.length; score -= scores.reduce((s,v)=>s+(v-avg)*(v-avg),0)/10; if (Math.max(...scores)-Math.min(...scores) > bandWidth) score -= 200; }
         }
-        if (balance.includes('gender')) { const f = g.filter(n=>students[n].gender==='F').length; const m = g.filter(n=>students[n].gender==='M').length; score -= Math.abs(f-m)*150; }
-        if (balance.includes('age')) { const ages = g.map(n=>students[n].age||0).filter(Boolean); if (ages.length>1) { const avg=ages.reduce((a,b)=>a+b,0)/ages.length; score-=ages.reduce((s,v)=>s+(v-avg)*(v-avg),0); } }
-        if (balance.includes('roles')) { const roles = g.map(n=>students[n].role).filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score-=300; }
-        if (tagBalance) { const tc = g.filter(n=>students[n].tag===tagBalance).length; if (tc>1) score-=200*(tc-1); }
-        if (g.filter(n=>students[n].leader).length>1) score-=500;
+        if (balance.includes('gender')) { const f = g.filter(n=>students[n]&&students[n].gender==='F').length; const m = g.filter(n=>students[n]&&students[n].gender==='M').length; score -= Math.abs(f-m)*150; }
+        if (balance.includes('age')) { const ages = g.map(n=>students[n]?students[n].age||0:0).filter(Boolean); if (ages.length>1) { const avg=ages.reduce((a,b)=>a+b,0)/ages.length; score-=ages.reduce((s,v)=>s+(v-avg)*(v-avg),0); } }
+        if (balance.includes('roles')) { const roles = g.map(n=>students[n]?students[n].role:'').filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score-=300; }
+        if (tagBalance) { const tc = g.filter(n=>students[n]&&students[n].tag===tagBalance).length; if (tc>1) score-=200*(tc-1); }
+        if (g.filter(n=>students[n]&&students[n].leader).length>1) score-=500;
+        // Capacity enforcement
+        for (const n of g) {
+            if (students[n] && students[n].capacity && g.length > students[n].capacity) {
+                score -= 50000; violations++;
+            }
+        }
         // Evaluate custom @rule conditions for this group
         const ruleResult = evaluateRulesForGroup(g, groups, groupLabel);
         score += ruleResult.score;
@@ -2795,7 +2228,10 @@ function identifyConflicts(groups) {
     conflictMap = new Map();
     if (!groups) return;
     groups.forEach(g => {
-        for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) { if (students[g[i]].avoids.has(g[j])||students[g[j]].avoids.has(g[i])) { conflictMap.set(g[i],true); conflictMap.set(g[j],true); } }
+        for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) { 
+            if (!students[g[i]] || !students[g[j]]) continue;
+            if (students[g[i]].avoids.has(g[j])||students[g[j]].avoids.has(g[i])) { conflictMap.set(g[i],true); conflictMap.set(g[j],true); } 
+        }
     });
     // Note: rule conflicts are added to conflictMap by collectRuleConflicts(), called after this
 }
@@ -3896,13 +3332,13 @@ function pushVersion() {
 // ===== SAVE =====
 function scheduleAutoSave() {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    if (!saveConfig.timed && !saveConfig.edits) return; // Don't schedule if no auto-save mode
     autoSaveTimer = setTimeout(function() {
         if (saveConfig.timed) {
             saveStorage();
             document.getElementById('savedLabel').textContent = 'Auto-saved ' + new Date().toLocaleTimeString();
+            scheduleAutoSave(); // Only reschedule from within timed save
         }
-        // Restart the timer for recurring timed saves
-        scheduleAutoSave();
     }, (saveConfig.timedInterval||60)*1000);
 }
 function checkEditSave() {
@@ -3982,7 +3418,7 @@ function saveStorage() {
     if (currentLang === 'simple') cl.codeSimple = textarea.value;
     else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
     cl.lang = currentLang;
-    try { localStorage.setItem('glide_classrooms', JSON.stringify(classrooms)); localStorage.setItem('glide_activeClass', activeClass); localStorage.setItem('glide_saveConfig', JSON.stringify(saveConfig)); localStorage.setItem('glide_overflow', overflowMode); localStorage.setItem('glide_viewMode', groupViewMode); localStorage.setItem('glide_editorHeight', document.getElementById('editorContainer').offsetHeight); localStorage.setItem('glide_rosterHeight', document.getElementById('panel-roster').offsetHeight); localStorage.setItem('glide_outputPanelHeight', document.getElementById('panel-output').offsetHeight); document.getElementById('savedLabel').textContent = 'Saved ' + new Date().toLocaleTimeString(); } catch(e) {}
+    try { localStorage.setItem('glide_classrooms', JSON.stringify(classrooms)); localStorage.setItem('glide_activeClass', activeClass); localStorage.setItem('glide_saveConfig', JSON.stringify(saveConfig)); localStorage.setItem('glide_overflow', overflowMode); localStorage.setItem('glide_viewMode', groupViewMode); localStorage.setItem('glide_commentBrightness', commentBrightness); localStorage.setItem('glide_editorHeight', document.getElementById('editorContainer').offsetHeight); localStorage.setItem('glide_rosterHeight', document.getElementById('panel-roster').offsetHeight); localStorage.setItem('glide_outputPanelHeight', document.getElementById('panel-output').offsetHeight); document.getElementById('savedLabel').textContent = 'Saved ' + new Date().toLocaleTimeString(); } catch(e) {}
     saveActiveJSON();
 }
 
@@ -4009,6 +3445,7 @@ function loadStorage() {
         const sc = localStorage.getItem('glide_saveConfig'); if (sc) saveConfig = JSON.parse(sc);
         const ov = localStorage.getItem('glide_overflow'); if (ov) overflowMode = ov;
         const vm = localStorage.getItem('glide_viewMode'); if (vm) groupViewMode = vm;
+        const cb = localStorage.getItem('glide_commentBrightness'); if (cb !== null) commentBrightness = parseInt(cb);
         const eh = localStorage.getItem('glide_editorHeight'); if (eh) document.getElementById('editorContainer').style.height = eh + 'px';
         const rh = localStorage.getItem('glide_rosterHeight'); if (rh) document.getElementById('panel-roster').style.height = rh + 'px';
         const oph = localStorage.getItem('glide_outputPanelHeight'); if (oph) document.getElementById('panel-output').style.height = oph + 'px';
@@ -4035,10 +3472,26 @@ function loadStorage() {
     const sti = document.getElementById('save-timed-interval'); const sec = document.getElementById('save-edits-count');
     if (sm) sm.checked = saveConfig.manual; if (st) st.checked = saveConfig.timed; if (se) se.checked = saveConfig.edits;
     if (sti) sti.value = saveConfig.timedInterval || 60; if (sec) sec.value = saveConfig.editsCount || 25;
+    const cbs = document.getElementById('comment-brightness'); const cbv = document.getElementById('comment-brightness-val');
+    if (cbs) cbs.value = commentBrightness; if (cbv) cbv.textContent = commentBrightness + '%';
+    applyCommentBrightness();
     setGroupView(groupViewMode);
 }
 
-function showSaveSettings() { document.getElementById('save-modal').style.display = 'flex'; }
+function showSaveSettings() {
+    document.getElementById('save-modal').style.display = 'flex';
+    // Live preview: update brightness as slider moves
+    const slider = document.getElementById('comment-brightness');
+    const valLabel = document.getElementById('comment-brightness-val');
+    if (slider && !slider._glAttached) {
+        slider._glAttached = true;
+        slider.addEventListener('input', function() {
+            commentBrightness = parseInt(this.value);
+            if (valLabel) valLabel.textContent = commentBrightness + '%';
+            applyCommentBrightness();
+        });
+    }
+}
 function closeSaveSettings() { document.getElementById('save-modal').style.display = 'none'; }
 function applySaveSettings() {
     saveConfig.manual = document.getElementById('save-manual').checked;
@@ -4046,7 +3499,9 @@ function applySaveSettings() {
     saveConfig.timedInterval = parseInt(document.getElementById('save-timed-interval').value) || 60;
     saveConfig.edits = document.getElementById('save-edits').checked;
     saveConfig.editsCount = parseInt(document.getElementById('save-edits-count').value) || 25;
-    saveStorage(); closeSaveSettings(); toast('Save settings updated', 'info');
+    commentBrightness = parseInt(document.getElementById('comment-brightness').value) || 25;
+    applyCommentBrightness();
+    saveStorage(); closeSaveSettings(); toast('Settings updated', 'info');
 }
 
 // ===== DOCS =====
@@ -4444,7 +3899,7 @@ function loadExample() {
     const overlay = document.getElementById('docsOverlay');
     if (overlay) overlay.remove();
     updateFileTypeLabel(); runIDE();
-    toast('Example code loaded into Simple editor', 'ok');
+    toast('Example code loaded into Simple editor', 'success');
 }
 
 // Init
