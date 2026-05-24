@@ -146,9 +146,9 @@ Grace: +Frank
 Henry:
 ```
 
-### Tier 2: Advanced — Scores, Roles & Weighted Preferences `[In Progress]`
+### Tier 2: Advanced — Scores, Roles, Custom Rules & Weighted Preferences `[Shipped]`
 
-Extends the simple syntax with everything a teacher needs for data-driven grouping. Score-based banding groups students by test performance. Role tags ensure each group has the right mix. Weighted preferences let you express "I strongly want Bob" vs. "I'd mildly prefer Diana." The `separate` and `together` directives handle multi-person constraints. All while keeping line-by-line readability.
+Extends the simple syntax with everything a teacher needs for data-driven grouping. Score-based banding groups students by test performance. Role tags ensure each group has the right mix. Weighted preferences let you express "I strongly want Bob" vs. "I'd mildly prefer Diana." The `@separate` and `@together` directives handle multi-person constraints. Custom `@rule` blocks let you define your own grouping constraints using built-in condition functions and actions — giving you fine-grained control beyond the built-in directives. All while keeping line-by-line readability.
 
 #### New Syntax
 
@@ -156,11 +156,65 @@ Extends the simple syntax with everything a teacher needs for data-driven groupi
 |--------|---------|
 | `Name: +Target@N` | Weighted preference. `@8` means "strongly want" (1-10 scale). Default is 5. |
 | `score=N` | Test/performance score. The engine uses scores for band-based grouping. |
-| `role="type"` | Tag a student with a role. "leader", "researcher", etc. Use `balance` to require role distribution. |
-| `separate A, B` | All listed students must be in different groups. Like mutual -avoid but concise. |
-| `together A, B` | Hard pair: A and B must be in the same group. Cannot be broken even for conflicts. |
-| `band_strategy="similar"` | How to group by scores. "similar", "mixed", or "bands". |
-| `balance "role" min N` | Each group must have at least N students with that role. |
+| `gender=M/F/X` | Gender attribute. Used for gender balance and custom rules. |
+| `role="type"` | Tag a student with a role. "leader", "researcher", etc. Use `@balance` to require role distribution. |
+| `leader` | Flag student as a group leader. Engine spreads leaders across groups. |
+| `tag=type` | Tag a student with a category tag. |
+| `band=level` | Assign student to a band (e.g. high/medium/low). |
+| `@separate = A, B` | All listed students must be in different groups. Like mutual -avoid but concise. |
+| `@together = A, B` | Hard pair: A and B must be in the same group. Cannot be broken even for conflicts. |
+| `@balance = gender,scores` | Balance criteria for groups. Comma-separated list. |
+| `@group_size = N` | Target students per group. |
+| `@overflow = even\|newgroup\|small` | How to handle leftover students. |
+| `@rounds = mixed:score"Name", similar:score"Name"` | Multi-round grouping with custom names and strategies. |
+| `@no_repeat_partners = true` | Avoid placing same students together across rounds. |
+| `@rule name { condition → action }` | Define custom grouping rules with condition/action pairs. |
+
+#### Custom Rules (@rule)
+
+The `@rule` directive lets you define your own grouping constraints using built-in condition functions and actions. When a condition is met for any group, the corresponding action is applied as a scoring penalty or bonus. This gives you fine-grained control over how groups are formed, beyond the built-in directives.
+
+**Built-in Condition Functions:**
+
+| Condition | Description |
+|-----------|-------------|
+| `same_group(attr=val) > N` | Triggers when >N members with that attribute value are in the same group. Works with `gender=M`, `role="leader"`, `tag=honors`, etc. |
+| `count(attr=val) > N` | Alias for `same_group()`. |
+| `score_spread() > N` | Triggers when the score range (max-min) in a group exceeds N. |
+| `gender_imbalance() > N` | Triggers when the absolute difference between male and female count exceeds N. |
+| `leader_count() > N` | Triggers when a group has more than N leaders. |
+| `has_leader()` | Shorthand for `leader_count() > 0`. |
+| `partnered_before()` | Triggers when any pair was together in a previous round. |
+| `no_repeat()` | Alias for `partnered_before()`. |
+
+**Built-in Actions:**
+
+| Action | Effect |
+|--------|--------|
+| `separate` | Heavy penalty (-50,000) + violation count. Engine strongly avoids this. |
+| `penalty(N)` | Custom N-point penalty. Use for softer constraints. |
+| `avoid` | Moderate penalty (-5,000). Weaker than `separate`. |
+| `together` | Small bonus (+200). Prefer certain configurations. |
+| `prefer` | Preference bonus (+500). Encourages the configuration. |
+
+**Example:**
+
+```gl
+// Ensure no group has more than 2 males
+@rule max_boys {
+    same_group(gender=M) > 2 → separate
+}
+
+// Spread leaders across groups (soft constraint)
+@rule spread_leaders {
+    leader_count() > 1 → penalty(500)
+}
+
+// Keep scores tight within groups
+@rule tight_scores {
+    score_spread() > 25 → penalty(200)
+}
+```
 
 #### Score-Based Grouping Example
 
@@ -266,28 +320,34 @@ near Bob, front     // Seat Bob near the teacher
 
 From the current simple DSL to an open-source platform with community contributors. Each phase expands what's expressible while preserving the "simple on the surface, powerful underneath" philosophy.
 
-### v2.6 — Current Release `[Shipped]`
+### v2.6 — Foundation `[Shipped]`
 
 The foundation: working IDE with live syntax highlighting, Monte Carlo + Hill Climbing optimization, interactive roster with hover-to-inspect, conflict detection with pulsing glow, and plain-text export. Simple language with +want / -avoid.
 
 `+want / -avoid` · `Monte Carlo` · `Hill Climbing` · `Syntax Highlight` · `Conflict Glow`
 
-### v3.0 — Official Site + Persistence `[In Progress]`
+### v5.0 — Advanced Language + Multi-Class `[Shipped]`
+
+Score-based grouping, role tags, weighted preferences, separate/together directives, multi-class management with classroom tabs, enhanced roster with drag-and-drop reorder, rich export (.json/.gls/.gla/.glu), resizable panels, version history with snapshots, save settings (manual/timed/edit-count auto-save).
+
+`score=N` · `gender=M/F` · `role="type"` · `+Want@N` · `@separate` · `@together` · `@balance` · `@rounds` · `@group_size` · `@no_repeat_partners` · `if(){}` conditionals · `classroom tabs` · `version history` · `.gls/.gla/.glu export`
+
+### v7.0 — Editor Overlay + Custom Rules `[Shipped]`
+
+Major editor rewrite with transparent overlay syntax highlighting (highlighter behind, transparent textarea on top), scrollTop/scrollLeft sync for perfect alignment, panel resize handles, fullscreen panel mode with backdrop overlay, and the `@rule` custom rule system for user-defined grouping constraints.
+
+`@rule` · `same_group()` · `score_spread()` · `gender_imbalance()` · `leader_count()` · `partnered_before()` · `penalty(N)` · `editor overlay v8.1` · `panel resize` · `fullscreen mode`
+
+### v8.0 — Official Site + Persistence `[In Progress]`
 
 Full site redesign with better UI, save/load (cloud + local), password-based access (no login), rich export, and improved editor with inline errors and advanced search.
 
 - **Cloud + Local Save:** Save code to cloud with a password. Download as .gl files for local. Upload to resume. Both worlds.
 - **Password-Based Access:** No accounts, no email. Enter a password to save/retrieve. Student rosters saved separately.
-- **Rich Export:** CSV, JSON, PDF export. Copy to clipboard. Print-ready formatting.
-- **Better Editor:** Improved highlighting, inline errors, advanced search, resizable panels.
+- **Rich Export:** CSV, PDF export. Copy to clipboard. Print-ready formatting.
+- **Better Editor:** Improved highlighting, inline errors, advanced search.
 
-### v3.5 — Advanced Language + Multi-Class `[Planned]`
-
-Score-based grouping, role tags, weighted preferences, separate/together directives. Class codes for managing 8+ classes per teacher. Enhanced roster with CSV import. Tier selector in the editor.
-
-`score=N` · `role="type"` · `+Want@N` · `separate()` · `together()` · `balance` · `class codes`
-
-### v4.0 — GroupLogic.py + Code-Driven Classroom `[Future]`
+### v9.0 — GroupLogic.py + Code-Driven Classroom `[Future]`
 
 Python tier with full library API. Code-driven classroom layout: write your room in code, engine renders the preview with hover-to-inspect. Multi-round assignments. The three-tier editor is the signature UI.
 
@@ -295,7 +355,7 @@ Python tier with full library API. Code-driven classroom layout: write your room
 - **Code-Driven Room:** Code tables and seats, see generated preview. Hover for seatmate info.
 - **Multi-Round:** Week-by-week with no repeat pairings. History tracking.
 
-### v5.0 — Open Source Launch + Collaborative Platform `[Long-Term]`
+### v10.0 — Open Source Launch + Collaborative Platform `[Long-Term]`
 
 GroupLogic IDE goes open source on GitHub. Community contributors can build new language features, optimization algorithms, export formats, and classroom templates. On the platform side, participants submit preferences privately, facilitators define global constraints, and the engine generates groupings respecting everyone's input. Built-in documentation and learning guides for all three language tiers.
 
@@ -304,7 +364,7 @@ GroupLogic IDE goes open source on GitHub. Community contributors can build new 
 - **Private Preferences:** Students submit preferences via form. Teacher sees aggregated constraints, not individual submissions.
 - **Plugin System:** Community-built plugins: custom export formats, new constraint types, integration with LMS platforms.
 
-### v6.0 — AI-Assisted Grouping + LMS Integration `[Long-Term]`
+### v11.0 — AI-Assisted Grouping + LMS Integration `[Long-Term]`
 
 AI suggests optimal grouping strategies based on historical data. Integration with Google Classroom, Canvas, and other LMS platforms for automatic roster sync. The engine learns from past outcomes — which group compositions led to better project results — and adjusts its scoring accordingly. Smart defaults that get smarter over time.
 
@@ -313,7 +373,7 @@ AI suggests optimal grouping strategies based on historical data. Integration wi
 - **Outcome Tracking:** Rate group outcomes. Engine learns which compositions work. Scoring weights adapt over time.
 - **Smart Defaults:** New teacher? AI suggests starting constraints based on class size, subject, and grade level.
 
-### v7.0 — Ecosystem + Mobile `[Long-Term]`
+### v12.0 — Ecosystem + Mobile `[Long-Term]`
 
 The long-term vision: GroupLogic as an ecosystem. Mobile app for on-the-go grouping. Template marketplace where teachers share and sell grouping templates. Multi-school district support with centralized constraint policies. Research partnerships with education departments studying optimal group composition. The language becomes a standard, like SQL for databases, but for people grouping.
 
@@ -327,12 +387,14 @@ Every feature tracked with a live status. Status labels: `Shipped` · `In Progre
 
 | Feature | Status |
 |---------|--------|
-| Monte Carlo Stochastic Search (2,500 iterations) | ✅ Shipped |
-| Hill Climbing Refinement (20 rounds) | ✅ Shipped |
+| Monte Carlo Stochastic Search (2,500+ iterations) | ✅ Shipped |
+| Hill Climbing Refinement (20+ rounds) | ✅ Shipped |
 | Weighted scoring function (200:1 avoid:want ratio) | ✅ Shipped |
-| Score-band proximity scoring | 📋 Planned |
-| Role coverage constraint solver | 📋 Planned |
-| Multi-round assignment (no repeat pairings) | 🔮 Future |
+| Score-band proximity scoring | ✅ Shipped |
+| Role coverage constraint solver | ✅ Shipped |
+| Multi-round assignment with strategies (mixed/similar/random) | ✅ Shipped |
+| Cross-round no-repeat-partner avoidance | ✅ Shipped |
+| Custom @rule constraint system | ✅ Shipped |
 | Proximity-aware room constraint solver | 🔮 Future |
 | AI-assisted grouping strategy suggestions | 🔮 Future |
 
@@ -341,53 +403,59 @@ Every feature tracked with a live status. Status labels: `Shipped` · `In Progre
 | Feature | Status |
 |---------|--------|
 | Simple tier: +want / -avoid syntax | ✅ Shipped |
-| Comments (// prefix) | ✅ Shipped |
-| Advanced tier: score=, role=, +Want@N | 🔧 In Progress |
-| Advanced tier: separate(), together(), balance | 📋 Planned |
+| Comments (// and # prefix) | ✅ Shipped |
+| Advanced tier: score=, gender=, role=, +Want@N | ✅ Shipped |
+| Advanced tier: @separate, @together, @balance | ✅ Shipped |
+| Advanced tier: @rounds with multi-round strategies | ✅ Shipped |
+| Advanced tier: @rule custom rules (condition → action) | ✅ Shipped |
+| Advanced tier: if(){} conditionals | ✅ Shipped |
 | Advanced tier: room/table/near/far syntax | 📋 Planned |
 | GroupLogic.py: Python + GL library | 🔮 Future |
 | GroupLogic.py: CSV/JSON import, custom export | 🔮 Future |
-| Tier switcher UI (Simple / Advanced / Python) | 🔧 In Progress |
+| Tier switcher UI (Simple / Advanced / Python) | ✅ Shipped |
 
 ### Editor & UI
 
 | Feature | Status |
 |---------|--------|
-| Live syntax highlighting | ✅ Shipped |
+| Live syntax highlighting (transparent overlay) | ✅ Shipped |
 | Conflict glow (pulsing red border) | ✅ Shipped |
 | Hover-to-inspect relationship visualization | ✅ Shipped |
-| Better highlighting, inline errors, advanced search | 🔧 In Progress |
-| UI overhaul (resizable panels, drag-and-drop) | 🔧 In Progress |
+| Resizable panels (editor, roster, output) | ✅ Shipped |
+| Fullscreen panel mode with backdrop | ✅ Shipped |
+| Drag-and-drop roster reorder | ✅ Shipped |
+| Built-in documentation & learning guides | ✅ Shipped |
 | Code-driven classroom layout with hover preview | 📋 Planned |
 | Free-form groups (not rule-based) | 📋 Planned |
-| Built-in documentation & learning guides | 🔮 Future |
 
 ### Save & Persistence
 
 | Feature | Status |
 |---------|--------|
 | Copy results to clipboard | ✅ Shipped |
-| Cloud save/load with password (no login) | 🔧 In Progress |
-| Download/upload .gl files (local backup) | 🔧 In Progress |
-| Save student rosters separately | 📋 Planned |
-| Export as CSV, JSON, PDF | 📋 Planned |
-| Connect codes to cross-reference saved data | 📋 Planned |
+| Local save to browser localStorage | ✅ Shipped |
+| Download .gls/.gla/.glu/.json files | ✅ Shipped |
+| Upload/import .gls/.gla/.glu/.json/.txt files | ✅ Shipped |
+| Version history with snapshots (max 3) | ✅ Shipped |
+| Auto-save (timed and edit-count) | ✅ Shipped |
+| Export as CSV, PDF | 📋 Planned |
+| Cloud save/load with password | 🔧 In Progress |
 
 ### Class Management
 
 | Feature | Status |
 |---------|--------|
 | Single class support | ✅ Shipped |
-| Generate unique class codes | 📋 Planned |
-| Manage 8+ classes per teacher | 📋 Planned |
-| Enhanced roster (add/remove without editing code) | 📋 Planned |
+| Multi-class tabs with rename & lock | ✅ Shipped |
+| Classroom lock system (U/S/A modes) | ✅ Shipped |
+| Per-class code storage (Simple + Advanced) | ✅ Shipped |
 | Import student lists from CSV | 📋 Planned |
 
 ### Open Source & Community
 
 | Feature | Status |
 |---------|--------|
-| GitHub public repository | ✅ Shipped |
+| GitHub public repository | 🔮 Future |
 | Contribution guidelines & issue templates | 🔮 Future |
 | Plugin system for community extensions | 🔮 Future |
 | Template marketplace (share/sell grouping templates) | 🔮 Future |
