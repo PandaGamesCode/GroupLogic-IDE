@@ -537,7 +537,7 @@
             <div id="actionBar" class="bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50 flex items-center gap-3" style="transition: border-color 0.15s ease; overflow: visible;">
                 <div class="px-2 py-1" id="perGroupWrap" style="position:relative; min-width:50px; min-height:36px;">
                     <span class="text-[9px] font-bold text-slate-500 uppercase block">Per Group</span>
-                    <input type="number" id="group-size" value="4" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
+                    <input type="number" id="group-size" value="2" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
                 </div>
                 <div class="flex items-center gap-1">
                     <button onclick="copyExport()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5" title="Copy formatted results">
@@ -649,6 +649,7 @@
                         <div><span class="text-purple-300 font-bold">@strict</span> <span class="text-slate-600">= true</span></div>
                         <div><span class="text-purple-300 font-bold">@rounds</span> <span class="text-slate-600">= </span><span class="text-orange-400 font-bold">mixed</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"Ionic"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">similar</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"PH"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">random</span><span class="text-purple-400 font-bold">"Mollar"</span></div>
                         <div><span class="text-purple-300 font-bold">@no_repeat_partners</span> <span class="text-slate-600">= true</span></div>
+                        <div><span class="text-purple-300 font-bold">@apply_rules</span> <span class="text-slate-600">= rule1,rule2</span></div>
                     </div>
                     <div class="w-full flex flex-col gap-y-0.5 mt-2 pt-2 border-t border-slate-800">
                         <div class="text-pink-400 font-bold text-[10px] mb-0.5">@rule Custom Rules</div>
@@ -797,6 +798,7 @@ let conflictMap = new Map();
 let currentLang = 'simple';
 let directives = {};
 let customRules = [];  // parsed @rule blocks: { name, conditions: [{func, args, op, val, action, actionArgs}] }
+let ruleConflicts = []; // { ruleName, condition, groupName, members, description } — filled during scoring
 let overflowMode = 'even';
 let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
@@ -817,8 +819,8 @@ let saveConfig = { manual: true, timed: false, timedInterval: 60, edits: false, 
 let pendingImportContent = null;
 let pendingImportLang = null;
 
-// Default code
-const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v7.0
+// Default example code (only used by "Load Example" button in docs)
+const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE
 // Syntax: Name: +Want -Avoid
 
 Alice: +Bob -Charlie
@@ -827,22 +829,17 @@ Charlie: -Alice +Eve
 Diana: +Eve -Bob
 Eve: +Diana +Charlie`;
 
-const DEFAULT_ADVANCED = `// GroupLogic IDE v7.0 - Advanced Mode
+const DEFAULT_ADVANCED = `// GroupLogic IDE - Advanced Mode
 // Multi-Round Grouping with Overlap Avoidance
 // Science Lab: 3 rounds with different strategies
 
-@group_size = 4
+@group_size = 2
 @balance = gender,scores
 @overflow = even
 @iterations = 5000
 @strict = false
 @rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"
 @no_repeat_partners = true
-
-// Custom rule: max 2 males per group
-@rule max_boys {
-    same_group(gender=M) > 2 → separate
-}
 
 // 20 Students with varied scores, gender, and roles
 Alice: +Bob score=92 gender=F role=leader
@@ -867,7 +864,7 @@ Sophie: +Karen score=89 gender=F tag=honors leader
 Tyler: +Noah -Ryan score=77 gender=M role=dev`;
 
 // ===== INIT =====
-textarea.value = DEFAULT_SIMPLE;
+textarea.value = '';
 textarea.addEventListener('input', onEditorInput);
 sizeInp.addEventListener('input', runIDE);
 
@@ -1903,6 +1900,13 @@ function renderSyntax() {
                 } else {
                     valHtml = '<span class="t-val">' + dm[5] + '</span>';
                 }
+                // Special highlighting for @apply_rules to show rule names
+                if (dm[1] === '@apply_rules') {
+                    valHtml = dm[5].split(',').map(part => {
+                        const trimmed = part.trim();
+                        return trimmed ? '<span class="t-rule-name">' + trimmed + '</span>' : '';
+                    }).join('<span class="t-op">,</span>');
+                }
                 var dhtml = '<span class="hl-nw"><span class="t-directive">' + dm[1] + '</span></span>' +
                     dm[2] + '<span class="hl-nw"><span class="t-assign">' + dm[3] + '</span></span>' +
                     dm[4] + '<span class="hl-nw">' + valHtml + '</span>';
@@ -2019,25 +2023,31 @@ function renderSyntax() {
 // Highlight the body of a @rule condition→action line (already HTML-escaped input)
 function highlightRuleBody(text) {
     let h = text;
-    // Highlight → and -> arrows
+    // 1. Highlight comparison operators FIRST (before adding any HTML spans)
+    //    so we don't accidentally match < or > inside HTML tags.
+    //    After esc(), > is &gt; and < is &lt;, so [><] won't match entity text.
+    //    We need to match = and the literal >/< that esc() produced as &gt;/&lt;
+    //    But we must do this BEFORE adding any <span> tags.
+    h = h.replace(/(&gt;|&lt;|[=!]+)/g, '<span class="t-op">$1</span>');
+    // 2. Highlight → and -> arrows
     h = h.replace(/(→|-&gt;)/g, '<span class="t-rule-arrow">$1</span>');
-    // Highlight condition functions
+    // 3. Highlight condition functions
     h = h.replace(/(same_group|count|score_spread|gender_imbalance|leader_count|has_leader|partnered_before|no_repeat)/g, '<span class="t-rule-cond">$1</span>');
-    // Highlight action keywords
+    // 4. Highlight action keywords — only after the arrow span
     h = h.replace(/\b(separate|penalty|together|avoid|prefer)\b/g, function(match, p1, offset, str) {
-        // Only highlight if after arrow (not inside a condition function name)
-        const arrowIdx = str.indexOf('<span class="t-rule-arrow">');
+        // Only highlight if after the arrow (inside the action part)
+        const arrowIdx = str.indexOf('t-rule-arrow');
         if (arrowIdx >= 0 && offset > arrowIdx) {
             return '<span class="t-rule-action">' + p1 + '</span>';
         }
         return match;
     });
-    // Highlight comparison operators
-    h = h.replace(/([><=!]+)/g, '<span class="t-op">$1</span>');
-    // Highlight numbers
-    h = h.replace(/(\d+)/g, '<span class="t-score">$1</span>');
-    // Highlight attr=value pairs
-    h = h.replace(/(\w+)(=)(&quot;[^&]*&quot;|\w+)/g, '<span class="t-key">$1</span><span class="t-assign">$2</span><span class="t-val">$3</span>');
+    // 5. Highlight numbers (but not inside HTML tags)
+    h = h.replace(/(?<![\w"=])>(\d+)<(?![/\w])/g, function(m) { return m; }); // skip numbers in tags
+    h = h.replace(/(^|[^\w"=])(\d+)(?![\w"=])/g, '$1<span class="t-score">$2</span>');
+    // 6. Highlight attr=value pairs (but not inside HTML tag attributes like class=)
+    //    Only match word=word or word="val" that are NOT inside <span ...>
+    h = h.replace(/(\b(?!class\b|style\b|span\b)(\w+))(=)(&quot;[^&]*&quot;|\w+)/g, '<span class="t-key">$2</span><span class="t-assign">$3</span><span class="t-val">$4</span>');
     return h;
 }
 
@@ -2351,7 +2361,7 @@ function calculateGroups() {
         return;
     }
 
-    let perGroup = parseInt(sizeInp.value) || 4;
+    let perGroup = parseInt(sizeInp.value) || 2;
     if (directives.group_size) perGroup = Math.max(2, parseInt(directives.group_size) || perGroup);
 
     // Determine overflow mode - advanced code directive takes precedence
@@ -2533,6 +2543,7 @@ function calculateGroups() {
         // Set currentGroups to first round for compatibility
         currentGroups = currentRounds[0].groups;
         identifyConflicts(currentGroups);
+        collectRuleConflicts(currentGroups);
         renderGroups(currentGroups, currentRounds[0].violations);
 
         const totalViolations = currentRounds.reduce((s, r) => s + r.violations, 0);
@@ -2607,6 +2618,7 @@ function calculateGroups() {
 
         currentGroups = bestTrial;
         identifyConflicts(bestTrial);
+        collectRuleConflicts(bestTrial);
         renderGroups(bestTrial, minViolations);
 
         const statusEl = document.getElementById('feasibility-status');
@@ -2620,7 +2632,8 @@ function calculateGroups() {
 
 function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
     let score = 0, violations = 0;
-    groups.forEach(g => {
+    groups.forEach((g, gi) => {
+        const groupLabel = 'Group ' + (gi + 1);
         for (let i = 0; i < g.length; i++) { for (let j = i + 1; j < g.length; j++) {
             const a = g[i], b = g[j];
             if (students[a].wants.has(b)) { score += 500 * ((students[a].wantWeights[b] || 5) / 5); }
@@ -2638,7 +2651,7 @@ function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
         if (tagBalance) { const tc = g.filter(n=>students[n].tag===tagBalance).length; if (tc>1) score-=200*(tc-1); }
         if (g.filter(n=>students[n].leader).length>1) score-=500;
         // Evaluate custom @rule conditions for this group
-        const ruleResult = evaluateRulesForGroup(g, groups);
+        const ruleResult = evaluateRulesForGroup(g, groups, groupLabel);
         score += ruleResult.score;
         violations += ruleResult.violations;
     });
@@ -2647,11 +2660,19 @@ function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
 }
 
 // Evaluate custom @rule conditions for a single group
-function evaluateRulesForGroup(group, allGroups) {
+// collectConflicts: false during scoring (fast), true only for final display
+function evaluateRulesForGroup(group, allGroups, groupLabel, collectConflicts) {
     let score = 0, violations = 0;
     if (!customRules || customRules.length === 0) return { score, violations };
 
+    // Check @apply_rules directive — if set, only apply listed rules
+    const applyRulesStr = directives.apply_rules || '';
+    const applyRulesList = applyRulesStr ? applyRulesStr.split(',').map(s => s.trim()).filter(Boolean) : null;
+
     for (const rule of customRules) {
+        // Skip this rule if @apply_rules is set and this rule isn't listed
+        if (applyRulesList && !applyRulesList.includes(rule.name)) continue;
+
         for (const cond of rule.conditions) {
             let actualVal = 0;
             let triggered = false;
@@ -2659,7 +2680,6 @@ function evaluateRulesForGroup(group, allGroups) {
             switch (cond.func) {
                 case 'same_group':
                 case 'count': {
-                    // Count members in this group with attr=val
                     const attr = cond.args.attr;
                     const val = cond.args.val;
                     actualVal = group.filter(n => {
@@ -2698,7 +2718,6 @@ function evaluateRulesForGroup(group, allGroups) {
                     break;
                 }
                 case 'partnered_before': {
-                    // Check if any pair in this group was together in a previous round
                     if (currentRounds && currentRounds.length > 0) {
                         let repeatCount = 0;
                         for (let i = 0; i < group.length; i++) {
@@ -2720,7 +2739,23 @@ function evaluateRulesForGroup(group, allGroups) {
             }
 
             if (triggered) {
-                // Apply the action
+                // Only collect conflict details for display (NOT during scoring)
+                if (collectConflicts) {
+                    const condDesc = cond.func === 'same_group' || cond.func === 'count'
+                        ? cond.func + '(' + cond.args.attr + '=' + cond.args.val + ') ' + actualVal + ' ' + cond.op + ' ' + cond.val
+                        : cond.func + '() ' + actualVal + ' ' + cond.op + ' ' + cond.val;
+                    const members = group.map(n => students[n] ? students[n].originalName : n).join(', ');
+                    ruleConflicts.push({
+                        ruleName: rule.name,
+                        condition: condDesc,
+                        groupName: groupLabel || 'Group',
+                        members: members,
+                        action: cond.action
+                    });
+                    group.forEach(n => conflictMap.set(n, true));
+                }
+
+                // Apply the scoring action
                 switch (cond.action) {
                     case 'separate':
                         score -= 50000;
@@ -2728,15 +2763,16 @@ function evaluateRulesForGroup(group, allGroups) {
                         break;
                     case 'penalty':
                         score -= (cond.actionArgs || 1000);
+                        violations++;
                         break;
                     case 'avoid':
                         score -= 5000;
+                        violations++;
                         break;
                     case 'prefer':
                         score += 500;
                         break;
                     case 'together':
-                        // Already together, no penalty needed; add small bonus
                         score += 200;
                         break;
                 }
@@ -2746,10 +2782,22 @@ function evaluateRulesForGroup(group, allGroups) {
     return { score, violations };
 }
 
+// Collect rule conflicts for the final displayed groups (called ONCE, not during MC scoring)
+function collectRuleConflicts(groups) {
+    ruleConflicts = [];
+    if (!customRules || customRules.length === 0) return;
+    groups.forEach((g, gi) => {
+        evaluateRulesForGroup(g, groups, 'Group ' + (gi + 1), true);
+    });
+}
+
 function identifyConflicts(groups) {
     conflictMap = new Map();
     if (!groups) return;
-    groups.forEach(g => { for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) { if (students[g[i]].avoids.has(g[j])||students[g[j]].avoids.has(g[i])) { conflictMap.set(g[i],true); conflictMap.set(g[j],true); } } });
+    groups.forEach(g => {
+        for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) { if (students[g[i]].avoids.has(g[j])||students[g[j]].avoids.has(g[i])) { conflictMap.set(g[i],true); conflictMap.set(g[j],true); } }
+    });
+    // Note: rule conflicts are added to conflictMap by collectRuleConflicts(), called after this
 }
 
 // ===== RENDER GROUPS =====
@@ -2767,11 +2815,23 @@ function renderGroups(groups, violations) {
         return gn;
     }
 
-    function makeChips(g) {
+    function makeChips(g, gi) {
+        const gLabel = getGroupName(g, gi);
         return g.map(function(name) {
             const s = students[name]; if (!s) return '';
             const isConflict = conflictMap.has(name);
+            // Build tooltip showing which rules are violated for this student
+            let tooltip = '';
+            if (isConflict) {
+                const studentConflicts = ruleConflicts.filter(rc => rc.members.split(', ').includes(s.originalName));
+                if (studentConflicts.length > 0) {
+                    tooltip = studentConflicts.map(rc => '@rule ' + rc.ruleName + ': ' + rc.condition + ' → ' + rc.action).join('; ');
+                } else {
+                    tooltip = 'Avoid constraint violated';
+                }
+            }
             return '<span class="chip px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-600 bg-slate-700/50 text-slate-300' + (isConflict ? ' conflict-glow' : '') + '"' +
+                (tooltip ? ' title="' + esc(tooltip) + '"' : '') +
                 ' onmouseenter="inspect(\'' + name + '\')"' +
                 ' onmouseleave="uninspect()">' + esc(s.originalName) + '</span>';
         }).join(' ');
@@ -2789,26 +2849,45 @@ function renderGroups(groups, violations) {
 
     function renderGroupsList(gs) {
         return gs.map(function(g, gi) {
+            // Find rule conflicts for this group
+            const gLabel = getGroupName(g, gi);
+            const gConflicts = ruleConflicts.filter(rc => rc.groupName === gLabel);
+            let conflictHtml = '';
+            if (gConflicts.length > 0) {
+                conflictHtml = '<div class="mt-1.5 pt-1.5 border-t border-red-900/30">' +
+                    gConflicts.map(rc => '<div class="text-[9px] text-red-400/80"><span class="text-pink-400 font-bold">@' + esc(rc.ruleName) + '</span> ' + esc(rc.condition) + ' <span class="text-slate-600">→</span> ' + esc(rc.action) + '</div>').join('') +
+                    '</div>';
+            }
             return '<div class="group-block">' +
                 '<div class="flex justify-between items-center mb-2">' +
                     '<span class="text-[11px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
                     '<span class="text-[9px] text-slate-600">' + g.length + ' members</span>' +
                 '</div>' +
-                '<div class="flex flex-wrap gap-1.5">' + makeChips(g) + '</div>' +
+                '<div class="flex flex-wrap gap-1.5">' + makeChips(g, gi) + '</div>' +
                 (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
+                conflictHtml +
             '</div>';
         }).join('');
     }
 
     function renderGroupsCards(gs) {
         return '<div class="group-grid">' + gs.map(function(g, gi) {
+            const gLabel = getGroupName(g, gi);
+            const gConflicts = ruleConflicts.filter(rc => rc.groupName === gLabel);
+            let conflictHtml = '';
+            if (gConflicts.length > 0) {
+                conflictHtml = '<div class="mt-1.5 pt-1.5 border-t border-red-900/30">' +
+                    gConflicts.map(rc => '<div class="text-[8px] text-red-400/80"><span class="text-pink-400 font-bold">@' + esc(rc.ruleName) + '</span> ' + esc(rc.condition) + '</div>').join('') +
+                    '</div>';
+            }
             return '<div class="group-card">' +
                 '<div class="flex justify-between items-center mb-2">' +
                     '<span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
                     '<span class="text-[9px] text-slate-600">' + g.length + '</span>' +
                 '</div>' +
-                '<div class="flex flex-wrap gap-1">' + makeChips(g) + '</div>' +
+                '<div class="flex flex-wrap gap-1">' + makeChips(g, gi) + '</div>' +
                 (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
+                conflictHtml +
             '</div>';
         }).join('') + '</div>';
     }
@@ -2883,7 +2962,10 @@ function renderGroups(groups, violations) {
             var roundData = currentRounds[activeRoundTab];
             var roundGroups = roundData ? roundData.groups : groups;
             // Temporarily update conflict map for this round
-            if (roundData && roundData.groups) identifyConflicts(roundData.groups);
+            if (roundData && roundData.groups) {
+                identifyConflicts(roundData.groups);
+                collectRuleConflicts(roundData.groups);
+            }
             var roundHeader = '<div class="text-[9px] text-slate-500 mb-2">Round ' + (activeRoundTab + 1) + ': ' + esc(currentRounds[activeRoundTab].label) + (roundData.violations === 0 ? ' — <span class="text-emerald-400">Optimal</span>' : ' — <span class="text-red-400">' + roundData.violations + ' conflict' + (roundData.violations > 1 ? 's' : '') + '</span>') + '</div>';
             if (groupViewMode === 'list') {
                 groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsList(roundGroups);
@@ -2892,6 +2974,7 @@ function renderGroups(groups, violations) {
             }
             // Restore conflict map to first round
             identifyConflicts(currentGroups);
+            collectRuleConflicts(currentGroups);
         }
     } else {
         // Single round (original behavior)
@@ -2966,12 +3049,11 @@ function switchLang(lang) {
 
     // Load the independent code for this editor
     if (lang === 'simple') {
-        textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
-        if (!cl.codeSimple) isDefaultCode = true; else isDefaultCode = false;
+        textarea.value = cl.codeSimple;
     } else if (lang === 'advanced') {
-        textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
-        if (!cl.codeAdvanced) isDefaultCode = true; else isDefaultCode = false;
+        textarea.value = cl.codeAdvanced;
     }
+    isDefaultCode = false;
     updateFileTypeLabel(); runIDE();
 }
 
@@ -3213,7 +3295,7 @@ function doExport() {
             codeAdvanced: cl.codeAdvanced || '',
             generated_code_simple: cl.codeSimple ? formatGeneratedCode(cl.codeSimple, 'Simple', cl.name, 'gls') : '',
             generated_code_advanced: cl.codeAdvanced ? formatGeneratedCode(cl.codeAdvanced, 'Advanced', cl.name, 'gla') : '',
-            groupSize: parseInt(sizeInp.value) || 4,
+            groupSize: parseInt(sizeInp.value) || 2,
             overflowMode: overflowMode,
             students: [],
             groups: []
@@ -3869,7 +3951,7 @@ function saveActiveJSON() {
                 codeAdvanced: c.codeAdvanced || '',
                 generated_code_simple: c.codeSimple ? formatGeneratedCode(c.codeSimple, 'Simple', c.name, 'gls') : '',
                 generated_code_advanced: c.codeAdvanced ? formatGeneratedCode(c.codeAdvanced, 'Advanced', c.name, 'gla') : '',
-                groupSize: parseInt(sizeInp.value) || 4,
+                groupSize: parseInt(sizeInp.value) || 2,
                 overflowMode: overflowMode,
                 students: [],
                 groups: []
@@ -3984,6 +4066,15 @@ function openDocs() {
         '<button onclick="document.getElementById(\'docsOverlay\').remove()" class="text-slate-500 hover:text-white text-xl font-bold flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700">' +
             '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
         '</button></div></div>' +
+
+        // ===== LOAD EXAMPLE BUTTON =====
+        '<div class="mb-4 p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">' +
+        '<button onclick="loadExample()" class="inline-flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-xs font-bold transition-all" title="Load the built-in example code">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
+            'Load Example Code' +
+        '</button>' +
+        '<span class="text-[10px] text-slate-500 ml-3">Fills the Simple editor with a sample classroom</span>' +
+        '</div>' +
 
         // ===== GETTING STARTED =====
         '<div class="docs-section open"><h4>Getting Started</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
@@ -4142,7 +4233,14 @@ function openDocs() {
         '<p><code>@rule fresh_partners {</code></p>' +
         '<p><code>    partnered_before() → separate</code></p>' +
         '<p><code>}</code></p>' +
-        '<p>This ensures no two students who were together in a previous round end up together again. Equivalent to <code>@no_repeat_partners = true</code> but as a custom rule.</p></div></div>' +
+        '<p>This ensures no two students who were together in a previous round end up together again. Equivalent to <code>@no_repeat_partners = true</code> but as a custom rule.</p>' +
+        '<p class="mt-2"><b>Activating Rules with @apply_rules:</b></p>' +
+        '<p>By default, ALL defined rules are automatically active. Use <code>@apply_rules</code> to selectively enable only specific rules by name. This is useful when you want to define multiple rules but only use some of them.</p>' +
+        '<p><code>@apply_rules = mixed_genders</code> — only the <code>mixed_genders</code> rule will run</p>' +
+        '<p><code>@apply_rules = spread_leaders, tight_scores</code> — multiple rules, comma-separated</p>' +
+        '<p>If <code>@apply_rules</code> is not specified, ALL defined rules are applied automatically.</p>' +
+        '<p class="mt-2"><b>Rule Conflict Display:</b></p>' +
+        '<p>When a rule is violated, the conflict is shown directly under the affected group in the output. Hover over a red-glowing student chip to see which rule was violated and the specific condition that triggered it. Conflicts from <code>separate</code>, <code>penalty</code>, and <code>avoid</code> actions all appear with the rule name and condition details.</p></div></div>' +
 
         // ===== FILE TYPES & LOCKS =====
         '<div class="docs-section"><h4>File Types & Locks</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
@@ -4240,6 +4338,7 @@ var AI_PROMPT_TEXT = [
     '- @rounds = mixed:score"Ionic", similar:score"PH", random"Mollar" — multiple rounds with strategies and custom names.',
     '- Strategies: mixed:score (snake-draft, high+low together), similar:score (sequential, high+high), mixed:gender, similar:gender, random.',
     '- @no_repeat_partners = true — ensures no two students are together across rounds.',
+    '- @apply_rules = rule1,rule2 — only apply the listed custom rules. If not specified, ALL defined rules are applied.',
     '- Cross-Round tab shows who is always/sometimes/never together.',
     '',
     'Conditional Constraints:',
@@ -4265,6 +4364,8 @@ var AI_PROMPT_TEXT = [
     '  avoid — moderate penalty (-5,000). Weaker than separate.',
     '  together — bonus (+200). Prefer this configuration.',
     '  prefer — bonus (+500). Encourage when condition is met.',
+    '- @apply_rules = name1,name2 — only activate listed rules. Without this directive, all defined rules run.',
+    '- Rule conflicts are displayed under each group in the output, showing which rule was violated and the specific condition. Red-glowing chips indicate affected students, with tooltip details on hover.',
     '',
     '=== SCORING SYSTEM ===',
     '- Avoid violation: -100,000 per pair (hard constraint, 200x weight).',
@@ -4324,6 +4425,26 @@ function fallbackCopyIDE(text) {
     document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); } catch(e) {}
     document.body.removeChild(ta);
+}
+
+// ===== LOAD EXAMPLE =====
+function loadExample() {
+    const cl = classrooms[activeClass];
+    // Switch to Simple mode and load the example
+    if (currentLang !== 'simple') {
+        // Save current advanced code first
+        cl.codeAdvanced = textarea.value;
+        currentLang = 'simple';
+        updateLangTabs();
+    }
+    textarea.value = DEFAULT_SIMPLE;
+    cl.codeSimple = DEFAULT_SIMPLE;
+    isDefaultCode = true;
+    // Close docs
+    const overlay = document.getElementById('docsOverlay');
+    if (overlay) overlay.remove();
+    updateFileTypeLabel(); runIDE();
+    toast('Example code loaded into Simple editor', 'ok');
 }
 
 // Init
