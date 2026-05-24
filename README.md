@@ -31,7 +31,7 @@ Some parts of the site can only be accessed by typing in the URL
 
 1. [Group Logic IDE online](https://sites.google.com/view/grouplogic-ide/)
 2. [Documentation on website](https://sites.google.com/view/grouplogic-ide/)
-3. 
+   
 ---
 
 ## Why GroupLogic?
