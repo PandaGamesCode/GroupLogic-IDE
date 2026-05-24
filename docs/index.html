@@ -441,7 +441,7 @@
             <div class="flex items-center gap-3">
                 <span class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg text-sm font-black">G</span>
                 <span class="font-bold text-sm text-white hidden sm:inline">GroupLogic IDE</span>
-                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Docs v2.6</span>
+                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Docs v8.1</span>
             </div>
             <div class="flex items-center gap-0.5 overflow-x-auto">
                 <a href="#why" class="nav-link">Why</a>
@@ -451,6 +451,7 @@
                 <a href="#roadmap" class="nav-link">Roadmap</a>
                 <a href="#features" class="nav-link">Features</a>
                 <a href="#vision" class="nav-link">Vision</a>
+                <a href="#links" class="nav-link">Links</a>
             </div>
         </div>
     </nav>
@@ -518,7 +519,7 @@
     </section>
 
     <!-- ============================== GITHUB CARD ============================== -->
-    <div id="github-card-container" class="max-w-5xl mx-auto px-6" style="display:none;">
+    <div id="github-card-container" class="max-w-5xl mx-auto px-6">
         <div class="github-card">
             <div class="flex items-center justify-center gap-3 mb-4">
                 <svg height="32" viewBox="0 0 16 16" width="32" fill="#f1f5f9"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
@@ -527,7 +528,7 @@
             <p class="text-sm text-slate-400 mb-6 max-w-lg mx-auto">
                 GroupLogic IDE is open source. Contribute, report bugs, request features, or fork it and make it your own.
             </p>
-            <a id="github-link" href="#" target="_blank" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white px-8 py-3 rounded-xl font-bold text-sm transition-all border border-white/20">
+            <a id="github-link" href="https://github.com/PandaGamesCode/GroupLogic-IDE" target="_blank" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white px-8 py-3 rounded-xl font-bold text-sm transition-all border border-white/20">
                 <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
                 View on GitHub
             </a>
@@ -825,11 +826,11 @@
             <div class="tier-panel" id="tier-advanced">
                 <div class="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-8 mb-10">
                     <div class="flex items-center gap-3 mb-4">
-                        <span class="status-badge status-active">In Progress</span>
-                        <h3 class="text-xl font-bold text-white">Advanced Mode &mdash; Scores, Roles & Weighted Preferences</h3>
+                        <span class="status-badge status-done">Shipped</span>
+                        <h3 class="text-xl font-bold text-white">Advanced Mode &mdash; Scores, Roles, Custom Rules & Weighted Preferences</h3>
                     </div>
                     <p class="text-sm text-slate-400 leading-relaxed">
-                        Extends the simple syntax with everything a teacher needs for data-driven grouping. Score-based banding groups students by test performance. Role tags ensure each group has the right mix. Weighted preferences let you express "I strongly want Bob" vs. "I'd mildly prefer Diana." The <code class="text-slate-300 bg-slate-800 px-1 rounded">separate</code> and <code class="text-slate-300 bg-slate-800 px-1 rounded">together</code> directives handle multi-person constraints. All while keeping line-by-line readability.
+                        Extends the simple syntax with everything a teacher needs for data-driven grouping. Score-based banding groups students by test performance. Role tags ensure each group has the right mix. Weighted preferences let you express "I strongly want Bob" vs. "I'd mildly prefer Diana." The <code class="text-slate-300 bg-slate-800 px-1 rounded">@separate</code> and <code class="text-slate-300 bg-slate-800 px-1 rounded">@together</code> directives handle multi-person constraints. Custom <code class="text-slate-300 bg-slate-800 px-1 rounded">@rule</code> blocks let you define your own grouping constraints using built-in condition functions and actions — giving you fine-grained control beyond the built-in directives. All while keeping line-by-line readability.
                     </p>
                 </div>
                 <div class="grid md:grid-cols-2 gap-10 mb-10">
@@ -863,6 +864,22 @@
                             <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
                                 <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">balance</span> <span class="syn-string font-mono text-sm">"role"</span> <span class="syn-keyword font-mono text-sm">min</span> <span class="syn-number font-mono text-sm">N</span></div>
                                 <p class="text-xs text-slate-400">Each group must have at least N students with that role.</p>
+                            </div>
+                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm" style="color:#ec4899">@rule</span> <span class="syn-name font-mono text-sm">name</span> <span class="syn-op font-mono">{</span> <span class="syn-func font-mono text-sm">condition</span> <span class="syn-op font-mono">&rarr;</span> <span class="syn-class font-mono text-sm">action</span> <span class="syn-op font-mono">}</span></div>
+                                <p class="text-xs text-slate-400">Define custom grouping rules with condition/action pairs. Built-in conditions and actions give you fine-grained control.</p>
+                            </div>
+                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">gender</span><span class="syn-op font-mono">=</span><span class="syn-string font-mono text-sm">M/F/X</span></div>
+                                <p class="text-xs text-slate-400">Gender attribute. Used for gender balance and custom rules with <code class="text-slate-300 bg-slate-800 px-1 rounded">gender_imbalance()</code>.</p>
+                            </div>
+                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">leader</span></div>
+                                <p class="text-xs text-slate-400">Flag student as a group leader. Engine spreads leaders across groups. Use <code class="text-slate-300 bg-slate-800 px-1 rounded">leader_count()</code> in rules.</p>
+                            </div>
+                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">@no_repeat_partners</span> <span class="syn-op font-mono">=</span> <span class="syn-keyword font-mono text-sm">true</span></div>
+                                <p class="text-xs text-slate-400">Avoid placing same students together across rounds. Also available as <code class="text-slate-300 bg-slate-800 px-1 rounded">partnered_before()</code> in rules.</p>
                             </div>
                         </div>
                     </div>
@@ -913,6 +930,61 @@
                                     <span class="bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded">Henry (68)</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Rules Section -->
+                <div class="mt-10">
+                    <h4 class="text-lg font-bold text-white mb-6">Custom Rules (@rule)</h4>
+                    <p class="text-sm text-slate-400 mb-6 leading-relaxed">
+                        The <code class="text-slate-300 bg-slate-800 px-1 rounded">@rule</code> directive lets you define your own grouping constraints using built-in condition functions and actions. When a condition is met for any group, the corresponding action is applied as a scoring penalty or bonus.
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <h5 class="text-sm font-bold text-cyan-400 mb-4">Built-in Conditions</h5>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">same_group(attr=val) > N</code><span class="text-slate-500">Triggers when >N members with that attribute are in the same group</span></div>
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">count(attr=val) > N</code><span class="text-slate-500">Alias for same_group()</span></div>
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">score_spread() > N</code><span class="text-slate-500">Triggers when score range (max-min) exceeds N</span></div>
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">gender_imbalance() > N</code><span class="text-slate-500">Triggers when M/F difference exceeds N</span></div>
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">leader_count() > N</code><span class="text-slate-500">Triggers when group has >N leaders</span></div>
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">has_leader()</code><span class="text-slate-500">Shorthand for leader_count() > 0</span></div>
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">partnered_before()</code><span class="text-slate-500">Triggers when any pair was together in a previous round</span></div>
+                                <div class="flex gap-3"><code class="text-cyan-400 font-mono bg-slate-800 px-2 py-0.5 rounded">no_repeat()</code><span class="text-slate-500">Alias for partnered_before()</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="text-sm font-bold text-green-400 mb-4">Built-in Actions</h5>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex gap-3"><code class="text-green-400 font-mono bg-slate-800 px-2 py-0.5 rounded">separate</code><span class="text-slate-500">Heavy penalty (-50,000) + violation count</span></div>
+                                <div class="flex gap-3"><code class="text-green-400 font-mono bg-slate-800 px-2 py-0.5 rounded">penalty(N)</code><span class="text-slate-500">Custom N-point penalty</span></div>
+                                <div class="flex gap-3"><code class="text-green-400 font-mono bg-slate-800 px-2 py-0.5 rounded">avoid</code><span class="text-slate-500">Moderate penalty (-5,000)</span></div>
+                                <div class="flex gap-3"><code class="text-green-400 font-mono bg-slate-800 px-2 py-0.5 rounded">together</code><span class="text-slate-500">Small bonus (+200)</span></div>
+                                <div class="flex gap-3"><code class="text-green-400 font-mono bg-slate-800 px-2 py-0.5 rounded">prefer</code><span class="text-slate-500">Preference bonus (+500)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-block-header">
+                            <span class="code-dot code-dot-red"></span><span class="code-dot code-dot-yellow"></span><span class="code-dot code-dot-green"></span>
+                            <span class="text-[11px] text-slate-500 ml-2 font-mono">custom_rules.gl</span>
+                        </div>
+                        <div class="code-body text-xs">
+<span class="syn-comment">// Ensure no group has more than 2 males</span>
+<span style="color:#ec4899;font-weight:600">@rule</span> <span class="syn-name">max_boys</span> {
+    <span class="syn-func">same_group</span>(<span class="syn-keyword">gender</span>=<span class="syn-string">M</span>) > <span class="syn-number">2</span> <span class="syn-op">&rarr;</span> <span class="syn-class">separate</span>
+}
+
+<span class="syn-comment">// Spread leaders across groups (soft constraint)</span>
+<span style="color:#ec4899;font-weight:600">@rule</span> <span class="syn-name">spread_leaders</span> {
+    <span class="syn-func">leader_count</span>() > <span class="syn-number">1</span> <span class="syn-op">&rarr;</span> <span class="syn-class">penalty</span>(<span class="syn-number">500</span>)
+}
+
+<span class="syn-comment">// Keep scores tight within groups</span>
+<span style="color:#ec4899;font-weight:600">@rule</span> <span class="syn-name">tight_scores</span> {
+    <span class="syn-func">score_spread</span>() > <span class="syn-number">25</span> <span class="syn-op">&rarr;</span> <span class="syn-class">penalty</span>(<span class="syn-number">200</span>)
+}
                         </div>
                     </div>
                 </div>
@@ -1213,7 +1285,7 @@
                     <div class="timeline-dot done" style="top: 8px;"></div>
                     <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
                         <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v2.6 &mdash; Current Release</h3>
+                            <h3 class="text-lg font-bold text-white">v2.6 &mdash; Foundation</h3>
                             <span class="status-badge status-done">Shipped</span>
                         </div>
                         <p class="text-sm text-slate-400 mb-5 leading-relaxed">
@@ -1229,12 +1301,85 @@
                     </div>
                 </div>
 
-                <!-- v3.0 -->
+                <!-- v5.0 -->
+                <div class="relative">
+                    <div class="timeline-dot done" style="top: 8px;"></div>
+                    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
+                        <div class="flex flex-wrap items-center gap-3 mb-4">
+                            <h3 class="text-lg font-bold text-white">v5.0 &mdash; Advanced Language + Multi-Class</h3>
+                            <span class="status-badge status-done">Shipped</span>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
+                            Score-based grouping, role tags, weighted preferences, separate/together directives, multi-class management with classroom tabs, enhanced roster with drag-and-drop reorder, rich export (.json/.gls/.gla/.glu), resizable panels, version history with snapshots, save settings (manual/timed/edit-count auto-save).
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">score=N</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">gender=M/F</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">role="type"</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">+Want@N</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">@separate</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">@together</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">@balance</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">@rounds</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">classroom tabs</span>
+                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">version history</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v7.0 -->
+                <div class="relative">
+                    <div class="timeline-dot done" style="top: 8px;"></div>
+                    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
+                        <div class="flex flex-wrap items-center gap-3 mb-4">
+                            <h3 class="text-lg font-bold text-white">v7.0 &mdash; Editor Overlay + Custom Rules</h3>
+                            <span class="status-badge status-done">Shipped</span>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
+                            Major editor rewrite with transparent overlay syntax highlighting (highlighter behind, transparent textarea on top), scrollTop/scrollLeft sync for perfect alignment, panel resize handles, fullscreen panel mode with backdrop overlay, and the @rule custom rule system for user-defined grouping constraints.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-pink-500/10 text-pink-400 px-3 py-1 rounded-lg text-[11px] font-mono">@rule</span>
+                            <span class="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-lg text-[11px] font-mono">same_group()</span>
+                            <span class="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-lg text-[11px] font-mono">score_spread()</span>
+                            <span class="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-lg text-[11px] font-mono">gender_imbalance()</span>
+                            <span class="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-lg text-[11px] font-mono">leader_count()</span>
+                            <span class="bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-lg text-[11px] font-mono">partnered_before()</span>
+                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">penalty(N)</span>
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">editor overlay v8.1</span>
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">panel resize</span>
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">fullscreen mode</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v8.1 -->
+                <div class="relative">
+                    <div class="timeline-dot done" style="top: 8px;"></div>
+                    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
+                        <div class="flex flex-wrap items-center gap-3 mb-4">
+                            <h3 class="text-lg font-bold text-white">v8.1 &mdash; Panel Improvements + Polish</h3>
+                            <span class="status-badge status-done">Shipped</span>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
+                            Roster panel expanded to show 4-6 names (250px default height). Live output panel expanded to show ~3 groups (360px default height) with scroll and resize handles. Editor overlay scroll sync hardened. Settings gear icon added to header.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">roster 250px</span>
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">output 360px</span>
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">scroll sync v8.1</span>
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">settings gear</span>
+                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">panel resize handles</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v8.5 -->
                 <div class="relative">
                     <div class="timeline-dot active" style="top: 8px;"></div>
                     <div class="bg-slate-800/40 border border-blue-500/20 rounded-2xl p-8">
                         <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v3.0 &mdash; Official Site + Persistence</h3>
+                            <h3 class="text-lg font-bold text-white">v8.5 &mdash; Official Site + Persistence</h3>
                             <span class="status-badge status-active">In Progress</span>
                         </div>
                         <p class="text-sm text-slate-400 mb-5 leading-relaxed">
@@ -1251,7 +1396,7 @@
                             </div>
                             <div class="bg-slate-900/40 rounded-lg p-4">
                                 <h4 class="text-xs font-bold text-blue-400 mb-1">Rich Export</h4>
-                                <p class="text-[11px] text-slate-500">CSV, JSON, PDF export. Copy to clipboard. Print-ready formatting.</p>
+                                <p class="text-[11px] text-slate-500">CSV, PDF export. Copy to clipboard. Print-ready formatting.</p>
                             </div>
                             <div class="bg-slate-900/40 rounded-lg p-4">
                                 <h4 class="text-xs font-bold text-blue-400 mb-1">Better Editor</h4>
@@ -1261,35 +1406,12 @@
                     </div>
                 </div>
 
-                <!-- v3.5 -->
-                <div class="relative">
-                    <div class="timeline-dot" style="top: 8px; border-color: #a855f7;"></div>
-                    <div class="bg-slate-800/40 border border-purple-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v3.5 &mdash; Advanced Language + Multi-Class</h3>
-                            <span class="status-badge status-planned">Planned</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            Score-based grouping, role tags, weighted preferences, separate/together directives. Class codes for managing 8+ classes per teacher. Enhanced roster with CSV import. Tier selector in the editor.
-                        </p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">score=N</span>
-                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">role="type"</span>
-                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">+Want@N</span>
-                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">separate()</span>
-                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">together()</span>
-                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">balance</span>
-                            <span class="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-lg text-[11px] font-mono">class codes</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- v4.0 -->
+                <!-- v9.5 -->
                 <div class="relative">
                     <div class="timeline-dot" style="top: 8px; border-color: #06b6d4;"></div>
                     <div class="bg-slate-800/40 border border-cyan-500/20 rounded-2xl p-8">
                         <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v4.0 &mdash; GroupLogic.py + Code-Driven Classroom</h3>
+                            <h3 class="text-lg font-bold text-white">v9.5 &mdash; GroupLogic.py + Code-Driven Classroom</h3>
                             <span class="status-badge status-future">Future</span>
                         </div>
                         <p class="text-sm text-slate-400 mb-5 leading-relaxed">
@@ -1297,17 +1419,14 @@
                         </p>
                         <div class="grid sm:grid-cols-3 gap-4">
                             <div class="bg-slate-900/40 rounded-lg p-4 text-center">
-                                <div class="text-cyan-400 text-lg mb-2">&#x1F40D;</div>
                                 <h4 class="text-[11px] font-bold text-white">GroupLogic.py</h4>
                                 <p class="text-[10px] text-slate-500">Python + GL library. CSV import, custom algorithms, room layouts.</p>
                             </div>
                             <div class="bg-slate-900/40 rounded-lg p-4 text-center">
-                                <div class="text-cyan-400 text-lg mb-2">&#x1F3EB;</div>
                                 <h4 class="text-[11px] font-bold text-white">Code-Driven Room</h4>
                                 <p class="text-[10px] text-slate-500">Code tables and seats, see generated preview. Hover for seatmate info.</p>
                             </div>
                             <div class="bg-slate-900/40 rounded-lg p-4 text-center">
-                                <div class="text-cyan-400 text-lg mb-2">&#x1F504;</div>
                                 <h4 class="text-[11px] font-bold text-white">Multi-Round</h4>
                                 <p class="text-[10px] text-slate-500">Week-by-week with no repeat pairings. History tracking.</p>
                             </div>
@@ -1315,16 +1434,16 @@
                     </div>
                 </div>
 
-                <!-- v5.0 -->
+                <!-- v10.5 -->
                 <div class="relative">
                     <div class="timeline-dot" style="top: 8px; border-color: #f97316;"></div>
                     <div class="bg-slate-800/40 border border-orange-500/20 rounded-2xl p-8">
                         <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v5.0 &mdash; Open Source Launch + Collaborative Platform</h3>
+                            <h3 class="text-lg font-bold text-white">v10.5 &mdash; Open Source Launch + Collaborative Platform</h3>
                             <span class="status-badge status-future">Long-Term</span>
                         </div>
                         <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            GroupLogic IDE goes open source on GitHub. Community contributors can build new language features, optimization algorithms, export formats, and classroom templates. On the platform side, participants submit preferences privately, facilitators define global constraints, and the engine generates groupings respecting everyone's input. Built-in documentation and learning guides for all three language tiers.
+                            GroupLogic IDE goes open source on GitHub. Community contributors can build new language features, optimization algorithms, export formats, and classroom templates. On the platform side, participants submit preferences privately, facilitators define global constraints, and the engine generates groupings respecting everyone's input.
                         </p>
                         <div class="grid sm:grid-cols-2 gap-4">
                             <div class="bg-slate-900/40 rounded-lg p-4">
@@ -1347,16 +1466,16 @@
                     </div>
                 </div>
 
-                <!-- v6.0 -->
+                <!-- v11.5 -->
                 <div class="relative">
                     <div class="timeline-dot" style="top: 8px; border-color: #ec4899;"></div>
                     <div class="bg-slate-800/40 border border-pink-500/20 rounded-2xl p-8">
                         <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v6.0 &mdash; AI-Assisted Grouping + LMS Integration</h3>
+                            <h3 class="text-lg font-bold text-white">v11.5 &mdash; AI-Assisted Grouping + LMS Integration</h3>
                             <span class="status-badge status-future">Long-Term</span>
                         </div>
                         <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            AI suggests optimal grouping strategies based on historical data. Integration with Google Classroom, Canvas, and other LMS platforms for automatic roster sync. The engine learns from past outcomes&mdash;which group compositions led to better project results&mdash;and adjusts its scoring accordingly. Smart defaults that get smarter over time.
+                            AI suggests optimal grouping strategies based on historical data. Integration with Google Classroom, Canvas, and other LMS platforms for automatic roster sync. The engine learns from past outcomes and adjusts its scoring accordingly. Smart defaults that get smarter over time.
                         </p>
                         <div class="grid sm:grid-cols-2 gap-4">
                             <div class="bg-slate-900/40 rounded-lg p-4">
@@ -1379,12 +1498,12 @@
                     </div>
                 </div>
 
-                <!-- v7.0 -->
+                <!-- v12.5 -->
                 <div class="relative">
                     <div class="timeline-dot" style="top: 8px; border-color: #475569;"></div>
                     <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
                         <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v7.0 &mdash; Ecosystem + Mobile</h3>
+                            <h3 class="text-lg font-bold text-white">v12.5 &mdash; Ecosystem + Mobile</h3>
                             <span class="status-badge status-future">Long-Term</span>
                         </div>
                         <p class="text-sm text-slate-400 leading-relaxed">
@@ -1432,9 +1551,10 @@
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Monte Carlo Stochastic Search (2,500 iterations)</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Hill Climbing Refinement (20 rounds)</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Weighted scoring function (200:1 avoid:want ratio)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Score-band proximity scoring</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Role coverage constraint solver</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multi-round assignment (no repeat pairings)</span></div><span class="status-badge status-future">Future</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Score-band proximity scoring</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Role coverage constraint solver</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multi-round assignment (no repeat pairings)</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Custom @rule constraint system (condition → action)</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Proximity-aware room constraint solver</span></div><span class="status-badge status-future">Future</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">AI-assisted grouping strategy suggestions</span></div><span class="status-badge status-future">Future</span></div>
                     </div>
@@ -1447,12 +1567,15 @@
                     <div class="px-4">
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Simple tier: +want / -avoid syntax</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Comments (// prefix)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: score=, role=, +Want@N</span></div><span class="status-badge status-active">In Progress</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: separate(), together(), balance</span></div><span class="status-badge status-planned">Planned</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: score=, role=, +Want@N</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: @separate, @together, @balance</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: @rounds with multi-round strategies</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: @rule custom rules (condition → action)</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: if(){} conditionals</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: room/table/near/far syntax</span></div><span class="status-badge status-planned">Planned</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">GroupLogic.py: Python + GL library</span></div><span class="status-badge status-future">Future</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">GroupLogic.py: CSV/JSON import, custom export</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Tier switcher UI (Simple / Advanced / Python)</span></div><span class="status-badge status-active">In Progress</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Tier switcher UI (Simple / Advanced / Python)</span></div><span class="status-badge status-done">Shipped</span></div>
                     </div>
                 </div>
                 <!-- Editor & UI -->
@@ -1461,14 +1584,16 @@
                         <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Editor & UI</h3>
                     </div>
                     <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Live syntax highlighting</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Live syntax highlighting (transparent overlay v8.1)</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Conflict glow (pulsing red border)</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Hover-to-inspect relationship visualization</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Better highlighting, inline errors, advanced search</span></div><span class="status-badge status-active">In Progress</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">UI overhaul (resizable panels, drag-and-drop)</span></div><span class="status-badge status-active">In Progress</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Better highlighting, inline errors, advanced search</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Resizable panels with drag handles, fullscreen mode, drag-and-drop</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Expanded roster (4-6 names) & output (~3 groups) panels</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Settings gear icon in header</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Code-driven classroom layout with hover preview</span></div><span class="status-badge status-planned">Planned</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Free-form groups (not rule-based)</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Built-in documentation & learning guides</span></div><span class="status-badge status-future">Future</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Built-in documentation & learning guides</span></div><span class="status-badge status-done">Shipped</span></div>
                     </div>
                 </div>
                 <!-- Save & Persistence -->
@@ -1478,8 +1603,11 @@
                     </div>
                     <div class="px-4">
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Copy results to clipboard</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Download/upload .gls/.gla/.glu/.json files</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Version history with snapshots</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Auto-save (timed and edit-count)</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multi-class tabs with rename & lock</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Cloud save/load with password (no login)</span></div><span class="status-badge status-active">In Progress</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Download/upload .gl files (local backup)</span></div><span class="status-badge status-active">In Progress</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Save student rosters separately</span></div><span class="status-badge status-planned">Planned</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Export as CSV, JSON, PDF</span></div><span class="status-badge status-planned">Planned</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Connect codes to cross-reference saved data</span></div><span class="status-badge status-planned">Planned</span></div>
@@ -1492,6 +1620,9 @@
                     </div>
                     <div class="px-4">
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Single class support</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multi-class tabs with rename & lock</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Classroom lock system (U/S/A modes)</span></div><span class="status-badge status-done">Shipped</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Per-class code storage (Simple + Advanced)</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Generate unique class codes</span></div><span class="status-badge status-planned">Planned</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Manage 8+ classes per teacher</span></div><span class="status-badge status-planned">Planned</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Enhanced roster (add/remove without editing code)</span></div><span class="status-badge status-planned">Planned</span></div>
@@ -1504,7 +1635,7 @@
                         <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Open Source & Community</h3>
                     </div>
                     <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">GitHub public repository</span></div><span class="status-badge status-future">Future</span></div>
+                        <div class="feature-row"><div><span class="text-sm text-white font-medium">GitHub public repository</span></div><span class="status-badge status-done">Shipped</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Contribution guidelines & issue templates</span></div><span class="status-badge status-future">Future</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Plugin system for community extensions</span></div><span class="status-badge status-future">Future</span></div>
                         <div class="feature-row"><div><span class="text-sm text-white font-medium">Template marketplace (share/sell grouping templates)</span></div><span class="status-badge status-future">Future</span></div>
@@ -1597,6 +1728,45 @@
         </div>
     </section>
 
+    <!-- ============================== LINKS ============================== -->
+    <section class="doc-section" id="links">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Section 08</span>
+                <span class="flex-1 h-px bg-slate-800"></span>
+            </div>
+            <h2 class="text-4xl md:text-5xl font-black text-white mb-8">Links</h2>
+            <p class="text-slate-400 text-lg max-w-3xl mb-12 leading-relaxed">
+                Some parts of the site can only be accessed by typing in the URL.
+            </p>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <a href="https://sites.google.com/view/grouplogic-ide/" target="_blank" class="feature-card block text-left hover:border-blue-500/40" style="text-decoration:none;">
+                    <div class="text-2xl mb-4">&#x1F310;</div>
+                    <h4 class="text-sm font-bold text-white mb-2">GroupLogic IDE Online</h4>
+                    <p class="text-xs text-slate-400">Access the IDE directly from your browser. No install required.</p>
+                    <div class="text-xs text-blue-400 mt-3">sites.google.com/view/grouplogic-ide &rarr;</div>
+                </a>
+                <a href="https://sites.google.com/view/grouplogic-ide/" target="_blank" class="feature-card block text-left hover:border-blue-500/40" style="text-decoration:none;">
+                    <div class="text-2xl mb-4">&#x1F4D6;</div>
+                    <h4 class="text-sm font-bold text-white mb-2">Documentation on Website</h4>
+                    <p class="text-xs text-slate-400">Full documentation hosted on the official website.</p>
+                    <div class="text-xs text-blue-400 mt-3">sites.google.com/view/grouplogic-ide &rarr;</div>
+                </a>
+                <a href="https://github.com/PandaGamesCode/GroupLogic-IDE" target="_blank" class="feature-card block text-left hover:border-blue-500/40" style="text-decoration:none;">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg height="28" viewBox="0 0 16 16" width="28" fill="#f1f5f9"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
+                    </div>
+                    <h4 class="text-sm font-bold text-white mb-2">GitHub Repository</h4>
+                    <p class="text-xs text-slate-400">Source code, issues, and contributions. Open source and community-driven.</p>
+                    <div class="text-xs text-blue-400 mt-3">github.com/PandaGamesCode/GroupLogic-IDE &rarr;</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
     <!-- Footer -->
     <footer class="border-t border-slate-800 py-16 mt-20">
         <div class="max-w-5xl mx-auto px-6">
@@ -1604,7 +1774,7 @@
                 <div class="flex items-center gap-3">
                     <span class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg text-sm font-black">G</span>
                     <span class="font-bold text-sm text-white">GroupLogic IDE</span>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">v2.6</span>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">v8.1</span>
                 </div>
                 <div class="flex flex-wrap items-center justify-center gap-4">
                     <a href="#top" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Top</a>
@@ -1615,6 +1785,7 @@
                     <a href="#roadmap" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Roadmap</a>
                     <a href="#features" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Features</a>
                     <a href="#vision" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Vision</a>
+                    <a href="#links" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Links</a>
                 </div>
             </div>
             <div class="text-center mt-10">
