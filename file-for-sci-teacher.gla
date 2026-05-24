@@ -1,0 +1,34 @@
+// lock=a
+// GroupLogic IDE - Advanced Mode
+// Multi-Round Grouping with Overlap Avoidance
+// Science Lab: 3 rounds with different strategies
+
+@group_size = 2
+@balance = gender,scores
+@overflow = even
+@iterations = 5000
+@strict = false
+@rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"
+@no_repeat_partners = true
+
+// 20 Students with varied scores, gender, and roles
+Alice: +Bob score=92 gender=F role=leader
+Bob: +Alice -Diana score=78 gender=M role=dev
+Charlie: -Alice +Eve score=85 gender=M role=dev
+Diana: +Eve -Bob score=90 gender=F role=design
+Eve: +Diana +Charlie score=88 gender=F role=dev
+Frank: +Alice score=72 gender=M tag=honors
+Grace: -Frank +Diana score=95 gender=F band=high
+Henry: +Bob -Grace score=80 gender=M role=qa
+Ivy: +Eve score=83 gender=F tag=honors leader
+Jack: -Charlie score=68 gender=M band=low
+Karen: +Alice -Jack score=91 gender=F role=leader
+Leo: +Henry score=76 gender=M role=dev
+Maya: +Ivy -Frank score=87 gender=F role=design
+Noah: +Bob score=74 gender=M tag=honors
+Olivia: -Leo +Grace score=93 gender=F role=dev
+Peter: +Frank score=70 gender=M band=low
+Quinn: +Maya score=82 gender=F role=qa
+Ryan: -Peter score=65 gender=M band=low
+Sophie: +Karen score=89 gender=F tag=honors leader
+Tyler: +Noah -Ryan score=77 gender=M role=dev
