@@ -742,6 +742,19 @@ let commentBrightness = 25; // 0-100, maps to HSL lightness 10%-55%
 let templateRecursionGuard = 0;
 let lastPrevPairs = null; // Cached prevPairs for display consistency
 
+// Scoring constants (must be declared before any function that uses them)
+const SCORE_WANT_FULFILLED = 500;
+const SCORE_AVOID_VIOLATION = -100000;
+const SCORE_SOLO_GROUP = -5000;
+const SCORE_LEADER_CONFLICT = -500;
+const SCORE_ROLE_UNDIVERSITY = -300;
+const SCORE_TAG_OVERLAP = -200;
+const SCORE_GENDER_IMBALANCE = -150;
+const SCORE_BAND_OVERFLOW = -200;
+const SCORE_CAPACITY_VIOLATION = -50000;
+const SCORE_SEPARATE_VIOLATION = -50000;
+const SCORE_SWAP_THRESHOLD = 50; // minimum score improvement to accept a beneficial swap
+
 function applyCommentBrightness() {
     // Map 0-100 slider to HSL lightness 10%-55% (0=very dim, 100=very bright)
     // Default 25 → lightness ~21% ≈ current #334155
@@ -2083,19 +2096,6 @@ function calculateGroups() {
         el.textContent = (strict && minViolations > 0) ? 'STRICT - ' + minViolations + ' unresolved' : 'Engine: MC ' + iterations + ' + HC ' + hillClimbRounds;
     }
 }
-
-// Scoring constants
-const SCORE_WANT_FULFILLED = 500;
-const SCORE_AVOID_VIOLATION = -100000;
-const SCORE_SOLO_GROUP = -5000;
-const SCORE_LEADER_CONFLICT = -500;
-const SCORE_ROLE_UNDIVERSITY = -300;
-const SCORE_TAG_OVERLAP = -200;
-const SCORE_GENDER_IMBALANCE = -150;
-const SCORE_BAND_OVERFLOW = -200;
-const SCORE_CAPACITY_VIOLATION = -50000;
-const SCORE_SEPARATE_VIOLATION = -50000;
-const SCORE_SWAP_THRESHOLD = 50; // minimum score improvement to accept a beneficial swap
 
 // Shared hill climbing: Phase 1 moves conflicting students, Phase 2 tries beneficial swaps
 function hillClimb(bestTrial, minViolations, topScore, hillClimbRounds, balance, separateList, bandWidth, tagBalance, prevPairs) {
