@@ -384,6 +384,27 @@
         .docs-section.open .docs-body { display: block; }
         .docs-body code { font-family: 'Fira Code', monospace; font-size: 11px; background: rgba(15,23,42,0.6); padding: 1px 5px; border-radius: 4px; }
 
+        /* ===== AI COPY BTN ===== */
+        .ai-copy-btn-ide {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15));
+            border: 1px solid rgba(139,92,246,0.35); color: #c4b5fd;
+            padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 10px;
+            cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .ai-copy-btn-ide:hover {
+            background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(59,130,246,0.3));
+            border-color: rgba(139,92,246,0.6); color: white;
+            box-shadow: 0 4px 16px rgba(139,92,246,0.2);
+        }
+        .ai-copy-btn-ide.copied {
+            background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.12));
+            border-color: rgba(34,197,94,0.5); color: #4ade80;
+        }
+        @keyframes aiPop { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
+        .ai-copy-btn-ide.pop { animation: aiPop 0.3s ease; }
+
         .sort-select {
             background: #0f172a; border: 1px solid #334155; border-radius: 6px;
             color: #94a3b8; font-size: 9px; font-weight: 700; padding: 2px 6px;
@@ -3956,6 +3977,10 @@ function openDocs() {
     overlay.innerHTML = '<div class="docs-panel">' +
         '<div class="flex justify-between items-center mb-4"><h2 class="text-white font-black text-lg">GroupLogic IDE Docs</h2>' +
         '<div class="flex items-center gap-3">' +
+        '<button class="ai-copy-btn-ide" id="aiCopyBtn" onclick="copyAIPromptIDE(this)" title="Copy full project context as an AI prompt">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>' +
+            'Copy AI Prompt' +
+        '</button>' +
         '<button onclick="document.getElementById(\'docsOverlay\').remove()" class="text-slate-500 hover:text-white text-xl font-bold flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700">' +
             '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
         '</button></div></div>' +
@@ -4159,6 +4184,146 @@ function openDocs() {
 
     document.body.appendChild(overlay);
     overlay.querySelectorAll('.docs-section h4').forEach(function(h4) { h4.addEventListener('click', function() { this.parentElement.classList.toggle('open'); }); });
+}
+
+// ===== AI PROMPT COPY =====
+var AI_PROMPT_TEXT = [
+    'You are helping me build and modify GroupLogic IDE — an advanced group generator that\'s not really random. It uses a two-stage optimization pipeline (Monte Carlo stochastic search with 2,500 iterations + Hill Climbing refinement with 20 rounds) to form optimal groups based on user-defined constraints.',
+    '',
+    'The project is a single monolithic HTML file containing the full IDE with:',
+    '',
+    '=== EDITOR ===',
+    '- A code editor with transparent overlay syntax highlighting (highlighter div behind at z-index:1, transparent textarea on top at z-index:2, scrollTop/scrollLeft sync for perfect alignment). DO NOT modify the editor overlay system — it is fragile and already works correctly.',
+    '- Tier switcher: Simple / Advanced tabs. Each class stores both codes.',
+    '',
+    '=== SIMPLE MODE LANGUAGE ===',
+    '- Define a student: Name: +Want -Avoid',
+    '- Each student gets their own line. The colon separates the name from constraints.',
+    '- +Name = want constraint (soft, engine tries to satisfy). Weighted: +Name@8 (1-10 scale, default 5).',
+    '- -Name = avoid constraint (hard, 200x weight of want, -100,000 penalty).',
+    '- Comments: // or # prefix. Lines starting with these are ignored.',
+    '- Undefined target warning: yellow dotted underline if + or - references a name with no definition line.',
+    '- UI controls: Per Group input, Overflow buttons, Roster Sort (Manual allows drag-and-drop reorder).',
+    '',
+    '=== ADVANCED MODE LANGUAGE ===',
+    'Inherits all Simple syntax, plus:',
+    '',
+    'Student attributes:',
+    '- score=85 — numeric test/performance score for ability-based grouping.',
+    '- band=high — categorical band label (high, mid, low, honors, etc.).',
+    '- gender=M / gender=F / gender=X — gender category for balance.',
+    '- age=16 — numeric age for age-balanced grouping.',
+    '- role=pm — freeform role string (pm, dev, researcher, etc.).',
+    '- leader — flags student as group leader. Engine tries one per group (-500 penalty for multiples).',
+    '- tag=honors — category tag for custom rules and @tag_balance.',
+    '- capacity=3 — limits group size when this student is present.',
+    '- exclude — excludes student from groups entirely (absent).',
+    '',
+    'Directives:',
+    '- @group_size = 4 — target students per group (replaces UI control in Advanced mode).',
+    '- @min_group = 2 / @max_group = 6 — hard bounds on group sizes.',
+    '- @overflow = even|newgroup|small — how to handle leftover students. even=distribute, newgroup=create extra group, small=last group smaller.',
+    '- @group_name = "Lab %d" — custom naming (%d=number, %s=size).',
+    '- @name_dynamic = true — name groups after their leader.',
+    '- @arrange_by = score|gender|age — initial Monte Carlo seeding strategy.',
+    '- @balance = gender,scores,roles,age — balance criteria (comma-separated). Gender minimizes M/F difference per group. Scores minimizes within-group variance.',
+    '- @band_width = 10 — max score spread within a group. Heavy penalty if exceeded.',
+    '- @separate = Alice,Bob — force into different groups (-50,000 per pair violation). All pairs are mutual.',
+    '- @together = Alice,Bob — force into same group. All listed students placed together.',
+    '- @iterations = 5000 — Monte Carlo trial count (default 2500).',
+    '- @hill_climb = 30 — refinement rounds (default 20).',
+    '- @strict = true — any avoid violation is unacceptable, shows STRICT label.',
+    '- @template = score-lab|gender-balance|leader-projects|basic — load a preset template.',
+    '- @tag_balance = honors — spread students with this tag across groups.',
+    '',
+    'Multi-Round Grouping:',
+    '- @rounds = mixed:score"Ionic", similar:score"PH", random"Mollar" — multiple rounds with strategies and custom names.',
+    '- Strategies: mixed:score (snake-draft, high+low together), similar:score (sequential, high+high), mixed:gender, similar:gender, random.',
+    '- @no_repeat_partners = true — ensures no two students are together across rounds.',
+    '- Cross-Round tab shows who is always/sometimes/never together.',
+    '',
+    'Conditional Constraints:',
+    '- if(condition) { constraints } — applies constraints only when condition is true at parse time.',
+    '- Conditions: count > 10, has_role leader, any_score >= 90.',
+    '- Comparison operators: > < >= <= == !=',
+    '',
+    'Custom Rules (@rule):',
+    '- @rule name { condition → action } — define custom grouping constraints.',
+    '- Arrow can be → (Unicode) or -> (ASCII).',
+    '- Conditions:',
+    '  same_group(attr=val) > N — triggers when >N members with that attribute are in the same group. Works with gender=M, role="leader", tag=honors, band=1, etc.',
+    '  count(attr=val) > N — alias for same_group().',
+    '  score_spread() > N — triggers when score range (max-min) exceeds N.',
+    '  gender_imbalance() > N — triggers when |male-female| > N.',
+    '  leader_count() > N — triggers when group has >N leaders.',
+    '  has_leader() — shorthand for leader_count() > 0.',
+    '  partnered_before() — triggers when any pair was together in a previous round.',
+    '  no_repeat() — alias for partnered_before().',
+    '- Actions:',
+    '  separate — heavy penalty (-50,000) + violation count. Like @separate.',
+    '  penalty(N) — custom N-point penalty. For softer constraints.',
+    '  avoid — moderate penalty (-5,000). Weaker than separate.',
+    '  together — bonus (+200). Prefer this configuration.',
+    '  prefer — bonus (+500). Encourage when condition is met.',
+    '',
+    '=== SCORING SYSTEM ===',
+    '- Avoid violation: -100,000 per pair (hard constraint, 200x weight).',
+    '- Want satisfaction: +500 per pair, scaled by weight (@8 = 800, etc.).',
+    '- Leader conflict (multiple leaders in group): -500 per extra leader.',
+    '- Solo group (1 person): -5,000.',
+    '- Score proximity within band: +200 per close pair.',
+    '- Missing required role: -10,000 per group.',
+    '- Custom @rule penalties/bonuses are layered on top of base scoring.',
+    '',
+    '=== UI FEATURES ===',
+    '- Interactive roster panel (250px default, shows 4-6 names).',
+    '- Live output panel (360px default, shows ~3 groups).',
+    '- Resizable panels with drag handles on editor, roster, and output.',
+    '- Fullscreen panel mode with backdrop overlay (body.panel-has-expanded::after).',
+    '- Conflict glow: pulsing red border on students with avoid violations.',
+    '- Hover-to-inspect: hover any roster student to see their wants/avoids.',
+    '- Multi-class tabs with rename & lock (U/S/A modes).',
+    '- Version history: max 3 snapshots, restore from status bar.',
+    '- Auto-save: timed (60s default) and edit-count (25 default).',
+    '- Rich export: .gls (Simple), .gla (Advanced), .glu (Universal), .json (full backup).',
+    '- Import: .gls/.gla/.glu/.json/.txt (txt needs [[glu]] marker).',
+    '- Settings gear icon in header.',
+    '',
+    '=== FILE TYPES ===',
+    '- .gls = GroupLogic Simple (lock: s). .gla = Advanced (lock: a). .glu = Universal (lock: u).',
+    '- .json = full backup with all classrooms, lock settings, both editor codes, student data.',
+    '- Lock system: U (universal, both editors), S (Simple only), A (Advanced only). Click lock badge to cycle.',
+    '',
+    'GitHub: https://github.com/PandaGamesCode/GroupLogic-IDE',
+    'Website: https://sites.google.com/view/grouplogic-ide/',
+    '',
+    'WHAT I WANT YOU TO HELP ME WITH:',
+    '[Describe what you want the AI to code or change here]'
+].join('\n');
+
+function copyAIPromptIDE(btn) {
+    function onSuccess() {
+        btn.classList.add('copied', 'pop');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!';
+        setTimeout(function() {
+            btn.classList.remove('copied', 'pop');
+            btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg> Copy AI Prompt';
+        }, 2500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(AI_PROMPT_TEXT).then(onSuccess).catch(function() {
+            fallbackCopyIDE(AI_PROMPT_TEXT); onSuccess();
+        });
+    } else {
+        fallbackCopyIDE(AI_PROMPT_TEXT); onSuccess();
+    }
+}
+function fallbackCopyIDE(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
 }
 
 // Init
