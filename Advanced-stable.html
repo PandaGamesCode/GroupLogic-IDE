@@ -508,7 +508,7 @@
         </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
         <!-- ===== EDITOR ===== -->
         <div class="lg:col-span-7 space-y-3">
@@ -523,7 +523,7 @@
                 </div>
                 <div class="editor-scroll-wrap" id="editorScrollWrap">
                     <div id="editor-highlight"></div>
-                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie" role="textbox" aria-multiline="true" aria-label="Group rules editor"></textarea>
+                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie" aria-label="Group rules editor"></textarea>
 
                 </div>
             </div>
@@ -660,7 +660,7 @@
             </div>
         </div>
     </div>
-</div>
+</main>
 
 <!-- Import Modal -->
 <div id="import-modal" class="modal-bg" style="display:none;">
@@ -726,7 +726,7 @@ let ruleConflicts = []; // { ruleName, condition, groupName, members, descriptio
 let overflowMode = 'even';
 let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
-let isDefaultCode = true;
+let hasNoSavedCode = true;
 let groupViewMode = 'list';
 let simpleModeErrors = []; // lines with advanced syntax in Simple mode
 let simpleErrorToastShown = false; // debounce toast
@@ -739,6 +739,8 @@ let autoSaveTimer = null;
 let editCountSinceSave = 0;
 let saveConfig = { manual: true, timed: false, timedInterval: 60, edits: false, editsCount: 25 };
 let commentBrightness = 25; // 0-100, maps to HSL lightness 10%-55%
+let templateRecursionGuard = 0;
+let lastPrevPairs = null; // Cached prevPairs for display consistency
 
 function applyCommentBrightness() {
     // Map 0-100 slider to HSL lightness 10%-55% (0=very dim, 100=very bright)
@@ -818,7 +820,7 @@ textarea.addEventListener('click', function() {
         const before = textarea.value.substring(0, pos);
         const after = textarea.value.substring(pos);
         textarea.value = before + pendingImportContent + after;
-        isDefaultCode = false;
+        hasNoSavedCode = false;
         pendingImportContent = null;
         pendingImportLang = null;
         toast('Inserted at cursor', 'success');
@@ -959,24 +961,37 @@ function toast(msg, type) {
 
 // ===== EDITOR INPUT =====
 let ideDebounce = null;
+let syntaxDebounce = null;
 function onEditorInput() {
-    if (isDefaultCode) isDefaultCode = false;
+    if (hasNoSavedCode) hasNoSavedCode = false;
     editCountSinceSave++;
-    // Lightweight: syntax + roster update immediately
+    // Parse immediately for directives and student data
     directives = {};
     parseRules();
-    renderSyntax();
     renderRoster();
     updateFileTypeLabel();
+    // Debounce syntax highlighting (lightweight but DOM-heavy)
+    clearTimeout(syntaxDebounce);
+    syntaxDebounce = setTimeout(renderSyntax, 30);
     // Debounced: heavy computation + saves
     clearTimeout(ideDebounce);
     const statusEl = document.getElementById('feasibility-status');
     if (statusEl) { statusEl.textContent = 'Calculating...'; statusEl.className = 'badge bg-blue-900/50 text-blue-400 uppercase tracking-widest'; }
     ideDebounce = setTimeout(function() {
-        calculateGroups();
-        scheduleAutoSave();
-        checkEditSave();
-        saveActiveJSON();
+        // Use rAF to ensure the "Calculating..." badge paints before the synchronous MC engine blocks
+        requestAnimationFrame(function() {
+            try {
+                calculateGroups();
+            } catch (e) {
+                console.error('Grouping engine error:', e);
+                groupsBox.innerHTML = '<div class="text-red-400 text-center py-8"><div class="text-xs font-bold uppercase mb-2">Engine Error</div><div class="text-[10px]">' + esc(e.message) + '</div></div>';
+                const fe = document.getElementById('feasibility-status');
+                if (fe) { fe.textContent = 'Error'; fe.className = 'badge bg-red-900/60 text-red-400 uppercase tracking-widest'; }
+            }
+            scheduleAutoSave();
+            checkEditSave();
+            saveActiveJSON();
+        });
     }, 150);
     // Show toast when Advanced syntax detected in Simple mode
     if (currentLang === 'simple' && simpleModeErrors.length > 0 && !simpleErrorToastShown) {
@@ -1484,6 +1499,7 @@ function highlightRuleBody(text) {
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/`/g,'&#96;'); }
 function escJS(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/`/g, '\\`'); }
+function escJSAttr(s) { return esc(escJS(s)); } // Escape for JS inside HTML attributes: first JS, then HTML
 
 // ===== ROSTER =====
 function renderRoster() {
@@ -1512,7 +1528,7 @@ function renderRoster() {
         keys = editorOrder;
     }
     // Only update manualRosterOrder when not in manual sort mode (to preserve drag reorder)
-    if (rosterSort !== 'manual') manualRosterOrder = [...keys];
+    if (sortMode !== 'manual') manualRosterOrder = [...keys];
 
     document.getElementById('student-count').textContent = keys.length;
 
@@ -1548,8 +1564,8 @@ function renderRoster() {
         return '<div class="r-item flex items-center justify-between p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/50"' +
             ' draggable="' + (canDrag ? 'true' : 'false') + '"' +
             ' data-key="' + esc(k) + '" data-idx="' + idx + '"' +
-            ' ondblclick="startRename(this, \'' + escJS(k) + '\')"' +
-            ' onmouseenter="showRosterTip(event, \'' + escJS(k) + '\')"' +
+            ' ondblclick="startRename(this, \'' + escJSAttr(k) + '\')"' +
+            ' onmouseenter="showRosterTip(event, \'' + escJSAttr(k) + '\')"' +
             ' onmouseleave="hideRosterTip()"' +
             (canDrag ? ' ondragstart="rDragStart(event,' + idx + ')" ondragover="rDragOver(event)" ondrop="rDrop(event,' + idx + ')" ondragend="rDragEnd(event)"' : '') +
             '>' +
@@ -1791,8 +1807,9 @@ function calculateGroups() {
         return;
     }
 
-    // Apply @template directive if specified
-    if (directives.template && TEMPLATES[directives.template]) {
+    // Apply @template directive if specified (with recursion guard)
+    if (directives.template && TEMPLATES[directives.template] && templateRecursionGuard < 1) {
+        templateRecursionGuard++;
         const templateName = directives.template;
         delete directives.template; // Prevent infinite loop before re-running
         textarea.value = TEMPLATES[templateName].code;
@@ -1800,6 +1817,7 @@ function calculateGroups() {
         toast('Loaded template: ' + templateName, 'success');
         return;
     }
+    templateRecursionGuard = 0; // Reset for next calculateGroups call
 
     const keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
     if (keys.length < 2) {
@@ -1943,6 +1961,7 @@ function calculateGroups() {
         return pairs;
     }
     const prevPairs = buildPrevPairs();
+    lastPrevPairs = prevPairs; // Cache for display consistency
 
     // Helper: run one round of grouping with a given shuffle strategy
     function runSingleRound(shuffled) {
@@ -1967,11 +1986,11 @@ function calculateGroups() {
             if (togetherList.length > 1) {
                 const first = togetherList[0];
                 const tg = trial.find(g => g.includes(first));
-                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
+                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); if (tg.length < perGroup + 1) tg.push(togetherList[t]); break; } } } }
             }
             // @separate constraint
             if (separateList.length > 1) {
-                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
+                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2]) && g2.length < perGroup + 1); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
             }
 
             const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance, prevPairs);
@@ -1980,52 +1999,8 @@ function calculateGroups() {
         }
 
         // Hill Climbing (inside runSingleRound)
-        if (bestTrial) {
-            // Phase 1: Move students with avoid conflicts
-            for (let r = 0; r < hillClimbRounds; r++) {
-                let improved = false;
-                for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
-                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
-                        const student = bestTrial[gIdx][sIdx];
-                        let hasConflict = false;
-                        bestTrial[gIdx].forEach(peer => { if (peer !== student && students[student] && (students[student].avoids.has(peer) || students[peer] && students[peer].avoids.has(student))) hasConflict = true; });
-                        if (hasConflict) {
-                            for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
-                                if (gIdx === tgIdx) continue;
-                                const next = bestTrial.map(g => [...g]);
-                                next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
-                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
-                                if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
-                            }
-                        }
-                        if (improved) break;
-                    }
-                    if (improved) break;
-                }
-                if (!improved) break;
-            }
-            // Phase 2: Try beneficial swaps for balance improvement
-            for (let r = 0; r < hillClimbRounds; r++) {
-                let improved = false;
-                for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
-                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
-                        const student = bestTrial[gIdx][sIdx];
-                        for (let tgIdx = gIdx + 1; tgIdx < bestTrial.length && !improved; tgIdx++) {
-                            for (let tsIdx = 0; tsIdx < bestTrial[tgIdx].length && !improved; tsIdx++) {
-                                const next = bestTrial.map(g => [...g]);
-                                next[gIdx][sIdx] = bestTrial[tgIdx][tsIdx];
-                                next[tgIdx][tsIdx] = student;
-                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
-                                if (res.violations < minViolations || (res.violations === minViolations && res.score > topScore + 50)) {
-                                    minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!improved) break;
-            }
-        }
+        const hcResult = hillClimb(bestTrial, minViolations, topScore, hillClimbRounds, balance, separateList, bandWidth, tagBalance, prevPairs);
+        bestTrial = hcResult.bestTrial; minViolations = hcResult.minViolations; topScore = hcResult.topScore;
 
         return { groups: bestTrial, violations: minViolations };
     }
@@ -2044,7 +2019,7 @@ function calculateGroups() {
         // Set currentGroups to first round for compatibility
         currentGroups = currentRounds[0].groups;
         identifyConflicts(currentGroups);
-        collectRuleConflicts(currentGroups);
+        collectRuleConflicts(currentGroups, lastPrevPairs);
         renderGroups(currentGroups, currentRounds[0].violations);
 
         const totalViolations = currentRounds.reduce((s, r) => s + r.violations, 0);
@@ -2079,11 +2054,11 @@ function calculateGroups() {
             if (togetherList.length > 1) {
                 const first = togetherList[0];
                 const tg = trial.find(g => g.includes(first));
-                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
+                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); if (tg.length < perGroup + 1) tg.push(togetherList[t]); break; } } } }
             }
             // @separate constraint
             if (separateList.length > 1) {
-                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2])); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
+                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2]) && g2.length < perGroup + 1); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
             }
 
             const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance, prevPairs);
@@ -2092,56 +2067,12 @@ function calculateGroups() {
         }
 
         // Hill Climbing (single-round path)
-        if (bestTrial) {
-            // Phase 1: Move students with avoid conflicts
-            for (let r = 0; r < hillClimbRounds; r++) {
-                let improved = false;
-                for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
-                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
-                        const student = bestTrial[gIdx][sIdx];
-                        let hasConflict = false;
-                        bestTrial[gIdx].forEach(peer => { if (peer !== student && students[student] && (students[student].avoids.has(peer) || students[peer] && students[peer].avoids.has(student))) hasConflict = true; });
-                        if (hasConflict) {
-                            for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
-                                if (gIdx === tgIdx) continue;
-                                const next = bestTrial.map(g => [...g]);
-                                next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
-                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
-                                if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
-                            }
-                        }
-                        if (improved) break;
-                    }
-                    if (improved) break;
-                }
-                if (!improved) break;
-            }
-            // Phase 2: Try beneficial swaps for balance improvement
-            for (let r = 0; r < hillClimbRounds; r++) {
-                let improved = false;
-                for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
-                    for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
-                        const student = bestTrial[gIdx][sIdx];
-                        for (let tgIdx = gIdx + 1; tgIdx < bestTrial.length && !improved; tgIdx++) {
-                            for (let tsIdx = 0; tsIdx < bestTrial[tgIdx].length && !improved; tsIdx++) {
-                                const next = bestTrial.map(g => [...g]);
-                                next[gIdx][sIdx] = bestTrial[tgIdx][tsIdx];
-                                next[tgIdx][tsIdx] = student;
-                                const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
-                                if (res.violations < minViolations || (res.violations === minViolations && res.score > topScore + 50)) {
-                                    minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!improved) break;
-            }
-        }
+        const hcResult2 = hillClimb(bestTrial, minViolations, topScore, hillClimbRounds, balance, separateList, bandWidth, tagBalance, prevPairs);
+        bestTrial = hcResult2.bestTrial; minViolations = hcResult2.minViolations; topScore = hcResult2.topScore;
 
         currentGroups = bestTrial;
         identifyConflicts(bestTrial);
-        collectRuleConflicts(bestTrial);
+        collectRuleConflicts(bestTrial, lastPrevPairs);
         renderGroups(bestTrial, minViolations);
 
         const statusEl = document.getElementById('feasibility-status');
@@ -2164,6 +2095,57 @@ const SCORE_GENDER_IMBALANCE = -150;
 const SCORE_BAND_OVERFLOW = -200;
 const SCORE_CAPACITY_VIOLATION = -50000;
 const SCORE_SEPARATE_VIOLATION = -50000;
+const SCORE_SWAP_THRESHOLD = 50; // minimum score improvement to accept a beneficial swap
+
+// Shared hill climbing: Phase 1 moves conflicting students, Phase 2 tries beneficial swaps
+function hillClimb(bestTrial, minViolations, topScore, hillClimbRounds, balance, separateList, bandWidth, tagBalance, prevPairs) {
+    if (!bestTrial) return { bestTrial, minViolations, topScore };
+    // Phase 1: Move students with avoid conflicts
+    for (let r = 0; r < hillClimbRounds; r++) {
+        let improved = false;
+        for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
+            for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
+                const student = bestTrial[gIdx][sIdx];
+                let hasConflict = false;
+                bestTrial[gIdx].forEach(peer => { if (peer !== student && students[student] && (students[student].avoids.has(peer) || students[peer] && students[peer].avoids.has(student))) hasConflict = true; });
+                if (hasConflict) {
+                    for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
+                        if (gIdx === tgIdx) continue;
+                        const next = bestTrial.map(g => [...g]);
+                        next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
+                        const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
+                        if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
+                    }
+                }
+                if (improved) break;
+            }
+            if (improved) break;
+        }
+        if (!improved) break;
+    }
+    // Phase 2: Try beneficial swaps for balance improvement
+    for (let r = 0; r < hillClimbRounds; r++) {
+        let improved = false;
+        for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
+            for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
+                const student = bestTrial[gIdx][sIdx];
+                for (let tgIdx = gIdx + 1; tgIdx < bestTrial.length && !improved; tgIdx++) {
+                    for (let tsIdx = 0; tsIdx < bestTrial[tgIdx].length && !improved; tsIdx++) {
+                        const next = bestTrial.map(g => [...g]);
+                        next[gIdx][sIdx] = bestTrial[tgIdx][tsIdx];
+                        next[tgIdx][tsIdx] = student;
+                        const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
+                        if (res.violations < minViolations || (res.violations === minViolations && res.score > topScore + SCORE_SWAP_THRESHOLD)) {
+                            minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (!improved) break;
+    }
+    return { bestTrial, minViolations, topScore };
+}
 
 function scoreTrial(groups, balance, separateList, bandWidth, tagBalance, prevPairs) {
     let score = 0, violations = 0;
@@ -2338,11 +2320,11 @@ function evaluateRulesForGroup(group, allGroups, groupLabel, collectConflicts, p
 }
 
 // Collect rule conflicts for the final displayed groups (called ONCE, not during MC scoring)
-function collectRuleConflicts(groups) {
+function collectRuleConflicts(groups, prevPairsForDisplay) {
     ruleConflicts = [];
     if (!customRules || customRules.length === 0) return;
     groups.forEach((g, gi) => {
-        evaluateRulesForGroup(g, groups, 'Group ' + (gi + 1), true);
+        evaluateRulesForGroup(g, groups, 'Group ' + (gi + 1), true, prevPairsForDisplay || null);
     });
 }
 
@@ -2390,7 +2372,7 @@ function renderGroups(groups, violations) {
             }
             return '<span class="chip px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-600 bg-slate-700/50 text-slate-300' + (isConflict ? ' conflict-glow' : '') + '"' +
                 (tooltip ? ' title="' + esc(tooltip) + '"' : '') +
-                ' onmouseenter="inspect(\'' + escJS(name) + '\')"' +
+                ' onmouseenter="inspect(\'' + escJSAttr(name) + '\')"' +
                 ' onmouseleave="uninspect()">' + esc(s.originalName) + '</span>';
         }).join(' ');
     }
@@ -2519,10 +2501,12 @@ function renderGroups(groups, violations) {
             // Show specific round
             var roundData = currentRounds[activeRoundTab];
             var roundGroups = roundData ? roundData.groups : groups;
-            // Temporarily update conflict map for this round
+            // Save current conflict state, compute round-specific conflicts
+            var savedConflicts = ruleConflicts;
+            var savedConflictMap = new Set(conflictMap);
             if (roundData && roundData.groups) {
                 identifyConflicts(roundData.groups);
-                collectRuleConflicts(roundData.groups);
+                collectRuleConflicts(roundData.groups, lastPrevPairs);
             }
             var roundHeader = '<div class="text-[9px] text-slate-500 mb-2">Round ' + (activeRoundTab + 1) + ': ' + esc(currentRounds[activeRoundTab].label) + (roundData.violations === 0 ? ' — <span class="text-emerald-400">Optimal</span>' : ' — <span class="text-red-400">' + roundData.violations + ' conflict' + (roundData.violations > 1 ? 's' : '') + '</span>') + '</div>';
             if (groupViewMode === 'list') {
@@ -2530,9 +2514,9 @@ function renderGroups(groups, violations) {
             } else {
                 groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsCards(roundGroups);
             }
-            // Restore conflict map to first round
-            identifyConflicts(currentGroups);
-            collectRuleConflicts(currentGroups);
+            // Restore conflict state
+            ruleConflicts = savedConflicts;
+            conflictMap = savedConflictMap;
         }
     } else {
         // Single round (original behavior)
@@ -2612,7 +2596,7 @@ function switchLang(lang) {
     } else if (lang === 'advanced') {
         textarea.value = cl.codeAdvanced;
     }
-    isDefaultCode = false;
+    hasNoSavedCode = false;
     updateFileTypeLabel(); runIDE();
 }
 
@@ -2824,6 +2808,8 @@ function doExport() {
     // Close export menu
     document.getElementById('exportMenu').classList.remove('show');
 
+    // Save current editor to the active classroom first
+    saveEditorToClassroom();
     const data = buildExportData(true);
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -2845,6 +2831,8 @@ function handleFileImport(event) {
 function handleDroppedFile(file) { processImportedFile(file); }
 
 function processImportedFile(file) {
+    // File size limit — prevent browser crash on huge files
+    if (file.size > 10 * 1024 * 1024) { toast('File too large (max 10MB)', 'error'); return; }
     const name = file.name.toLowerCase();
     const ext = '.' + name.split('.').pop();
     const proprietaryExts = ['.gls', '.gla', '.glu', '.json'];
@@ -3087,10 +3075,10 @@ function confirmImport() {
 
             if (currentLang === 'simple') {
                 textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
-                isDefaultCode = !cl.codeSimple;
+                hasNoSavedCode = !cl.codeSimple;
             } else {
                 textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
-                isDefaultCode = !cl.codeAdvanced;
+                hasNoSavedCode = !cl.codeAdvanced;
             }
             // Restore editor height if saved in the import
             if (data.editorHeight) {
@@ -3197,7 +3185,7 @@ function confirmImport() {
         if (codeSimple !== null && tier !== 'simple') cl.codeSimple = codeSimple;
         if (codeAdvanced !== null && tier !== 'advanced') cl.codeAdvanced = codeAdvanced;
 
-        isDefaultCode = false;
+        hasNoSavedCode = false;
         closeImport();
         renderClassTabs();
         runIDE();
@@ -3306,10 +3294,10 @@ function removeClassroom(e, idx) {
     // Restore editor for the new active classroom
     if (currentLang === 'simple') {
         textarea.value = c.codeSimple || DEFAULT_SIMPLE;
-        isDefaultCode = !c.codeSimple;
+        hasNoSavedCode = !c.codeSimple;
     } else {
         textarea.value = c.codeAdvanced || DEFAULT_ADVANCED;
-        isDefaultCode = !c.codeAdvanced;
+        hasNoSavedCode = !c.codeAdvanced;
     }
     updateLangTabs();
     renderClassTabs(); runIDE();
@@ -3364,10 +3352,10 @@ function switchClassroom(idx) {
 
     if (targetLang === 'simple') {
         textarea.value = c.codeSimple || DEFAULT_SIMPLE;
-        isDefaultCode = !c.codeSimple;
+        hasNoSavedCode = !c.codeSimple;
     } else {
         textarea.value = c.codeAdvanced || DEFAULT_ADVANCED;
-        isDefaultCode = !c.codeAdvanced;
+        hasNoSavedCode = !c.codeAdvanced;
     }
     renderClassTabs(); runIDE();
 }
@@ -3395,7 +3383,7 @@ function showVersions() {
     document.getElementById('version-modal').style.display = 'flex';
 }
 function closeVersions() { document.getElementById('version-modal').style.display = 'none'; }
-function restoreVersion(idx) { const v = classrooms[activeClass].versions[idx]; if (v&&v.code) { textarea.value = v.code; isDefaultCode = false; runIDE(); toast('Restored v'+(idx+1), 'success'); } closeVersions(); }
+function restoreVersion(idx) { const v = classrooms[activeClass].versions[idx]; if (v&&v.code) { textarea.value = v.code; hasNoSavedCode = false; runIDE(); toast('Restored v'+(idx+1), 'success'); } closeVersions(); }
 function pushVersion() {
     // Save current editor code to the active classroom slot first
     const cl = classrooms[activeClass];
@@ -3438,12 +3426,16 @@ function manualSave() {
 }
 
 // ===== ACTIVE JSON BACKUP =====
-// Shared helper: build export data object for both JSON export and active backup
-function buildExportData(includeAllStudentFields) {
+// Helper: save current editor content to the active classroom slot
+function saveEditorToClassroom() {
     const cl = classrooms[activeClass];
-    // Save current editor to correct slot first
     if (currentLang === 'simple') cl.codeSimple = textarea.value;
     else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
+}
+
+// Shared helper: build export data object for both JSON export and active backup
+function buildExportData(includeAllStudentFields) {
+    // NOTE: Caller must ensure editor code is saved to the classroom slot before calling this
 
     function formatGeneratedCode(code, modeLabel, className, fileExt) {
         const header = '// GroupLogic ' + modeLabel + ' \u2014 Class: ' + className + '\n// Copy this code into a .' + fileExt + ' file\n';
@@ -3500,6 +3492,7 @@ function buildExportData(includeAllStudentFields) {
 
 function saveActiveJSON() {
     try {
+        saveEditorToClassroom();
         const data = buildExportData(false);
         localStorage.setItem('glide_active_json', JSON.stringify(data));
     } catch(e) {}
@@ -3554,10 +3547,10 @@ function loadStorage() {
 
             if (currentLang === 'simple') {
                 textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
-                isDefaultCode = !cl.codeSimple;
+                hasNoSavedCode = !cl.codeSimple;
             } else {
                 textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
-                isDefaultCode = !cl.codeAdvanced;
+                hasNoSavedCode = !cl.codeAdvanced;
             }
         }
     } catch(e) {}
@@ -3987,7 +3980,7 @@ function loadExample() {
     }
     textarea.value = DEFAULT_SIMPLE;
     cl.codeSimple = DEFAULT_SIMPLE;
-    isDefaultCode = true;
+    hasNoSavedCode = true;
     // Close docs
     const overlay = document.getElementById('docsOverlay');
     if (overlay) overlay.remove();
@@ -3995,8 +3988,10 @@ function loadExample() {
     toast('Example code loaded into Simple editor', 'success');
 }
 
-// Init
-setOverflowMode('even');
+// Init — set overflow mode before first run to avoid double computation
+overflowMode = 'even';
+document.getElementById('btn-overflow-even').classList.remove('bg-slate-800','text-slate-400','border-slate-700');
+document.getElementById('btn-overflow-even').classList.add('bg-blue-600','text-white','border-blue-500');
 </script>
 </body>
 </html>
