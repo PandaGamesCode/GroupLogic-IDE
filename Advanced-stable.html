@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GroupLogic IDE v7.0</title>
+    <title>GroupLogic IDE v8.3</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -26,20 +26,41 @@
             overflow: hidden;
             background: #1e293b;
         }
-        /* ===== EDITOR OVERLAY v9.0 =====
-           PROVEN UNIVERSAL APPROACH (used by CodeFlask, Prism Live, etc.):
-           Highlighter BEHIND (z-index:1): renders colored syntax text
-           on an OPAQUE background (#1e293b). This is the "canvas" the user sees.
-           Textarea ON TOP (z-index:2): receives keyboard input.
-           Its background is TRANSPARENT so the highlighter's colored text
-           shows through. Its text color is TRANSPARENT (invisible) so only
-           the highlighter's colored syntax text is visible. Caret is visible.
+        /* ===== EDITOR OVERLAY v8.3 =====
+           Textarea ON TOP (z-index:2): receives input, text is transparent,
+           background is fully transparent so highlighter shows through.
+           Highlighter BELOW (z-index:1): renders colored syntax text.
            Both use white-space:pre (NO wrapping), identical font metrics.
-           v8.1 FIX: overflow:auto + scrollTop/scrollLeft sync instead of
-           CSS transform (transform caused text cut-off at bottom). */
+
+           SCROLL SYNC v8.3: Uses a two-layer highlighter structure:
+           #editor-highlight (outer) — position:absolute, overflow:hidden.
+             Clips the inner content to the visible editor area.
+           #highlight-inner (inner) — position:absolute, no overflow clip.
+             Contains the actual syntax-highlighted HTML lines.
+             JS applies CSS transform:translate() to this inner div to sync
+             it with the textarea's scroll position.
+
+           Why this works:
+           - The inner div's content can be any size (extends beyond the
+             outer div's visible area).
+           - CSS transform on the inner div shifts it visually without
+             triggering re-layout (unlike scrollTop/scrollLeft which
+             can get out of sync after innerHTML updates).
+           - The outer div's overflow:hidden clips the result, showing
+             only the portion that corresponds to the textarea's visible area. */
         #editor-textarea, #editor-highlight {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
+            padding: 16px 20px; margin: 0; border: none;
+            font-family: 'Fira Code', monospace; font-size: 13px; line-height: 22px;
+            white-space: pre;
+            tab-size: 4;
+            font-variant-ligatures: none;
+            box-sizing: border-box;
+        }
+        #highlight-inner {
+            position: absolute; top: 0; left: 0;
+            width: 100%;
             padding: 16px 20px; margin: 0; border: none;
             font-family: 'Fira Code', monospace; font-size: 13px; line-height: 22px;
             white-space: pre;
@@ -53,11 +74,21 @@
             white-space: pre;
         }
         .hl-nw { white-space: pre; display: inline; }
+        /* Line wrap mode — toggled by JS */
+        .editor-wrap-mode #editor-textarea,
+        .editor-wrap-mode #editor-highlight,
+        .editor-wrap-mode #highlight-inner {
+            white-space: pre-wrap !important;
+            word-break: break-all;
+        }
+        .editor-wrap-mode .hl-line {
+            white-space: pre-wrap !important;
+            word-break: break-all;
+        }
         /* Textarea ON TOP — receives keyboard input.
-           background:TRANSPARENT so the highlighter's colored text shows through.
-           Text is invisible (transparent) so only the highlighter's colored
-           syntax text is visible. Caret is blue and visible.
-           This is the universal approach that works across ALL browsers. */
+           Text is transparent so highlighter shows through.
+           Caret is visible (caret-color).
+           Background is aggressively transparent. */
         #editor-textarea {
             z-index: 2;
             overflow-y: scroll; overflow-x: auto;
@@ -66,7 +97,10 @@
             caret-color: #60a5fa !important;
             -webkit-text-fill-color: transparent !important;
             resize: none; outline: none;
-            background: transparent !important;
+            background: none !important;
+            background-color: rgba(0,0,0,0) !important;
+            background-image: none !important;
+            -webkit-background-clip: text !important;
             -webkit-appearance: none !important;
             -moz-appearance: none !important;
             appearance: none !important;
@@ -75,25 +109,17 @@
         #editor-textarea::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         #editor-textarea::-webkit-scrollbar-track { background: transparent; }
         #editor-textarea::selection { background: rgba(59,130,246,0.3); }
-        /* Highlighter BEHIND — renders colored syntax text on opaque bg.
-           This is the visual layer the user actually sees.
-           z-index:1 puts it behind the textarea.
-           background:#1e293b provides the dark editor background.
-           overflow:auto lets it scroll its own content to match the textarea.
-           Scrollbars are HIDDEN (we see the textarea's scrollbars instead).
-           pointer-events:none so clicks pass through to the textarea.
-           v8.1: Uses scrollTop/scrollLeft sync instead of CSS transform —
-           the transform approach caused text to be cut off when scrolling. */
+        /* Highlighter OUTER — clips the inner content to the visible area.
+           overflow:hidden clips #highlight-inner, which can be any size.
+           No scrollbar needed — the textarea handles all scrolling. */
         #editor-highlight {
             z-index: 1;
-            overflow: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            overflow: hidden;
+            background: transparent;
             pointer-events: none;
             color: #94a3b8;
-            background: #1e293b;
+            padding: 0;
         }
-        #editor-highlight::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
         /* Syntax error indicators — use text-decoration ONLY (no border/margin/padding)
            border-bottom adds extra height and shifts all text below it, causing
@@ -111,7 +137,7 @@
            monospace fonts (different glyph shapes → different wrapping),
            causing highlighter/textarea misalignment. Use color only. */
         .t-name { color: #60a5fa; }
-        .t-op { color: #475569; }
+        .t-op { color: #64748b; }
         .t-want { color: #4ade80; }
         .t-avoid { color: #f87171; }
         .t-comment { color: var(--comment-color, #334155); }
@@ -130,11 +156,6 @@
         .t-strategy { color: #fb923c; }  /* mixed, similar, random in @rounds */
         .t-round-key { color: #22d3ee; }  /* score, gender in @rounds context */
         .t-round-name { color: #a78bfa; font-weight: 600; }  /* custom round names in quotes */
-        .t-rule { color: #f472b6; font-weight: 700; }  /* @rule keyword */
-        .t-rule-name { color: #e879f9; }  /* custom rule name */
-        .t-rule-cond { color: #38bdf8; }  /* built-in condition functions */
-        .t-rule-arrow { color: #94a3b8; }  /* → arrow */
-        .t-rule-action { color: #4ade80; }  /* built-in action keywords */
 
         /* ===== LANGUAGE TABS ===== */
         .lang-bar {
@@ -165,12 +186,7 @@
         }
         .panel-expanded {
             position: fixed; top: 20px; left: 20px; right: 20px; bottom: 20px;
-            z-index: 50; height: auto !important;
-        }
-        body.panel-has-expanded { overflow: hidden !important; }
-        body.panel-has-expanded::after {
-            content: ''; position: fixed; inset: 0; z-index: 49;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+            z-index: 50; height: auto !important; box-shadow: 0 0 0 1000px rgba(0,0,0,0.8);
         }
         .scroll-v { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
         .scroll-v::-webkit-scrollbar { width: 4px; }
@@ -317,27 +333,6 @@
         .docs-section.open .docs-body { display: block; }
         .docs-body code { font-family: 'Fira Code', monospace; font-size: 11px; background: rgba(15,23,42,0.6); padding: 1px 5px; border-radius: 4px; }
 
-        /* ===== AI COPY BTN ===== */
-        .ai-copy-btn-ide {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15));
-            border: 1px solid rgba(139,92,246,0.35); color: #c4b5fd;
-            padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 10px;
-            cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
-            text-transform: uppercase; letter-spacing: 0.05em;
-        }
-        .ai-copy-btn-ide:hover {
-            background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(59,130,246,0.3));
-            border-color: rgba(139,92,246,0.6); color: white;
-            box-shadow: 0 4px 16px rgba(139,92,246,0.2);
-        }
-        .ai-copy-btn-ide.copied {
-            background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.12));
-            border-color: rgba(34,197,94,0.5); color: #4ade80;
-        }
-        @keyframes aiPop { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
-        .ai-copy-btn-ide.pop { animation: aiPop 0.3s ease; }
-
         .sort-select {
             background: #0f172a; border: 1px solid #334155; border-radius: 6px;
             color: #94a3b8; font-size: 9px; font-weight: 700; padding: 2px 6px;
@@ -403,18 +398,6 @@
         }
         .editor-resize-handle:hover::after { background: #60a5fa; }
 
-        /* ===== PANEL RESIZE HANDLE (Roster & Output) ===== */
-        .panel-resize-handle {
-            height: 8px; cursor: ns-resize; background: transparent;
-            display: flex; align-items: center; justify-content: center;
-            position: relative; z-index: 10; flex-shrink: 0;
-        }
-        .panel-resize-handle::after {
-            content: ''; width: 40px; height: 3px; border-radius: 2px;
-            background: #334155; transition: background 0.15s;
-        }
-        .panel-resize-handle:hover::after { background: #4ade80; }
-
         /* ===== GROUP GRID VIEW ===== */
         .group-grid {
             display: flex; flex-wrap: wrap; gap: 10px;
@@ -443,42 +426,89 @@
         .ext-gls { background: rgba(74,222,128,0.15); color: #4ade80; }
         .ext-gla { background: rgba(96,165,250,0.15); color: #60a5fa; }
         .ext-glu { background: rgba(192,132,252,0.15); color: #c084fc; }
+
+        /* ===== PANEL RESIZE HANDLE (Roster & Output) ===== */
+        .panel-resize-handle {
+            height: 8px; cursor: ns-resize; background: transparent;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; z-index: 10; flex-shrink: 0;
+        }
+        .panel-resize-handle::after {
+            content: ''; width: 40px; height: 3px; border-radius: 2px;
+            background: #334155; transition: background 0.15s;
+        }
+        .panel-resize-handle:hover::after { background: #4ade80; }
+
+        /* ===== AI COPY BTN ===== */
+        .ai-copy-btn-ide {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15));
+            border: 1px solid rgba(139,92,246,0.35); color: #c4b5fd;
+            padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 10px;
+            cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .ai-copy-btn-ide:hover {
+            background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(59,130,246,0.3));
+            border-color: rgba(139,92,246,0.6); color: white;
+            box-shadow: 0 4px 16px rgba(139,92,246,0.2);
+        }
+        .ai-copy-btn-ide.copied {
+            background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.12));
+            border-color: rgba(34,197,94,0.5); color: #4ade80;
+        }
+        @keyframes aiPop { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
+        .ai-copy-btn-ide.pop { animation: aiPop 0.3s ease; }
+
+        /* ===== @RULE SYNTAX TOKENS ===== */
+        .t-rule { color: #f472b6; font-weight: 700; }
+        .t-rule-name { color: #e879f9; }
+        .t-rule-cond { color: #38bdf8; }
+        .t-rule-arrow { color: #94a3b8; }
+        .t-rule-action { color: #4ade80; }
+
+        /* ===== PANEL EXPANDED BODY LOCK ===== */
+        body.panel-has-expanded { overflow: hidden !important; }
+        body.panel-has-expanded::after {
+            content: ''; position: fixed; inset: 0; z-index: 49;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+        }
     </style>
 </head>
 <body class="p-4 lg:p-8">
 
 <!-- Global tooltip element -->
 <div class="r-tooltip" id="rTooltip"></div>
-<div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+<div class="toast-container" id="toastContainer"></div>
 
-<div class="max-w-7xl mx-auto">
+<main class="max-w-7xl mx-auto">
     <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
             <h1 class="text-3xl font-black text-white flex items-center gap-3">
                 <span class="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg">G</span>
                 GroupLogic IDE
             </h1>
-            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v7.0</p>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">v8.3</p>
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
             <div class="c-tabs-wrap" id="cTabs"></div>
-            <button type="button" onclick="addClassroom()" class="text-slate-600 hover:text-slate-400 transition-colors flex items-center" title="New Classroom">
+            <button onclick="addClassroom()" class="text-slate-600 hover:text-slate-400 transition-colors flex items-center" title="New Classroom">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             </button>
 
             <div id="actionBar" class="bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50 flex items-center gap-3" style="transition: border-color 0.15s ease; overflow: visible;">
                 <div class="px-2 py-1" id="perGroupWrap" style="position:relative; min-width:50px; min-height:36px;">
                     <span class="text-[9px] font-bold text-slate-500 uppercase block">Per Group</span>
-                    <input type="number" id="group-size" value="2" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
+                    <input type="number" id="group-size" value="4" min="2" class="bg-transparent font-black text-blue-400 focus:outline-none w-10 text-lg">
                 </div>
                 <div class="flex items-center gap-1">
-                    <button type="button" onclick="copyExport()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5" title="Copy formatted results">
+                    <button onclick="copyExport()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5" title="Copy formatted results">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"/></svg>
                         Copy
                     </button>
                     <div class="export-dropdown">
-                        <button type="button" onclick="toggleExportMenu()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Export">
+                        <button onclick="toggleExportMenu()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Export">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Export
                             <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -498,7 +528,7 @@
                             </div>
                         </div>
                     </div>
-                    <button type="button" onclick="triggerFileImport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Load file">
+                    <button onclick="triggerFileImport()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1" title="Load file">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         Load
                     </button>
@@ -508,23 +538,22 @@
         </div>
     </header>
 
-    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
         <!-- ===== EDITOR ===== -->
         <div class="lg:col-span-7 space-y-3">
             <div class="editor-container" id="editorContainer" style="height: min(520px, 55vh);">
                 <div class="lang-bar">
-                    <button type="button" class="lang-tab on-green" id="lt-simple" onclick="switchLang('simple')">Simple</button>
-                    <button type="button" class="lang-tab" id="lt-advanced" onclick="switchLang('advanced')">Advanced</button>
-                    <button type="button" class="lang-tab locked" id="lt-python" onclick="event.preventDefault()">
+                    <button class="lang-tab on-green" id="lt-simple" onclick="switchLang('simple')">Simple</button>
+                    <button class="lang-tab" id="lt-advanced" onclick="switchLang('advanced')">Advanced</button>
+                    <button class="lang-tab locked" id="lt-python" onclick="event.preventDefault()">
                         GroupLogic.py
                         <svg viewBox="0 0 16 16" fill="currentColor" style="opacity:0.5"><path d="M8 1a2 2 0 00-2 2v2H5a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V6a1 1 0 00-1-1h-1V3a2 2 0 00-2-2zm0 1a1 1 0 011 1v2H7V3a1 1 0 011-1zm0 6a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1z"/></svg>
                     </button>
                 </div>
                 <div class="editor-scroll-wrap" id="editorScrollWrap">
-                    <div id="editor-highlight"></div>
-                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie" aria-label="Group rules editor"></textarea>
-
+                    <div id="editor-highlight"><div id="highlight-inner"></div></div>
+                    <textarea id="editor-textarea" spellcheck="false" placeholder="Alice: +Bob -Charlie"></textarea>
                 </div>
             </div>
             <div class="editor-resize-handle" id="editorResizeHandle" title="Drag to resize editor"></div>
@@ -536,13 +565,17 @@
                     <div class="flex items-center gap-2"><span class="text-green-400 font-bold">+Target</span> <span class="text-slate-600">Want</span></div>
                     <div class="flex items-center gap-2"><span class="text-red-400 font-bold">-Target</span> <span class="text-slate-600">Avoid</span></div>
                     <div class="text-slate-500 italic">Monte Carlo + Hill Climbing</div>
-                    <button type="button" onclick="openDocs()" class="text-blue-400 hover:text-blue-300 font-bold ml-auto flex items-center gap-1">Docs <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>
+                    <button onclick="toggleLineWrap()" id="wrapBtn" class="text-slate-500 hover:text-slate-300 font-bold flex items-center gap-1 ml-2" title="Toggle line wrap / scroll">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h11m-7 6h7"/></svg>
+                        Wrap
+                    </button>
+                    <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 font-bold ml-auto flex items-center gap-1">Docs <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></button>
                 </div>
                 <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800" id="overflowBar" style="position:relative; min-height:28px;">
                     <span class="text-[9px] text-slate-600 font-bold uppercase self-center mr-1">Overflow:</span>
-                    <button type="button" onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
-                    <button type="button" onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
-                    <button type="button" onclick="setOverflowMode('small')" id="btn-overflow-small" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Small Last</button>
+                    <button onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
+                    <button onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
+                    <button onclick="setOverflowMode('small')" id="btn-overflow-small" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Small Last</button>
                 </div>
             </div>
             <div id="ref-advanced" class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800" style="display:none;">
@@ -570,19 +603,16 @@
                         <div><span class="text-purple-300 font-bold">@strict</span> <span class="text-slate-600">= true</span></div>
                         <div><span class="text-purple-300 font-bold">@rounds</span> <span class="text-slate-600">= </span><span class="text-orange-400 font-bold">mixed</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"Ionic"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">similar</span><span class="text-slate-600">:</span><span class="text-cyan-400 font-bold">score</span><span class="text-purple-400 font-bold">"PH"</span><span class="text-slate-600">, </span><span class="text-orange-400 font-bold">random</span><span class="text-purple-400 font-bold">"Mollar"</span></div>
                         <div><span class="text-purple-300 font-bold">@no_repeat_partners</span> <span class="text-slate-600">= true</span></div>
-                        <div><span class="text-purple-300 font-bold">@apply_rules</span> <span class="text-slate-600">= rule1,rule2</span></div>
-                    </div>
-                    <div class="w-full flex flex-col gap-y-0.5 mt-2 pt-2 border-t border-slate-800">
-                        <div class="text-pink-400 font-bold text-[10px] mb-0.5">@rule Custom Rules</div>
-                        <div class="text-[9px] text-slate-500 ml-2">@rule name {</div>
-                        <div class="text-[9px] ml-4"><span class="text-sky-400">condition</span> <span class="text-slate-400">→</span> <span class="text-green-400">action</span></div>
-                        <div class="text-[9px] text-slate-500 ml-2">}</div>
-                        <div class="text-[9px] text-slate-600 mt-1 ml-1">Conditions: <span class="text-sky-400">same_group(attr=val)</span> <span class="text-sky-400">score_spread()</span> <span class="text-sky-400">gender_imbalance()</span> <span class="text-sky-400">leader_count()</span> <span class="text-sky-400">partnered_before()</span></div>
-                        <div class="text-[9px] text-slate-600 ml-1">Actions: <span class="text-green-400">separate</span> <span class="text-green-400">penalty(N)</span> <span class="text-green-400">together</span> <span class="text-green-400">avoid</span> <span class="text-green-400">prefer</span></div>
+                        <div><span class="text-pink-400 font-bold">@rule</span> <span class="text-fuchsia-300">name</span> <span class="text-slate-600">cond -> action</span> <span class="text-pink-400 font-bold">@end</span></div>
+                        <div><span class="text-purple-300 font-bold">@apply_rules</span> <span class="text-slate-600">= true</span></div>
                     </div>
                 </div>
                 <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800">
-                    <button type="button" onclick="openDocs()" class="text-blue-400 hover:text-blue-300 text-[9px] font-bold flex items-center gap-1">Full Docs</button>
+                    <button onclick="toggleLineWrap()" id="wrapBtnAdv" class="text-slate-500 hover:text-slate-300 text-[9px] font-bold flex items-center gap-1" title="Toggle line wrap / scroll">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h11m-7 6h7"/></svg>
+                        Wrap
+                    </button>
+                    <button onclick="openDocs()" class="text-blue-400 hover:text-blue-300 text-[9px] font-bold flex items-center gap-1">Full Docs</button>
                 </div>
             </div>
 
@@ -599,8 +629,8 @@
                 <span class="text-slate-700">|</span>
                 <span id="fileTypeLabel" class="text-slate-700 font-mono">.gls</span>
                 <span class="text-slate-700">|</span>
-                <span class="cursor-pointer hover:text-slate-400 transition-colors" onclick="showSaveSettings()" title="Settings">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span class="cursor-pointer hover:text-slate-400 transition-colors" onclick="showSaveSettings()" title="Save Settings">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </span>
             </div>
         </div>
@@ -608,7 +638,7 @@
         <!-- ===== SIDE PANELS ===== -->
         <div class="lg:col-span-5 space-y-3">
             <!-- Roster -->
-            <div id="panel-roster" class="panel" style="height: 250px;">
+            <div id="panel-roster" class="panel" style="height: min(230px, 28vh);">
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/10">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Roster</h3>
                     <div class="flex items-center gap-2" style="min-height:24px;">
@@ -621,7 +651,7 @@
                             <span id="sortAdvHint" class="adv-code-hint" style="display:none;">In code</span>
                         </div>
                         <span id="student-count" class="text-[10px] text-blue-400 font-mono font-bold">0</span>
-                        <button type="button" onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
+                        <button onclick="toggleExpand('panel-roster')" class="text-slate-500 hover:text-white">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                         </button>
                     </div>
@@ -631,27 +661,27 @@
             </div>
 
             <!-- Live Output -->
-            <div id="panel-output" class="panel" style="height: 360px;">
+            <div id="panel-output" class="panel" style="height: min(420px, 50vh);">
                 <div class="px-4 py-3 border-b border-slate-700 flex justify-between items-center bg-slate-800/20">
                     <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Output</h3>
                     <div class="flex items-center gap-2">
-                        <button type="button" class="view-btn on" id="vbtn-list" onclick="setGroupView('list')" title="List view">
+                        <button class="view-btn on" id="vbtn-list" onclick="setGroupView('list')" title="List view">
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
                         </button>
-                        <button type="button" class="view-btn" id="vbtn-cards" onclick="setGroupView('cards')" title="Card view">
+                        <button class="view-btn" id="vbtn-cards" onclick="setGroupView('cards')" title="Card view">
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
                         </button>
-                        <button type="button" onclick="calculateGroups()" class="text-[9px] font-black bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-600 transition-colors uppercase ml-1">Shuffle</button>
+                        <button onclick="calculateGroups()" class="text-[9px] font-black bg-slate-700 text-white px-2 py-1 rounded hover:bg-slate-600 transition-colors uppercase ml-1">Shuffle</button>
                         <div id="feasibility-status" class="badge bg-slate-800 text-slate-600 uppercase tracking-widest">Idle</div>
-                        <button type="button" onclick="toggleExpand('panel-output')" class="text-slate-500 hover:text-white">
+                        <button onclick="toggleExpand('panel-output')" class="text-slate-500 hover:text-white">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                         </button>
                     </div>
                 </div>
-                <div id="groups-list" class="p-4" style="flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#334155 transparent;"></div>
+                <div id="groups-list" class="p-4 flex-1 min-h-0 scroll-v"></div>
                 <div class="p-2.5 text-center border-t border-slate-800 bg-slate-900/30 flex justify-between items-center px-4">
                     <span id="engine-label" class="text-[9px] text-slate-500 font-bold uppercase italic tracking-tighter">Engine: MC 2500 + HC 20</span>
-                    <button type="button" onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1" style="position:relative;">
+                    <button onclick="addEmptyGroup()" id="addGroupBtn" class="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1" style="position:relative;">
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                         Group
                     </button>
@@ -661,14 +691,12 @@
         </div>
     </div>
 </main>
-
-<!-- Import Modal -->
 <div id="import-modal" class="modal-bg" style="display:none;">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full mx-4">
         <h3 class="text-sm font-bold text-white mb-3" id="import-modal-title">Load File</h3>
         <div id="import-content-area"></div>
         <div class="flex justify-end mt-4">
-            <button type="button" onclick="closeImport()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
+            <button onclick="closeImport()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Cancel</button>
         </div>
     </div>
 </div>
@@ -678,12 +706,12 @@
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4">
         <h3 class="text-sm font-bold text-white mb-3">Version History <span class="text-slate-600 font-normal">(3 max)</span></h3>
         <div id="version-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
-        <div class="flex justify-end mt-3"><button type="button" onclick="closeVersions()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Close</button></div>
+        <div class="flex justify-end mt-3"><button onclick="closeVersions()" class="text-slate-400 hover:text-white text-xs font-bold px-4 py-2">Close</button></div>
     </div>
 </div>
 
 <!-- Save Settings Modal -->
-<div id="save-modal" class="modal-bg" style="display:none;" role="dialog" aria-modal="true" aria-label="Settings">
+<div id="save-modal" class="modal-bg" style="display:none;">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4">
         <h3 class="text-sm font-bold text-white mb-3">Save Settings</h3>
         <div class="space-y-2">
@@ -701,15 +729,16 @@
             <button type="button" onclick="applySaveSettings()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg">Apply</button>
         </div>
     </div>
-</div>
+</main>
 
 <script>
 // ========================================================================
-// GROUPLOGIC IDE v7.0 — ADVANCED BUILD
+// GROUPLOGIC IDE v8.3 — ADVANCED BUILD
 // ========================================================================
 
 const textarea = document.getElementById('editor-textarea');
 const highlighter = document.getElementById('editor-highlight');
+const highlightInner = document.getElementById('highlight-inner');
 const rosterBox = document.getElementById('roster-list');
 const groupsBox = document.getElementById('groups-list');
 const sizeInp = document.getElementById('group-size');
@@ -721,8 +750,8 @@ let currentRounds = null; // array of {label, groups, violations} when @rounds i
 let conflictMap = new Map();
 let currentLang = 'simple';
 let directives = {};
-let customRules = [];  // parsed @rule blocks: { name, conditions: [{func, args, op, val, action, actionArgs}] }
-let ruleConflicts = []; // { ruleName, condition, groupName, members, description } — filled during scoring
+let customRules = [];
+let ruleConflicts = [];
 let overflowMode = 'even';
 let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
@@ -730,6 +759,9 @@ let hasNoSavedCode = true;
 let groupViewMode = 'list';
 let simpleModeErrors = []; // lines with advanced syntax in Simple mode
 let simpleErrorToastShown = false; // debounce toast
+let commentBrightness = 25;
+let lastPrevPairs = null;
+let templateRecursionGuard = false;
 
 // Classroom state
 let classrooms = [{ name: 'Class 1', codeSimple: '', codeAdvanced: '', versions: [], lang: 'simple', lock: 'u' }];
@@ -738,36 +770,13 @@ let activeClass = 0;
 let autoSaveTimer = null;
 let editCountSinceSave = 0;
 let saveConfig = { manual: true, timed: false, timedInterval: 60, edits: false, editsCount: 25 };
-let commentBrightness = 25; // 0-100, maps to HSL lightness 10%-55%
-let templateRecursionGuard = 0;
-let lastPrevPairs = null; // Cached prevPairs for display consistency
-
-// Scoring constants (must be declared before any function that uses them)
-const SCORE_WANT_FULFILLED = 500;
-const SCORE_AVOID_VIOLATION = -100000;
-const SCORE_SOLO_GROUP = -5000;
-const SCORE_LEADER_CONFLICT = -500;
-const SCORE_ROLE_UNDIVERSITY = -300;
-const SCORE_TAG_OVERLAP = -200;
-const SCORE_GENDER_IMBALANCE = -150;
-const SCORE_BAND_OVERFLOW = -200;
-const SCORE_CAPACITY_VIOLATION = -50000;
-const SCORE_SEPARATE_VIOLATION = -50000;
-const SCORE_SWAP_THRESHOLD = 50; // minimum score improvement to accept a beneficial swap
-
-function applyCommentBrightness() {
-    // Map 0-100 slider to HSL lightness 10%-55% (0=very dim, 100=very bright)
-    // Default 25 → lightness ~21% ≈ current #334155
-    const lightness = 10 + (commentBrightness / 100) * 45;
-    document.documentElement.style.setProperty('--comment-color', 'hsl(215, 38%, ' + lightness + '%)');
-}
 
 // Pending import for "insert at cursor" mode
 let pendingImportContent = null;
 let pendingImportLang = null;
 
-// Default example code (only used by "Load Example" button in docs)
-const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE
+// Default code
+const DEFAULT_SIMPLE = `// Welcome to GroupLogic IDE v8.3
 // Syntax: Name: +Want -Avoid
 
 Alice: +Bob -Charlie
@@ -776,55 +785,84 @@ Charlie: -Alice +Eve
 Diana: +Eve -Bob
 Eve: +Diana +Charlie`;
 
-const DEFAULT_ADVANCED = `// GroupLogic IDE - Advanced Mode
-// Multi-Round Grouping with Overlap Avoidance
-// Science Lab: 3 rounds with different strategies
-
-@group_size = 2
-@balance = gender,scores
-@overflow = even
-@iterations = 5000
-@strict = false
-@rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"
-@no_repeat_partners = true
-
-// 20 Students with varied scores, gender, and roles
-Alice: +Bob score=92 gender=F role=leader
-Bob: +Alice -Diana score=78 gender=M role=dev
-Charlie: -Alice +Eve score=85 gender=M role=dev
-Diana: +Eve -Bob score=90 gender=F role=design
-Eve: +Diana +Charlie score=88 gender=F role=dev
-Frank: +Alice score=72 gender=M tag=honors
-Grace: -Frank +Diana score=95 gender=F band=high
-Henry: +Bob -Grace score=80 gender=M role=qa
-Ivy: +Eve score=83 gender=F tag=honors leader
-Jack: -Charlie score=68 gender=M band=low
-Karen: +Alice -Jack score=91 gender=F role=leader
-Leo: +Henry score=76 gender=M role=dev
-Maya: +Ivy -Frank score=87 gender=F role=design
-Noah: +Bob score=74 gender=M tag=honors
-Olivia: -Leo +Grace score=93 gender=F role=dev
-Peter: +Frank score=70 gender=M band=low
-Quinn: +Maya score=82 gender=F role=qa
-Ryan: -Peter score=65 gender=M band=low
-Sophie: +Karen score=89 gender=F tag=honors leader
-Tyler: +Noah -Ryan score=77 gender=M role=dev`;
+const DEFAULT_ADVANCED = '';
 
 // ===== INIT =====
 textarea.value = '';
 textarea.addEventListener('input', onEditorInput);
+// v8.2: Handle paste events explicitly — re-assert transparency and sync scroll
+// after a paste to prevent highlighter/textarea misalignment
+textarea.addEventListener('paste', function() {
+    // Defer to next frame so the paste content is in the textarea
+    requestAnimationFrame(function() {
+        textarea.style.setProperty('color', 'transparent', 'important');
+        textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+        textarea.style.setProperty('background', 'none', 'important');
+        textarea.style.setProperty('background-color', 'rgba(0,0,0,0)', 'important');
+    });
+});
 sizeInp.addEventListener('input', runIDE);
 
-// v8.1 SCROLL SYNC: Direct scrollTop/scrollLeft sync.
-// The highlighter has overflow:auto and scrolls independently.
-// We sync its scroll position to match the textarea's.
-// This replaces the old CSS transform approach which caused text cut-off.
+// ===== SCROLL SYNC =====
 function syncScroll() {
-    highlighter.scrollTop = textarea.scrollTop;
-    highlighter.scrollLeft = textarea.scrollLeft;
+    // v8.3: Use CSS transform on the inner wrapper div.
+    // The outer #editor-highlight has overflow:hidden to clip the content.
+    // The inner #highlight-inner has no overflow clip — its content can be
+    // any size. The transform shifts it visually to match the textarea's
+    // scroll position. Since transform doesn't trigger re-layout, this
+    // stays in sync even after innerHTML updates.
+    const sx = textarea.scrollLeft;
+    const sy = textarea.scrollTop;
+    highlightInner.style.transform = 'translate(' + (-sx) + 'px,' + (-sy) + 'px)';
+}
+textarea.addEventListener('scroll', syncScroll);
+
+// ===== LINE WRAP TOGGLE =====
+let editorWrapMode = false;
+function toggleLineWrap() {
+    editorWrapMode = !editorWrapMode;
+    const wrap = document.getElementById('editorScrollWrap');
+    const btns = [document.getElementById('wrapBtn'), document.getElementById('wrapBtnAdv')];
+    if (editorWrapMode) {
+        wrap.classList.add('editor-wrap-mode');
+        btns.forEach(function(btn) {
+            if (!btn) return;
+            btn.classList.remove('text-slate-500');
+            btn.classList.add('text-blue-400');
+            btn.title = 'Switch to scroll mode';
+        });
+    } else {
+        wrap.classList.remove('editor-wrap-mode');
+        btns.forEach(function(btn) {
+            if (!btn) return;
+            btn.classList.remove('text-blue-400');
+            btn.classList.add('text-slate-500');
+            btn.title = 'Toggle line wrap / scroll';
+        });
+    }
+    // Re-sync scroll after mode change
+    syncScroll();
+    renderSyntax();
 }
 
-textarea.addEventListener('scroll', syncScroll);
+// ===== ALIGNMENT TEST MODE =====
+let alignTestActive = false;
+function toggleAlignTest() {
+    alignTestActive = !alignTestActive;
+    if (alignTestActive) {
+        textarea.style.setProperty('color', 'rgba(255, 100, 100, 0.5)', 'important');
+        textarea.style.setProperty('-webkit-text-fill-color', 'rgba(255, 100, 100, 0.5)', 'important');
+        textarea.style.caretColor = '#fff';
+        highlightInner.style.color = 'rgba(100, 255, 100, 0.5)';
+        toast('Align test ON — red=textarea, green=highlighter', 'info');
+    } else {
+        textarea.style.setProperty('color', 'transparent', 'important');
+        textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+        textarea.style.caretColor = '#60a5fa';
+        highlightInner.style.color = '#94a3b8';
+        toast('Align test OFF', 'info');
+    }
+}
 
 // Click in editor to insert pending import
 textarea.addEventListener('click', function() {
@@ -876,37 +914,6 @@ document.addEventListener('keydown', function(e) {
     });
 })();
 
-// ===== PANEL RESIZE DRAG (Roster & Output) =====
-function setupPanelResize(handleId, panelId) {
-    var handle = document.getElementById(handleId);
-    var panel = document.getElementById(panelId);
-    if (!handle || !panel) return;
-    let isResizing = false, startY = 0, startH = 0;
-    handle.addEventListener('mousedown', function(e) {
-        isResizing = true;
-        startY = e.clientY;
-        startH = panel.offsetHeight;
-        document.body.style.cursor = 'ns-resize';
-        document.body.style.userSelect = 'none';
-        e.preventDefault();
-    });
-    document.addEventListener('mousemove', function(e) {
-        if (!isResizing) return;
-        var diff = e.clientY - startY;
-        var newH = Math.max(100, Math.min(window.innerHeight - 100, startH + diff));
-        panel.style.height = newH + 'px';
-    });
-    document.addEventListener('mouseup', function() {
-        if (isResizing) {
-            isResizing = false;
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-        }
-    });
-}
-setupPanelResize('rosterResizeHandle', 'panel-roster');
-setupPanelResize('outputResizeHandle', 'panel-output');
-
 // Drag & drop on action bar
 const actionBar = document.getElementById('actionBar');
 let actionBarDragCounter = 0;
@@ -957,14 +964,26 @@ document.addEventListener('dragend', function(e) {
 
 loadStorage();
 renderClassTabs();
+
+// ===== SCORING CONSTANTS =====
+// Must be declared before runIDE() call. Negative values = penalties.
+const SCORE_WANT_FULFILLED = 500;      // Per want fulfilled (scaled by weight)
+const SCORE_AVOID_VIOLATION = -100000;  // Per avoid violated (hard constraint)
+const SCORE_SOLO_GROUP = -5000;         // Single-person group penalty
+const SCORE_SEPARATE_VIOLATION = -50000;// Per @separate pair violation
+const SCORE_BAND_VIOLATION = -200;      // Score spread exceeds band_width
+const SCORE_GENDER_IMBALANCE = 150;     // Per male-female imbalance unit
+const SCORE_ROLE_MONO = -300;           // All same role in group
+const SCORE_TAG_IMBALANCE = -200;       // Per excess student with same tag
+const SCORE_MULTI_LEADER = -500;        // Multiple leaders in one group
+const SCORE_SWAP_THRESHOLD = 50;        // Min score gain for beneficial hill-climb swap
+
 runIDE();
 
 // ===== TOAST =====
 function toast(msg, type) {
     type = type || 'info';
     const c = document.getElementById('toastContainer');
-    // Limit to 3 visible toasts — remove oldest if exceeding
-    while (c.children.length >= 3) c.removeChild(c.firstChild);
     const t = document.createElement('div');
     t.className = 'toast toast-' + type;
     t.textContent = msg;
@@ -973,46 +992,17 @@ function toast(msg, type) {
 }
 
 // ===== EDITOR INPUT =====
-let ideDebounce = null;
-let syntaxDebounce = null;
 function onEditorInput() {
     if (hasNoSavedCode) hasNoSavedCode = false;
     editCountSinceSave++;
-    // Parse immediately for directives and student data
-    directives = {};
-    parseRules();
-    renderRoster();
-    updateFileTypeLabel();
-    // Debounce syntax highlighting (lightweight but DOM-heavy)
-    clearTimeout(syntaxDebounce);
-    syntaxDebounce = setTimeout(renderSyntax, 30);
-    // Debounced: heavy computation + saves
-    clearTimeout(ideDebounce);
-    const statusEl = document.getElementById('feasibility-status');
-    if (statusEl) { statusEl.textContent = 'Calculating...'; statusEl.className = 'badge bg-blue-900/50 text-blue-400 uppercase tracking-widest'; }
-    ideDebounce = setTimeout(function() {
-        // Use rAF to ensure the "Calculating..." badge paints before the synchronous MC engine blocks
-        requestAnimationFrame(function() {
-            try {
-                calculateGroups();
-            } catch (e) {
-                console.error('Grouping engine error:', e);
-                groupsBox.innerHTML = '<div class="text-red-400 text-center py-8"><div class="text-xs font-bold uppercase mb-2">Engine Error</div><div class="text-[10px]">' + esc(e.message) + '</div></div>';
-                const fe = document.getElementById('feasibility-status');
-                if (fe) { fe.textContent = 'Error'; fe.className = 'badge bg-red-900/60 text-red-400 uppercase tracking-widest'; }
-            }
-            scheduleAutoSave();
-            checkEditSave();
-            saveActiveJSON();
-        });
-    }, 150);
-    // Show toast when Advanced syntax detected in Simple mode
-    if (currentLang === 'simple' && simpleModeErrors.length > 0 && !simpleErrorToastShown) {
-        simpleErrorToastShown = true;
-        toast('Advanced syntax detected — ' + simpleModeErrors.length + ' error' + (simpleModeErrors.length > 1 ? 's' : '') + ' in Simple mode', 'error');
-    } else if (currentLang === 'simple' && simpleModeErrors.length === 0) {
-        simpleErrorToastShown = false;
-    }
+    // v8.2: Re-assert textarea transparency on every input event.
+    // Some browsers reset these styles when the textarea value changes,
+    // causing the raw text to show on top of the highlighter.
+    textarea.style.setProperty('color', 'transparent', 'important');
+    textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+    textarea.style.setProperty('background', 'none', 'important');
+    textarea.style.setProperty('background-color', 'rgba(0,0,0,0)', 'important');
+    runIDE();
 }
 
 // ===== MAIN LOOP =====
@@ -1036,70 +1026,117 @@ function runIDE() {
 }
 
 // ===== PARSE =====
+function parseRuleBlock(name, bodyLines) {
+    // Parse condition→action pairs from @rule body
+    const pairs = [];
+    for (const line of bodyLines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+        const arrowIdx = trimmed.indexOf('->');
+        if (arrowIdx === -1) continue;
+        const cond = trimmed.slice(0, arrowIdx).trim();
+        const action = trimmed.slice(arrowIdx + 2).trim();
+        if (cond && action) {
+            pairs.push({ condition: parseRuleCondition(cond), action: parseRuleAction(action) });
+        }
+    }
+    return { name, pairs };
+}
+
+function parseRuleCondition(cond) {
+    // Parse conditions like same_group(attr=val) > N, score_spread() > N, gender_imbalance() > N, leader_count() > N, has_leader(), partnered_before(), no_repeat()
+    const c = { type: 'unknown', args: {} };
+    const m = cond.match(/^(\w+)\(([^)]*)\)\s*(>|>=|<|<=|==|!=)?\s*(\d+)?$/);
+    if (m) {
+        c.type = m[1];
+        if (m[2]) {
+            const kv = m[2].split('=');
+            if (kv.length === 2) c.args[kv[0].trim()] = kv[1].trim();
+        }
+        if (m[3]) c.args.op = m[3];
+        if (m[4]) c.args.threshold = parseInt(m[4]);
+    } else if (cond === 'has_leader()') {
+        c.type = 'has_leader';
+    } else if (cond === 'partnered_before()') {
+        c.type = 'partnered_before';
+    } else if (cond === 'no_repeat()') {
+        c.type = 'no_repeat';
+    }
+    return c;
+}
+
+function parseRuleAction(action) {
+    // Parse actions: separate, penalty(N), together, avoid, prefer
+    const m = action.match(/^(\w+)(?:\((\d+)\))?$/);
+    if (m) {
+        return { type: m[1], value: m[2] ? parseInt(m[2]) : null };
+    }
+    return { type: action, value: null };
+}
+
 function parseRules() {
     const lines = textarea.value.split('\n');
     const nextMap = {};
     simpleModeErrors = []; // reset errors each parse
-    directives = {};
-    customRules = [];
+    customRules = []; // reset custom rules
 
-    // First pass: collect @rule blocks (multiline)
-    let inRuleBlock = false, ruleName = '', ruleLines = [], ruleStartLine = -1;
+    // Two-pass parsing: first pass collects @rule blocks
+    let inRuleBlock = false;
+    let ruleName = '';
+    let ruleBody = [];
+    const ruleBlockRanges = []; // track line ranges to skip in second pass
+
     for (let i = 0; i < lines.length; i++) {
-        const trimmed = lines[i].trim();
-        if (trimmed.match(/^@rule\s+/)) {
-            if (currentLang === 'simple') {
-                simpleModeErrors.push({ line: i, text: trimmed, reason: '@rule is Advanced-only syntax' });
-            }
-            const rm = trimmed.match(/^@rule\s+(\w+)\s*\{?\s*$/);
-            if (rm) {
-                inRuleBlock = true;
-                ruleName = rm[1];
-                ruleLines = [];
-                ruleStartLine = i;
-                // Check if the rule body is on the same line: @rule name { condition → action }
-                const inlineMatch = trimmed.match(/^@rule\s+\w+\s*\{\s*(.+)\s*\}\s*$/);
-                if (inlineMatch) {
-                    ruleLines.push(inlineMatch[1]);
-                    parseRuleBlock(ruleName, ruleLines);
-                    inRuleBlock = false;
-                }
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (inRuleBlock) {
+            if (trimmed === '@end' || trimmed === '@endrule') {
+                customRules.push(parseRuleBlock(ruleName, ruleBody));
+                ruleBlockRanges.push({ start: i, end: i });
+                inRuleBlock = false;
+                ruleName = '';
+                ruleBody = [];
+            } else {
+                ruleBody.push(line);
             }
             continue;
         }
-        if (inRuleBlock) {
-            if (trimmed === '}' || trimmed.endsWith('}')) {
-                parseRuleBlock(ruleName, ruleLines);
-                inRuleBlock = false;
-            } else if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('#')) {
-                ruleLines.push(trimmed);
-            }
+        const ruleStart = trimmed.match(/^@rule\s+(\w+)/);
+        if (ruleStart) {
+            inRuleBlock = true;
+            ruleName = ruleStart[1];
+            ruleBody = [];
+            ruleBlockRanges.push({ start: i, end: -1 }); // end filled later
             continue;
         }
     }
 
-    // Second pass: normal parsing
+    // Second pass: normal parsing (skip @rule blocks)
+    inRuleBlock = false;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
-        // Skip @rule blocks (already parsed above)
-        if (trimmed.match(/^@rule\s+/)) {
-            // Skip until closing brace
-            if (!trimmed.match(/^@rule\s+\w+\s*\{.*\}\s*$/)) {
-                while (i < lines.length - 1) {
-                    i++;
-                    if (lines[i].trim() === '}' || lines[i].trim().endsWith('}')) break;
-                }
-            }
-            continue;
-        }
+
+        // Skip @rule blocks
+        if (trimmed.match(/^@rule\s+\w+/)) { inRuleBlock = true; continue; }
+        if (inRuleBlock && (trimmed === '@end' || trimmed === '@endrule')) { inRuleBlock = false; continue; }
+        if (inRuleBlock) continue;
+
         if (trimmed.startsWith('@')) {
             if (currentLang === 'simple') {
                 simpleModeErrors.push({ line: i, text: trimmed, reason: 'Directives (@) are Advanced-only syntax' });
             }
             const dm = trimmed.match(/^@(\w+)\s*=\s*(.*)/);
-            if (dm) directives[dm[1]] = dm[2].trim().replace(/^["']|["']$/g, '');
+            if (dm) {
+                let dVal = dm[2].trim();
+                // Strip wrapper quotes ONLY if the entire value is wrapped in matching quotes
+                // e.g. @name = "Lab %d" → Lab %d, but @rounds = mixed:score'Ionic',... stays intact
+                if ((dVal.startsWith('"') && dVal.endsWith('"')) || (dVal.startsWith("'") && dVal.endsWith("'"))) {
+                    dVal = dVal.slice(1, -1);
+                }
+                directives[dm[1]] = dVal;
+            }
             continue;
         }
         // If-condition (advanced only)
@@ -1151,78 +1188,300 @@ function parseRules() {
     document.getElementById('student-count').innerText = count + ' STUDENTS';
 }
 
-// Parse a @rule block into condition→action pairs
-function parseRuleBlock(name, bodyLines) {
-    const conditions = [];
-    for (const line of bodyLines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
-        // Support both → and -> as arrow
-        const arrowMatch = trimmed.match(/^(.+?)(?:→|->)\s*(.+)$/);
-        if (arrowMatch) {
-            const condPart = arrowMatch[1].trim();
-            const actionPart = arrowMatch[2].trim();
-            const cond = parseRuleCondition(condPart);
-            const act = parseRuleAction(actionPart);
-            if (cond && act) {
-                conditions.push({ ...cond, action: act.action, actionArgs: act.args });
+// ===== @rule EVALUATION =====
+function evaluateRulesForGroup(group, allGroups, groupLabel, collectConflicts, prevPairs) {
+    let penalty = 0;
+    for (const rule of customRules) {
+        for (const pair of rule.pairs) {
+            const cond = pair.condition;
+            const act = pair.action;
+            let triggered = false;
+
+            switch (cond.type) {
+                case 'same_group': {
+                    const attr = cond.args.attr || cond.args.key;
+                    const val = cond.args.val || cond.args.value;
+                    if (attr && val) {
+                        const matchCount = group.filter(n => {
+                            const s = students[n];
+                            return s && String(s[attr] || '') === val;
+                        }).length;
+                        const threshold = cond.args.threshold || 1;
+                        const op = cond.args.op || '>';
+                        if (op === '>' && matchCount > threshold) triggered = true;
+                        else if (op === '>=' && matchCount >= threshold) triggered = true;
+                        else if (op === '==' && matchCount === threshold) triggered = true;
+                    }
+                    break;
+                }
+                case 'score_spread': {
+                    const scores = group.map(n => students[n].score || 0).filter(s => s !== null);
+                    if (scores.length > 1) {
+                        const spread = Math.max(...scores) - Math.min(...scores);
+                        const threshold = cond.args.threshold || 10;
+                        if (spread > threshold) triggered = true;
+                    }
+                    break;
+                }
+                case 'gender_imbalance': {
+                    const f = group.filter(n => students[n].gender === 'F').length;
+                    const m = group.filter(n => students[n].gender === 'M').length;
+                    const imbalance = Math.abs(f - m);
+                    const threshold = cond.args.threshold || 1;
+                    if (imbalance > threshold) triggered = true;
+                    break;
+                }
+                case 'leader_count': {
+                    const lc = group.filter(n => students[n].leader).length;
+                    const threshold = cond.args.threshold || 1;
+                    if (lc > threshold) triggered = true;
+                    break;
+                }
+                case 'has_leader': {
+                    triggered = group.some(n => students[n].leader);
+                    break;
+                }
+                case 'partnered_before': {
+                    if (prevPairs) {
+                        for (let a = 0; a < group.length; a++) {
+                            for (let b = a + 1; b < group.length; b++) {
+                                const pk = [group[a], group[b]].sort().join('|');
+                                if (prevPairs[pk]) { triggered = true; break; }
+                            }
+                            if (triggered) break;
+                        }
+                    }
+                    break;
+                }
+                case 'no_repeat': {
+                    if (prevPairs) {
+                        for (let a = 0; a < group.length; a++) {
+                            for (let b = a + 1; b < group.length; b++) {
+                                const pk = [group[a], group[b]].sort().join('|');
+                                if (prevPairs[pk]) { triggered = true; break; }
+                            }
+                            if (triggered) break;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if (triggered) {
+                // Apply the action
+                switch (act.type) {
+                    case 'separate':
+                        penalty += 500;
+                        if (collectConflicts) ruleConflicts.push({ rule: rule.name, group: groupLabel, action: 'separate' });
+                        break;
+                    case 'penalty':
+                        penalty += act.value || 100;
+                        if (collectConflicts) ruleConflicts.push({ rule: rule.name, group: groupLabel, action: 'penalty(' + (act.value || 100) + ')' });
+                        break;
+                    case 'together':
+                        // Bonus for keeping together
+                        penalty -= 200;
+                        break;
+                    case 'avoid':
+                        penalty += 300;
+                        if (collectConflicts) ruleConflicts.push({ rule: rule.name, group: groupLabel, action: 'avoid' });
+                        break;
+                    case 'prefer':
+                        penalty -= 100;
+                        break;
+                }
             }
         }
     }
-    if (conditions.length > 0) {
-        customRules.push({ name, conditions });
+    // Check @apply_rules directive
+    if (directives.apply_rules === 'true' || directives.apply_rules === '1') {
+        // Rules are always applied when @apply_rules = true
     }
+    return penalty;
 }
 
-// Parse condition like: same_group(gender=M) > 1, score_spread() > 30, has_leader(), partnered_before()
-function parseRuleCondition(cond) {
-    // same_group(attr=val) > N  or  count(attr=val) > N
-    let m = cond.match(/^(same_group|count)\((\w+)=(\w+)\)\s*([><=!]+)\s*(\d+)$/);
-    if (m) return { func: m[1], args: { attr: m[2].toLowerCase(), val: m[3] }, op: m[4], val: parseInt(m[5]) };
-
-    // same_group(attr="val") > N  — quoted values
-    m = cond.match(/^(same_group|count)\((\w+)=["']([^"']+)["']\)\s*([><=!]+)\s*(\d+)$/);
-    if (m) return { func: m[1], args: { attr: m[2].toLowerCase(), val: m[3] }, op: m[4], val: parseInt(m[5]) };
-
-    // score_spread() > N
-    m = cond.match(/^score_spread\(\)\s*([><=!]+)\s*(\d+)$/);
-    if (m) return { func: 'score_spread', args: {}, op: m[1], val: parseInt(m[2]) };
-
-    // gender_imbalance() > N
-    m = cond.match(/^gender_imbalance\(\)\s*([><=!]+)\s*(\d+)$/);
-    if (m) return { func: 'gender_imbalance', args: {}, op: m[1], val: parseInt(m[2]) };
-
-    // leader_count() > N
-    m = cond.match(/^leader_count\(\)\s*([><=!]+)\s*(\d+)$/);
-    if (m) return { func: 'leader_count', args: {}, op: m[1], val: parseInt(m[2]) };
-
-    // has_leader() — true if >0 leaders
-    m = cond.match(/^has_leader\(\)$/);
-    if (m) return { func: 'leader_count', args: {}, op: '>', val: 0 };
-
-    // partnered_before() — for cross-round repeat detection
-    m = cond.match(/^partnered_before\(\)$/);
-    if (m) return { func: 'partnered_before', args: {}, op: '>', val: 0 };
-
-    // no_repeat — alias for partnered_before
-    m = cond.match(/^no_repeat\(\)$/);
-    if (m) return { func: 'partnered_before', args: {}, op: '>', val: 0 };
-
-    return null;
+function collectRuleConflicts(groups, prevPairsForDisplay) {
+    ruleConflicts = [];
+    if (!groups || customRules.length === 0) return;
+    groups.forEach(function(g, gi) {
+        const label = 'Group ' + (gi + 1);
+        evaluateRulesForGroup(g, groups, label, true, prevPairsForDisplay || lastPrevPairs);
+    });
 }
 
-// Parse action like: separate, penalty(500), together, avoid, prefer
-function parseRuleAction(action) {
-    const m = action.match(/^(\w+)(?:\((\d+)\))?$/);
-    if (m) {
-        const act = m[1].toLowerCase();
-        const validActions = ['separate', 'penalty', 'together', 'avoid', 'prefer'];
-        if (validActions.includes(act)) {
-            return { action: act, args: m[2] ? parseInt(m[2]) : null };
+function buildPrevPairs() {
+    // Build prev pairs from previous rounds or saved state
+    const prevPairs = {};
+    if (currentRounds && currentRounds.length > 0) {
+        for (let ri = 0; ri < currentRounds.length; ri++) {
+            const roundGroups = currentRounds[ri].groups;
+            if (!roundGroups) continue;
+            for (const g of roundGroups) {
+                for (let a = 0; a < g.length; a++) {
+                    for (let b = a + 1; b < g.length; b++) {
+                        const pk = [g[a], g[b]].sort().join('|');
+                        if (!prevPairs[pk]) prevPairs[pk] = [];
+                        prevPairs[pk].push(ri);
+                    }
+                }
+            }
         }
     }
-    return null;
+    lastPrevPairs = prevPairs;
+    return prevPairs;
 }
+
+function applyCommentBrightness() {
+    // Map 0-100 slider to HSL lightness 10%-55% (0=very dim, 100=very bright)
+    // Default 25 → lightness ~21% ≈ current #334155
+    const lightness = 10 + (commentBrightness / 100) * 45;
+    document.documentElement.style.setProperty('--comment-color', 'hsl(215, 38%, ' + lightness + '%)');
+}
+
+function loadExample() {
+    const cl = classrooms[activeClass];
+    // Switch to Simple mode and load the example
+    if (currentLang !== 'simple') {
+        // Save current advanced code first
+        cl.codeAdvanced = textarea.value;
+        currentLang = 'simple';
+        updateLangTabs();
+    }
+    textarea.value = DEFAULT_SIMPLE;
+    cl.codeSimple = DEFAULT_SIMPLE;
+    hasNoSavedCode = true;
+    // Close docs
+    const overlay = document.getElementById('docsOverlay');
+    if (overlay) overlay.remove();
+    updateFileTypeLabel(); runIDE();
+    toast('Example code loaded into Simple editor', 'success');
+}
+
+const AI_PROMPT_TEXT = `You are a GroupLogic IDE assistant. GroupLogic IDE is a code-driven constraint-satisfaction group generator. Instead of clicking buttons, users write code that defines students, preferences, and how groups should be formed. The engine uses Monte Carlo sampling + Hill Climbing optimization.
+
+=== SIMPLE MODE SYNTAX ===
+Name: +Want -Avoid
+Example: Alice: +Bob -Charlie
+- Each student gets their own line. Colon separates name from constraints.
+- +Target = want to be with (positive constraint)
+- -Target = want to avoid (negative constraint)
+- Weighted wants: +Name@8 (1-10, default 5). Higher = stronger preference.
+- Multiple wants/avoids: Alice: +Bob +Diana -Charlie -Eve
+- Comments: // or # at start of line
+
+=== ADVANCED MODE SYNTAX ===
+All Simple syntax PLUS:
+- score=85 — numeric score for ability-based grouping
+- gender=M/F/X — gender category for balancing
+- age=16 — numeric age for age-based grouping
+- role="pm" — freeform role string (pm, dev, design, qa, etc.)
+- leader — flags student as group leader (one per group ideal)
+- tag=X — categorical tag
+- band=high — categorical band label
+- capacity=3 — limits group size when student is present
+- exclude — excludes student from grouping entirely
+- +Target@w — weighted want (1-10)
+
+=== DIRECTIVES (@key = value) ===
+@group_size = 4 — target students per group
+@balance = gender,scores,roles,age — balance criteria (comma-separated)
+@overflow = even|newgroup|small — how to handle extra students
+  even: distribute across groups (some slightly larger)
+  newgroup: create a new smaller group
+  small: last group is intentionally smaller
+@group_name = "Lab %d" — custom naming (%d=number, %s=size)
+@name_dynamic = true — name groups after their leader
+@separate = Alice,Bob — force into different groups (all pairs)
+@together = Alice,Bob — force into same group
+@iterations = 5000 — Monte Carlo trial count (default 2500)
+@hill_climb = 30 — Hill Climbing refinement rounds (default 20)
+@strict = true — no avoid violations allowed
+@band_width = 10 — max score spread within a group
+@arrange_by = score|gender|age — initial seeding strategy
+@min_group = 2 / @max_group = 6 — hard bounds on group sizes
+@tag_balance = honors — spread students with this tag across groups
+@template = score-lab|gender-balance|leader-projects|basic — load a template
+
+=== MULTI-ROUND GROUPING ===
+@rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"
+- Strategies: mixed:score, similar:score, mixed:gender, similar:gender, random
+- mixed:score = groups have MIXED scores (high+low together, snake-draft)
+- similar:score = groups have SIMILAR scores (high+high, low+low, sequential)
+- Custom round names in quotes after strategy
+@no_repeat_partners = true — avoid placing same students together across rounds
+
+=== CONDITIONAL CONSTRAINTS ===
+if(count > 10) { @balance = scores,gender }
+- Conditions: count > N, has_role leader, any_score >= 90
+- Operators: > < >= <= == !=
+
+=== SCORING SYSTEM ===
+- Fulfilled wants: +500 per pair (scaled by weight)
+- Avoid violations: -100000 per pair
+- Leader conflicts: -500 per extra leader
+- Solo groups: -5000 penalty
+- Balance penalties vary by type
+
+=== FILE TYPES ===
+.gls = Simple only (lock: s)
+.gla = Advanced only (lock: a)
+.glu = Universal (lock: u, both editors)
+.json = Full export with all classrooms and data`;
+
+function copyAIPromptIDE(btn) {
+    function onSuccess() {
+        btn.classList.add('copied', 'pop');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!';
+        setTimeout(function() {
+            btn.classList.remove('copied', 'pop');
+            btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg> Copy AI Prompt';
+        }, 2500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(AI_PROMPT_TEXT).then(onSuccess).catch(function() {
+            fallbackCopyIDE(AI_PROMPT_TEXT); onSuccess();
+        });
+    } else {
+        fallbackCopyIDE(AI_PROMPT_TEXT); onSuccess();
+    }
+}
+function fallbackCopyIDE(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+}
+
+function setupPanelResize(handleId, panelId) {
+    const handle = document.getElementById(handleId);
+    const panel = document.getElementById(panelId);
+    if (!handle || !panel) return;
+    let isResizing = false, startY = 0, startH = 0;
+    handle.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        startY = e.clientY;
+        startH = panel.offsetHeight;
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+        const diff = e.clientY - startY;
+        const newH = Math.max(100, startH + diff);
+        panel.style.height = newH + 'px';
+    });
+    document.addEventListener('mouseup', function() {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+}
+setupPanelResize('rosterResizeHandle', 'panel-roster');
+setupPanelResize('outputResizeHandle', 'panel-output');
 
 function parseConstraintLine(body, nextMap) {
     const parts = body.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
@@ -1273,7 +1532,7 @@ function evaluateCondition(cond, studentMap) {
 function compareValues(a, op, b) {
     if (op === '>') return a > b; if (op === '<') return a < b;
     if (op === '>=' || op === '=>') return a >= b; if (op === '<=' || op === '=<') return a <= b;
-    if (op === '==' || op === '=') return a === b; if (op === '!=') return a !== b;
+    if (op === '==' || op === '=') return a == b; if (op === '!=') return a != b;
     return false;
 }
 
@@ -1301,48 +1560,42 @@ function renderSyntax() {
     // Build a set of error line indices for Simple mode
     const errorLines = new Set(simpleModeErrors.map(e => e.line));
 
-    // Track @rule block state for highlighting
     let inRuleHighlight = false;
-
     const htmlLines = lines.map(function(line, idx) {
         const trimmed = line.trim();
         if (trimmed.startsWith('//') || trimmed.startsWith('#')) return '<span class="t-comment">' + esc(line) + '</span>';
 
-        // @rule block handling
-        if (trimmed.match(/^@rule\s+/)) {
+        // @rule / @end / @endrule block highlighting
+        if (trimmed.match(/^@rule\s+\w+/)) {
             inRuleHighlight = true;
-            // @rule name { — highlight @rule, name, and brace
-            const rm = esc(line).match(/^(@rule)(\s+)(\w+)(\s*)(\{?)(.*)/);
-            if (rm) {
-                let rhtml = '<span class="hl-nw"><span class="t-rule">' + rm[1] + '</span></span>' +
-                    rm[2] +
-                    '<span class="hl-nw"><span class="t-rule-name">' + rm[3] + '</span></span>' +
-                    rm[4] + '<span class="t-op">' + rm[5] + '</span>';
-                // Check if inline rule: everything on one line
-                if (rm[6]) {
-                    rhtml += highlightRuleBody(rm[6]);
-                    // Check if closing brace is at the end
-                    if (rm[6].trim().endsWith('}')) inRuleHighlight = false;
-                }
-                if (errorLines.has(idx)) rhtml = '<span class="t-syntax-err">' + rhtml + '</span>';
-                return rhtml;
-            }
-            // Fallback
-            const base = '<span class="hl-nw"><span class="t-rule">' + esc(line) + '</span></span>';
-            if (errorLines.has(idx)) return '<span class="t-syntax-err">' + base + '</span>';
-            return base;
+            const rm = esc(line).match(/^(@rule)(\s+)(\w+)/);
+            if (rm) return '<span class="hl-nw"><span class="t-rule">' + rm[1] + '</span></span>' + rm[2] + '<span class="hl-nw"><span class="t-rule-name">' + rm[3] + '</span></span>';
+            return '<span class="hl-nw"><span class="t-rule">' + esc(line) + '</span></span>';
+        }
+        if (inRuleHighlight && (trimmed === '@end' || trimmed === '@endrule')) {
+            inRuleHighlight = false;
+            return '<span class="hl-nw"><span class="t-rule">' + esc(line) + '</span></span>';
         }
         if (inRuleHighlight) {
-            let ruleHtml = '';
-            if (trimmed === '}' || trimmed.endsWith('}')) {
-                inRuleHighlight = false;
-                const inner = esc(line).replace(/\}$/, '');
-                ruleHtml = highlightRuleBody(inner) + '<span class="t-op">}</span>';
-            } else {
-                ruleHtml = highlightRuleBody(esc(line));
+            // Highlight condition -> action pairs inside @rule blocks
+            const arrowIdx = trimmed.indexOf('->');
+            if (arrowIdx !== -1) {
+                const beforeArrow = line.substring(0, line.indexOf('->'));
+                const afterArrow = line.substring(line.indexOf('->') + 2);
+                let condHtml = esc(beforeArrow).replace(/(\w+\([^)]*\))/g, '<span class="t-rule-cond">$1</span>')
+                                               .replace(/(&gt;|&gt;=|&lt;|&lt;=|==|!=)/g, '<span class="t-op">$1</span>')
+                                               .replace(/(\d+)/g, '<span class="t-score">$1</span>');
+                const arrowHtml = '<span class="t-rule-arrow">-&gt;</span>';
+                let actHtml = esc(afterArrow).replace(/^(\w+)(?:\((\d+)\))?/, function(m, act, val) {
+                    let h = '<span class="t-rule-action">' + act + '</span>';
+                    if (val !== undefined) h += '<span class="t-op">(</span><span class="t-score">' + val + '</span><span class="t-op">)</span>';
+                    return h;
+                });
+                return condHtml + arrowHtml + actHtml;
             }
-            if (errorLines.has(idx)) ruleHtml = '<span class="t-syntax-err">' + ruleHtml + '</span>';
-            return ruleHtml;
+            // Non-arrow line inside rule block (comment, blank)
+            if (trimmed.startsWith('//') || trimmed.startsWith('#')) return '<span class="t-comment">' + esc(line) + '</span>';
+            return esc(line);
         }
 
         if (trimmed.startsWith('@')) {
@@ -1350,7 +1603,7 @@ function renderSyntax() {
             // Special handling for @rounds to highlight strategies and keys.
             const dm = esc(line).match(/^(@\w+)(\s*)(=)(\s*)(.*)/);
             if (dm) {
-                var valHtml;
+                let valHtml;
                 if (dm[1] === '@rounds') {
                     // Highlight mixed, similar, random as .t-strategy; score, gender as .t-round-key; custom names in quotes as .t-round-name
                     valHtml = dm[5].replace(/(mixed|similar|random)/g, '<span class="t-strategy">$1</span>')
@@ -1359,14 +1612,7 @@ function renderSyntax() {
                 } else {
                     valHtml = '<span class="t-val">' + dm[5] + '</span>';
                 }
-                // Special highlighting for @apply_rules to show rule names
-                if (dm[1] === '@apply_rules') {
-                    valHtml = dm[5].split(',').map(part => {
-                        const trimmed = part.trim();
-                        return trimmed ? '<span class="t-rule-name">' + trimmed + '</span>' : '';
-                    }).join('<span class="t-op">,</span>');
-                }
-                var dhtml = '<span class="hl-nw"><span class="t-directive">' + dm[1] + '</span></span>' +
+                let dhtml = '<span class="hl-nw"><span class="t-directive">' + dm[1] + '</span></span>' +
                     dm[2] + '<span class="hl-nw"><span class="t-assign">' + dm[3] + '</span></span>' +
                     dm[4] + '<span class="hl-nw">' + valHtml + '</span>';
                 if (errorLines.has(idx)) dhtml = '<span class="t-syntax-err">' + dhtml + '</span>';
@@ -1378,12 +1624,30 @@ function renderSyntax() {
             return base;
         }
         if (trimmed.match(/^if\s*\(/)) {
-            let el = esc(line);
-            el = el.replace(/^(if)(\s*\()/, '<span class="hl-nw"><span class="t-if">$1</span><span class="t-op">$2</span></span>');
-            el = el.replace(/(count|any_score|has_role)/g, '<span class="hl-nw"><span class="t-cond">$1</span></span>');
-            el = el.replace(/(=&gt;|=&lt;|[><=!]+)/g, '<span class="hl-nw"><span class="t-op">$1</span></span>');
-            if (errorLines.has(idx)) return '<span class="t-syntax-err">' + el + '</span>';
-            return el;
+            // v8.3: SINGLE-PASS replacement to prevent regexes from matching
+            // inside HTML tags added by earlier replacements (which caused
+            // raw <span class> tags to become visible in the editor).
+            // Split into prefix (if + opening paren) and rest, highlight
+            // the rest in one pass, then combine.
+            let raw = esc(line);
+            const prefixMatch = raw.match(/^(if)(\s*\()/);
+            let prefix = '', rest = raw;
+            if (prefixMatch) {
+                prefix = '<span class="hl-nw"><span class="t-if">' + prefixMatch[1] + '</span></span>' +
+                         '<span class="hl-nw"><span class="t-op">' + prefixMatch[2] + '</span></span>';
+                rest = raw.substring(prefixMatch[0].length);
+            }
+            // Single-pass: highlight keywords, operators, braces, parens all at once
+            // so no regex ever sees HTML tags from a previous replacement
+            rest = rest.replace(/(count|any_score|has_role|=&gt;|=&lt;|&gt;|&lt;|==|!=|\{|\}|\)|[><=!]+)/g, function(m) {
+                if (m === 'count' || m === 'any_score' || m === 'has_role') {
+                    return '<span class="hl-nw"><span class="t-cond">' + m + '</span></span>';
+                }
+                return '<span class="hl-nw"><span class="t-op">' + m + '</span></span>';
+            });
+            let result = prefix + rest;
+            if (errorLines.has(idx)) return '<span class="t-syntax-err">' + result + '</span>';
+            return result;
         }
 
         let el = esc(line);
@@ -1398,7 +1662,7 @@ function renderSyntax() {
         const highlighted = parts.map(function(part) {
             if (!part || /^\s+$/.test(part)) return part;
 
-            var tokenized;
+            let tokenized;
             const kvq = part.match(/^(role|task|tag)(=)(&quot;)(.*?)(&quot;)$/);
             if (kvq) {
                 const base = '<span class="t-key">' + kvq[1] + '</span><span class="t-assign">' + kvq[2] + '</span><span class="t-role">' + kvq[3] + kvq[4] + kvq[5] + '</span>';
@@ -1431,11 +1695,11 @@ function renderSyntax() {
 
             const pm = part.match(/^([+\-])([a-zA-Z0-9_]+)(@\d+)?$/);
             if (pm) {
-                var lt = pm[2].toLowerCase();
-                var isDefined = definedLower.has(lt);
-                var cls = pm[1] === '+' ? 't-want' : 't-avoid';
-                var err = isDefined ? '' : ' t-err';
-                var wh = pm[3] ? '<span class="t-weight">' + pm[3] + '</span>' : '';
+                let lt = pm[2].toLowerCase();
+                let isDefined = definedLower.has(lt);
+                let cls = pm[1] === '+' ? 't-want' : 't-avoid';
+                let err = isDefined ? '' : ' t-err';
+                let wh = pm[3] ? '<span class="t-weight">' + pm[3] + '</span>' : '';
                 // Weight syntax @N is advanced
                 if (pm[3] && currentLang === 'simple') {
                     tokenized = '<span class="t-op">' + pm[1] + '</span><span class="' + cls + err + '">' + pm[2] + '</span><span class="t-syntax-err">' + pm[3] + '</span>';
@@ -1454,10 +1718,14 @@ function renderSyntax() {
     // v7.0: Wrap each line in a <div class="hl-line"> with min-height:22px,
     // white-space:pre. This forces each line to be EXACTLY 22px tall
     // (matching the textarea), preventing line-height drift.
-    highlighter.innerHTML = htmlLines.map(function(line) {
+    // v8.3: Set content on the inner wrapper div, not the outer highlighter.
+    // The outer #editor-highlight has overflow:hidden and clips this content.
+    // The inner #highlight-inner can be any size — CSS transform shifts it.
+    highlightInner.innerHTML = htmlLines.map(function(line) {
         return '<div class="hl-line">' + line + '</div>';
     }).join('');
 
+    // Sync scroll immediately (transform is instant, no re-layout needed)
     syncScroll();
 
     // Update feasibility status if there are Simple mode errors
@@ -1479,40 +1747,11 @@ function renderSyntax() {
     textarea.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
 }
 
-// Highlight the body of a @rule condition→action line (already HTML-escaped input)
-function highlightRuleBody(text) {
-    let h = text;
-    // 1. Highlight comparison operators FIRST (before adding any HTML spans)
-    //    After esc(), > is &gt; and < is &lt;.
-    h = h.replace(/(&gt;|&lt;|[=!]+)/g, '<span class="t-op">$1</span>');
-    // 2. Highlight → and -> arrows
-    h = h.replace(/(→|-&gt;)/g, '<span class="t-rule-arrow">$1</span>');
-    // 3. Highlight condition functions
-    h = h.replace(/(same_group|count|score_spread|gender_imbalance|leader_count|has_leader|partnered_before|no_repeat)/g, '<span class="t-rule-cond">$1</span>');
-    // 4. Highlight action keywords — only after the arrow span
-    h = h.replace(/\b(separate|penalty|together|avoid|prefer)\b/g, function(match, p1, offset, str) {
-        // Only highlight if after the arrow (inside the action part)
-        const arrowIdx = str.indexOf('t-rule-arrow');
-        if (arrowIdx >= 0 && offset > arrowIdx) {
-            return '<span class="t-rule-action">' + p1 + '</span>';
-        }
-        return match;
-    });
-    // 5. Highlight numbers — skip numbers that appear inside HTML entity codes (e.g., &#39;)
-    //    Match standalone digits not preceded by & or # and not inside HTML tags
-    h = h.replace(/(^|[^&#\w"=])(\d+)(?![\w"=])/g, '$1<span class="t-score">$2</span>');
-    // 6. Highlight attr=value pairs (skip HTML attribute names)
-    const htmlAttrs = new Set(['class','style','span','data','id','href','title','type','onclick','onmouseenter','onmouseleave']);
-    h = h.replace(/(\b(\w+))(=)(&quot;[^&]*&quot;|\w+)/g, function(m, g1, g2, g3, g4) {
-        if (htmlAttrs.has(g2)) return m;
-        return '<span class="t-key">' + g2 + '</span><span class="t-assign">' + g3 + '</span><span class="t-val">' + g4 + '</span>';
-    });
-    return h;
-}
-
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/`/g,'&#96;'); }
-function escJS(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/`/g, '\\`'); }
-function escJSAttr(s) { return esc(escJS(s)); } // Escape for JS inside HTML attributes: first JS, then HTML
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/`/g,'&#96;'); }
+// Escape for JS string contexts (single-quoted)
+function escJS(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r'); }
+// Escape for JS inside HTML attributes (double-escaped: JS string inside HTML attribute)
+function escJSAttr(s) { return esc(escJS(s)); }
 
 // ===== ROSTER =====
 function renderRoster() {
@@ -1540,8 +1779,7 @@ function renderRoster() {
         for (const k of keys) { if (!editorOrder.includes(k)) editorOrder.push(k); }
         keys = editorOrder;
     }
-    // Only update manualRosterOrder when not in manual sort mode (to preserve drag reorder)
-    if (sortMode !== 'manual') manualRosterOrder = [...keys];
+    manualRosterOrder = [...keys];
 
     document.getElementById('student-count').textContent = keys.length;
 
@@ -1577,8 +1815,8 @@ function renderRoster() {
         return '<div class="r-item flex items-center justify-between p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/50"' +
             ' draggable="' + (canDrag ? 'true' : 'false') + '"' +
             ' data-key="' + esc(k) + '" data-idx="' + idx + '"' +
-            ' ondblclick="startRename(this, \'' + escJSAttr(k) + '\')"' +
-            ' onmouseenter="showRosterTip(event, \'' + escJSAttr(k) + '\')"' +
+            ' ondblclick="startRename(this, \'' + esc(k) + '\')"' +
+            ' onmouseenter="showRosterTip(event, \'' + esc(k) + '\')"' +
             ' onmouseleave="hideRosterTip()"' +
             (canDrag ? ' ondragstart="rDragStart(event,' + idx + ')" ondragover="rDragOver(event)" ondrop="rDrop(event,' + idx + ')" ondragend="rDragEnd(event)"' : '') +
             '>' +
@@ -1727,75 +1965,112 @@ function setGroupView(mode) {
     renderGroups(currentGroups, conflictMap.size > 0 ? 1 : 0);
     // Re-render rounds if active
     if (currentRounds && currentRounds.length > 1) {
-        var rd = currentRounds[activeRoundTab >= 0 ? activeRoundTab : 0];
+        let rd = currentRounds[activeRoundTab >= 0 ? activeRoundTab : 0];
         if (rd) renderGroups(rd.groups, rd.violations);
     }
 }
 
 // ===== CROSS-ROUND OVERLAP AVOIDANCE =====
 function applyNoRepeatPartners(rounds, allKeys) {
-    // Deep-clone rounds to avoid mutating the original data
-    rounds = rounds.map(r => ({
-        ...r,
-        groups: r.groups ? r.groups.map(g => [...g]) : null
-    }));
     // Build a map of which pairs have been together in previous rounds
     // pairs key = "name1|name2" (alphabetically sorted)
-    var previousPairs = {}; // pair -> round index where they were together
-    
+    let previousPairs = {}; // pair -> round index where they were together
+    const MAX_PASSES = 5; // multiple passes to resolve cascading conflicts
+
     for (var ri = 0; ri < rounds.length; ri++) {
-        var roundGroups = rounds[ri].groups;
+        let roundGroups = rounds[ri].groups;
         if (!roundGroups) continue;
-        
-        // Find conflicting pairs (together in this round AND a previous round)
-        var conflicts = [];
-        for (var gi = 0; gi < roundGroups.length; gi++) {
-            var group = roundGroups[gi];
-            for (var a = 0; a < group.length; a++) {
-                for (var b = a + 1; b < group.length; b++) {
-                    var pairKey = [group[a], group[b]].sort().join('|');
-                    if (previousPairs[pairKey] !== undefined) {
-                        conflicts.push({ pair: pairKey, a: group[a], b: group[b], groupIdx: gi, prevRound: previousPairs[pairKey] });
+
+        // Multi-pass conflict resolution for this round
+        for (var pass = 0; pass < MAX_PASSES; pass++) {
+            // Find conflicting pairs (together in this round AND a previous round)
+            let conflicts = [];
+            for (var gi = 0; gi < roundGroups.length; gi++) {
+                let group = roundGroups[gi];
+                for (var a = 0; a < group.length; a++) {
+                    for (var b = a + 1; b < group.length; b++) {
+                        let pairKey = [group[a], group[b]].sort().join('|');
+                        if (previousPairs[pairKey] !== undefined) {
+                            conflicts.push({ pair: pairKey, a: group[a], b: group[b], groupIdx: gi, prevRound: previousPairs[pairKey] });
+                        }
                     }
                 }
             }
-        }
-        
-        // Try to resolve conflicts by swapping students between groups
-        for (var ci = 0; ci < conflicts.length; ci++) {
-            var conflict = conflicts[ci];
-            var group = roundGroups[conflict.groupIdx];
-            if (!group.includes(conflict.a) || !group.includes(conflict.b)) continue; // already resolved
-            
-            // Try to swap one of the conflicting students with a student from another group
-            var swapped = false;
-            var swapTarget = conflict.b; // try moving the second student
-            
-            for (var ogi = 0; ogi < roundGroups.length; ogi++) {
-                if (ogi === conflict.groupIdx) continue;
-                for (var si = 0; si < roundGroups[ogi].length; si++) {
-                    var candidate = roundGroups[ogi][si];
-                    // Check if swapping swapTarget with candidate would create new conflicts
-                    var newPairWithA = [conflict.a, candidate].sort().join('|');
-                    if (previousPairs[newPairWithA] !== undefined) continue; // would create new conflict
-                    
-                    // Do the swap
-                    var srcIdx = group.indexOf(swapTarget);
-                    group[srcIdx] = candidate;
-                    roundGroups[ogi][si] = swapTarget;
-                    swapped = true;
-                    break;
+
+            if (conflicts.length === 0) break; // all resolved
+
+            // Try to resolve conflicts by swapping students between groups
+            for (var ci = 0; ci < conflicts.length; ci++) {
+                let conflict = conflicts[ci];
+                let group = roundGroups[conflict.groupIdx];
+                if (!group.includes(conflict.a) || !group.includes(conflict.b)) continue; // already resolved
+
+                // Try to swap one of the conflicting students with a student from another group
+                // Try both conflict.a and conflict.b — pick the swap that reduces most conflicts
+                let bestSwap = null;
+                let bestSwapScore = 0; // negative = fewer remaining conflicts is better
+
+                let swapTargets = [conflict.b, conflict.a];
+                for (var sti = 0; sti < swapTargets.length; sti++) {
+                    let swapTarget = swapTargets[sti];
+                    let stayTarget = sti === 0 ? conflict.a : conflict.b;
+
+                    for (var ogi = 0; ogi < roundGroups.length; ogi++) {
+                        if (ogi === conflict.groupIdx) continue;
+                        for (var si = 0; si < roundGroups[ogi].length; si++) {
+                            let candidate = roundGroups[ogi][si];
+                            // Check if swapping swapTarget with candidate would create new conflicts
+                            let newPairWithStay = [stayTarget, candidate].sort().join('|');
+                            if (previousPairs[newPairWithStay] !== undefined) continue; // would create conflict with stay-target
+
+                            // Also check candidate wouldn't create conflicts with other group members
+                            let candidateCreatesConflict = false;
+                            for (var mi = 0; mi < group.length; mi++) {
+                                if (group[mi] === swapTarget || group[mi] === stayTarget) continue;
+                                let cPairKey = [group[mi], candidate].sort().join('|');
+                                if (previousPairs[cPairKey] !== undefined) { candidateCreatesConflict = true; break; }
+                            }
+                            if (candidateCreatesConflict) continue;
+
+                            // Check swapTarget wouldn't create conflicts in destination group
+                            let targetCreatesConflict = false;
+                            for (var mi2 = 0; mi2 < roundGroups[ogi].length; mi2++) {
+                                if (mi2 === si) continue;
+                                let tPairKey = [roundGroups[ogi][mi2], swapTarget].sort().join('|');
+                                if (previousPairs[tPairKey] !== undefined) { targetCreatesConflict = true; break; }
+                            }
+                            if (targetCreatesConflict) continue;
+
+                            // Score: count how many remaining conflicts this swap resolves
+                            let score = -1; // resolves this conflict at minimum
+                            if (!bestSwap || score < bestSwapScore) {
+                                bestSwap = { swapTarget: swapTarget, candidate: candidate, srcGroup: conflict.groupIdx, dstGroup: ogi, dstIdx: si };
+                                bestSwapScore = score;
+                            }
+                            break; // found a valid swap for this target
+                        }
+                        if (bestSwap && bestSwap.swapTarget === swapTarget) break;
+                    }
+                    if (bestSwap) break; // found a valid swap, stop trying other targets
                 }
-                if (swapped) break;
+
+                // Apply the best swap found
+                if (bestSwap) {
+                    let srcGroup = roundGroups[bestSwap.srcGroup];
+                    let dstGroup = roundGroups[bestSwap.dstGroup];
+                    let srcIdx = srcGroup.indexOf(bestSwap.swapTarget);
+                    srcGroup[srcIdx] = bestSwap.candidate;
+                    dstGroup[bestSwap.dstIdx] = bestSwap.swapTarget;
+                }
             }
         }
-        
+
         // Record all pairs for this round (after resolution attempts)
         for (var gi = 0; gi < roundGroups.length; gi++) {
-            var group = roundGroups[gi];
+            let group = roundGroups[gi];
             for (var a = 0; a < group.length; a++) {
                 for (var b = a + 1; b < group.length; b++) {
-                    var pairKey = [group[a], group[b]].sort().join('|');
+                    let pairKey = [group[a], group[b]].sort().join('|');
                     if (previousPairs[pairKey] === undefined) {
                         previousPairs[pairKey] = ri;
                     }
@@ -1803,11 +2078,119 @@ function applyNoRepeatPartners(rounds, allKeys) {
             }
         }
     }
-    return rounds;
+}
+
+// ===== SHARED GROUPING HELPERS =====
+
+// Apply @separate constraint with bounded group sizes.
+// Moves separated students to different groups, but never exceeds the target group size.
+function applySeparateConstraint(trial, separateList, groupSizes, perGroup) {
+    if (separateList.length < 2) return;
+    for (let si = 0; si < separateList.length - 1; si++) {
+        for (let sj = si + 1; sj < separateList.length; sj++) {
+            for (let gi = 0; gi < trial.length; gi++) {
+                const group = trial[gi];
+                if (!group.includes(separateList[si]) || !group.includes(separateList[sj])) continue;
+                // Find best destination: smallest group that doesn't contain the other student AND has room AND within size bounds
+                let bestDest = -1, bestDestSize = Infinity;
+                for (let di = 0; di < trial.length; di++) {
+                    if (di === gi) continue;
+                    if (trial[di].includes(separateList[si])) continue;
+                    const maxSize = groupSizes[di] || Infinity;
+                    if (trial[di].length < maxSize && trial[di].length < bestDestSize && trial[di].length < perGroup + 1) {
+                        bestDest = di;
+                        bestDestSize = trial[di].length;
+                    }
+                }
+                const bIdx = group.indexOf(separateList[sj]);
+                if (bIdx !== -1) {
+                    group.splice(bIdx, 1);
+                    if (bestDest !== -1) {
+                        trial[bestDest].push(separateList[sj]);
+                    } else {
+                        // All groups full or contain the other student; leave in source (scored as violation)
+                        group.push(separateList[sj]);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Shared Hill Climbing: Phase 1 (conflict resolution) + Phase 2 (beneficial swaps)
+function hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, rounds) {
+    if (!bestTrial) return bestTrial;
+    let currentViolations = minViolations;
+    let currentScore = topScore;
+
+    for (let r = 0; r < rounds; r++) {
+        let improved = false;
+
+        // Phase 1: Resolve conflicts by moving conflicted students
+        for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
+            for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
+                const student = bestTrial[gIdx][sIdx];
+                let hasConflict = false;
+                bestTrial[gIdx].forEach(peer => {
+                    if (peer !== student && (students[student].avoids.has(peer) || students[peer].avoids.has(student))) hasConflict = true;
+                });
+                if (hasConflict) {
+                    for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
+                        if (gIdx === tgIdx) continue;
+                        const next = bestTrial.map(g => [...g]);
+                        next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
+                        const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
+                        if (res.violations < currentViolations) {
+                            currentViolations = res.violations;
+                            currentScore = res.score;
+                            bestTrial = next;
+                            improved = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Phase 2: Beneficial swaps (score improvement even if no conflict reduction)
+        if (!improved) {
+            for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
+                for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
+                    for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
+                        if (gIdx === tgIdx) continue;
+                        const next = bestTrial.map(g => [...g]);
+                        next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
+                        const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance);
+                        if (res.violations === currentViolations && res.score > currentScore + SCORE_SWAP_THRESHOLD) {
+                            currentViolations = res.violations;
+                            currentScore = res.score;
+                            bestTrial = next;
+                            improved = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!improved) break;
+    }
+    return bestTrial;
 }
 
 // ===== GROUPING ENGINE =====
 function calculateGroups() {
+    try {
+        return _calculateGroupsInner();
+    } catch(e) {
+        console.error('GroupLogic engine error:', e);
+        groupsBox.innerHTML = '<div class="text-center py-8"><div class="text-red-400 text-xs font-bold uppercase mb-2">Engine Error</div><div class="text-slate-500 text-[10px]">' + esc(e.message || String(e)) + '</div><div class="text-slate-600 text-[10px] mt-2">Try simplifying your code or reloading</div></div>';
+        document.getElementById('feasibility-status').textContent = 'Error';
+        document.getElementById('feasibility-status').className = 'badge bg-red-900/60 text-red-400 uppercase tracking-widest';
+    }
+}
+
+function _calculateGroupsInner() {
     // Block compilation if there are Simple mode syntax errors
     if (currentLang === 'simple' && simpleModeErrors.length > 0) {
         const errItems = simpleModeErrors.slice(0, 5).map(e =>
@@ -1820,18 +2203,6 @@ function calculateGroups() {
         return;
     }
 
-    // Apply @template directive if specified (with recursion guard)
-    if (directives.template && TEMPLATES[directives.template] && templateRecursionGuard < 1) {
-        templateRecursionGuard++;
-        const templateName = directives.template;
-        delete directives.template; // Prevent infinite loop before re-running
-        textarea.value = TEMPLATES[templateName].code;
-        runIDE();
-        toast('Loaded template: ' + templateName, 'success');
-        return;
-    }
-    templateRecursionGuard = 0; // Reset for next calculateGroups call
-
     const keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
     if (keys.length < 2) {
         currentRounds = null;
@@ -1841,8 +2212,29 @@ function calculateGroups() {
         return;
     }
 
-    let perGroup = Math.max(2, Math.min(50, parseInt(sizeInp.value) || 2));
+    let perGroup = parseInt(sizeInp.value) || 4;
     if (directives.group_size) perGroup = Math.max(2, parseInt(directives.group_size) || perGroup);
+
+    // Handle @template directive with recursion guard
+    if (directives.template && !templateRecursionGuard) {
+        templateRecursionGuard = true;
+        const templates = {
+            'score-lab': '@group_size = 4\n@balance = scores\n@band_width = 10\n@overflow = even',
+            'gender-balance': '@group_size = 4\n@balance = gender\n@overflow = even',
+            'leader-projects': '@group_size = 4\n@balance = roles\n@name_dynamic = true\n@overflow = even',
+            'basic': '@group_size = 4\n@overflow = even'
+        };
+        const tpl = templates[directives.template];
+        if (tpl) {
+            // Insert template directives at the top of the editor (after existing student definitions)
+            const currentCode = textarea.value;
+            const lines = currentCode.split('\n');
+            const nonDirectiveLines = lines.filter(l => !l.trim().startsWith('@template'));
+            textarea.value = tpl + '\n' + nonDirectiveLines.join('\n');
+            directives.template = null;
+        }
+        templateRecursionGuard = false;
+    }
 
     // Determine overflow mode - advanced code directive takes precedence
     let effectiveOverflow = overflowMode;
@@ -1858,6 +2250,17 @@ function calculateGroups() {
     const balance = (directives.balance || '').split(',').map(s => s.trim()).filter(Boolean);
     const separateList = (directives.separate || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const togetherList = (directives.together || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+    // Validate that @together/@separate reference existing students
+    const definedNames = new Set(keys);
+    const invalidSeparate = separateList.filter(n => !definedNames.has(n));
+    const invalidTogether = togetherList.filter(n => !definedNames.has(n));
+    if (invalidSeparate.length > 0 || invalidTogether.length > 0) {
+        const msgs = [];
+        if (invalidSeparate.length > 0) msgs.push('@separate: ' + invalidSeparate.join(', '));
+        if (invalidTogether.length > 0) msgs.push('@together: ' + invalidTogether.join(', '));
+        toast('Unknown student(s) in ' + msgs.join('; '), 'warn');
+    }
     const bandWidth = parseInt(directives.band_width) || 10;
     const strict = directives.strict === 'true' || directives.strict === '1';
     const tagBalance = directives.tag_balance || '';
@@ -1889,14 +2292,13 @@ function calculateGroups() {
     }
 
     // Apply @min_group and @max_group bounds
-    const minGroup = parseInt(directives.min_group) || 0;
-    const maxGroup = parseInt(directives.max_group) || 0;
+    const minGroup = directives.min_group ? parseInt(directives.min_group) : 0;
+    const maxGroup = directives.max_group ? parseInt(directives.max_group) : 0;
     if (minGroup > 0 || maxGroup > 0) {
-        groupSizes = groupSizes.map(s => {
-            if (minGroup > 0 && s < minGroup) return minGroup;
-            if (maxGroup > 0 && s > maxGroup) return maxGroup;
-            return s;
-        });
+        for (let i = 0; i < groupSizes.length; i++) {
+            if (minGroup > 0 && groupSizes[i] < minGroup) groupSizes[i] = minGroup;
+            if (maxGroup > 0 && groupSizes[i] > maxGroup) groupSizes[i] = maxGroup;
+        }
     }
 
     // ===== v6.0: Multi-Round Support =====
@@ -1904,14 +2306,14 @@ function calculateGroups() {
     let roundsSpec = null;
     if (directives.rounds && currentLang === 'advanced') {
         roundsSpec = directives.rounds.split(',').map(s => s.trim()).filter(Boolean).map(spec => {
-            // Extract custom name in quotes, e.g. mixed:score"Ionic"
-            var nameMatch = spec.match(/"([^"]+)"/);
-            var customName = nameMatch ? nameMatch[1] : null;
-            var cleanSpec = spec.replace(/"[^"]*"/, '').trim();
+            // Extract custom name in quotes, e.g. mixed:score"Ionic" or mixed:score'Ionic'
+            let nameMatch = spec.match(/['"]([^'"]+)['"]/);
+            let customName = nameMatch ? nameMatch[1] : null;
+            let cleanSpec = spec.replace(/['"][^'"]*['"]/, '').trim();
             const parts = cleanSpec.split(':');
             const strategy = parts[0].trim().toLowerCase();
             const attr = parts.length > 1 ? parts[1].trim().toLowerCase() : null;
-            var label = customName || (attr ? (strategy.charAt(0).toUpperCase() + strategy.slice(1) + ' ' + attr.charAt(0).toUpperCase() + attr.slice(1)) : (strategy.charAt(0).toUpperCase() + strategy.slice(1)));
+            let label = customName || (attr ? (strategy.charAt(0).toUpperCase() + strategy.slice(1) + ' ' + attr.charAt(0).toUpperCase() + attr.slice(1)) : (strategy.charAt(0).toUpperCase() + strategy.slice(1)));
             return { strategy, attr, label, customName };
         });
     }
@@ -1927,9 +2329,9 @@ function calculateGroups() {
                 shuffled.sort((a, b) => students[a].gender.localeCompare(students[b].gender));
             }
             // Snake draft: distribute high+low together
-            var snakeOrder = [];
-            var numGroups = groupSizes.length;
-            var idx = 0;
+            let snakeOrder = [];
+            let numGroups = groupSizes.length;
+            let idx = 0;
             while (idx < shuffled.length) {
                 // Forward pass: group 0,1,2,...
                 for (var g = 0; g < numGroups && idx < shuffled.length; g++) {
@@ -1956,26 +2358,6 @@ function calculateGroups() {
         return shuffled;
     }
 
-    // Pre-build a Set of previous pairs for partnered_before optimization
-    function buildPrevPairs() {
-        const pairs = new Set();
-        if (currentRounds && currentRounds.length > 0) {
-            for (const rd of currentRounds) {
-                if (!rd.groups) continue;
-                for (const g of rd.groups) {
-                    for (let a = 0; a < g.length; a++) {
-                        for (let b = a + 1; b < g.length; b++) {
-                            pairs.add([g[a], g[b]].sort().join('|'));
-                        }
-                    }
-                }
-            }
-        }
-        return pairs;
-    }
-    const prevPairs = buildPrevPairs();
-    lastPrevPairs = prevPairs; // Cache for display consistency
-
     // Helper: run one round of grouping with a given shuffle strategy
     function runSingleRound(shuffled) {
         let bestTrial = null, minViolations = Infinity, topScore = -Infinity;
@@ -1999,21 +2381,20 @@ function calculateGroups() {
             if (togetherList.length > 1) {
                 const first = togetherList[0];
                 const tg = trial.find(g => g.includes(first));
-                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); if (tg.length < perGroup + 1) tg.push(togetherList[t]); break; } } } }
+                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
             }
-            // @separate constraint
+            // @separate constraint — bounded group sizes
             if (separateList.length > 1) {
-                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2]) && g2.length < perGroup + 1); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
+                applySeparateConstraint(trial, separateList, groupSizes, perGroup);
             }
 
-            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance, prevPairs);
+            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
             if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
             if (minViolations === 0 && topScore > 0) break;
         }
 
-        // Hill Climbing (inside runSingleRound)
-        const hcResult = hillClimb(bestTrial, minViolations, topScore, hillClimbRounds, balance, separateList, bandWidth, tagBalance, prevPairs);
-        bestTrial = hcResult.bestTrial; minViolations = hcResult.minViolations; topScore = hcResult.topScore;
+        // Hill Climbing
+        bestTrial = hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, hillClimbRounds);
 
         return { groups: bestTrial, violations: minViolations };
     }
@@ -2021,13 +2402,13 @@ function calculateGroups() {
     // ===== Execute rounds or single round =====
     if (roundsSpec && roundsSpec.length > 0) {
         currentRounds = roundsSpec.map(function(spec, ri) {
-            var shuffled = shuffleForRound(spec.strategy, spec.attr);
-            var result = runSingleRound(shuffled);
+            let shuffled = shuffleForRound(spec.strategy, spec.attr);
+            let result = runSingleRound(shuffled);
             return { label: spec.label, groups: result.groups, violations: result.violations, strategy: spec.strategy, attr: spec.attr };
         });
         // Apply cross-round overlap avoidance if @no_repeat_partners = true
         if (directives.no_repeat_partners === 'true' && currentRounds && currentRounds.length > 1) {
-            currentRounds = applyNoRepeatPartners(currentRounds, keys);
+            applyNoRepeatPartners(currentRounds, keys);
         }
         // Set currentGroups to first round for compatibility
         currentGroups = currentRounds[0].groups;
@@ -2067,21 +2448,20 @@ function calculateGroups() {
             if (togetherList.length > 1) {
                 const first = togetherList[0];
                 const tg = trial.find(g => g.includes(first));
-                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); if (tg.length < perGroup + 1) tg.push(togetherList[t]); break; } } } }
+                if (tg) { for (let t = 1; t < togetherList.length; t++) { if (tg.includes(togetherList[t])) continue; for (const group of trial) { if (group === tg) continue; const idx = group.indexOf(togetherList[t]); if (idx !== -1) { group.splice(idx, 1); tg.push(togetherList[t]); break; } } } }
             }
-            // @separate constraint
+            // @separate constraint — bounded group sizes
             if (separateList.length > 1) {
-                for (let si2 = 0; si2 < separateList.length - 1; si2++) { for (let sj = si2 + 1; sj < separateList.length; sj++) { for (const group of trial) { if (group.includes(separateList[si2]) && group.includes(separateList[sj])) { const bIdx = group.indexOf(separateList[sj]); group.splice(bIdx, 1); const destG = trial.find(g2 => g2 !== group && !g2.includes(separateList[si2]) && g2.length < perGroup + 1); if (destG) destG.push(separateList[sj]); else group.push(separateList[sj]); } } } }
+                applySeparateConstraint(trial, separateList, groupSizes, perGroup);
             }
 
-            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance, prevPairs);
+            const result = scoreTrial(trial, balance, separateList, bandWidth, tagBalance);
             if (result.violations < minViolations || (result.violations === minViolations && result.score > topScore)) { minViolations = result.violations; topScore = result.score; bestTrial = trial; }
             if (minViolations === 0 && topScore > 0) break;
         }
 
-        // Hill Climbing (single-round path)
-        const hcResult2 = hillClimb(bestTrial, minViolations, topScore, hillClimbRounds, balance, separateList, bandWidth, tagBalance, prevPairs);
-        bestTrial = hcResult2.bestTrial; minViolations = hcResult2.minViolations; topScore = hcResult2.topScore;
+        // Hill Climbing
+        bestTrial = hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, hillClimbRounds);
 
         currentGroups = bestTrial;
         identifyConflicts(bestTrial);
@@ -2097,247 +2477,43 @@ function calculateGroups() {
     }
 }
 
-// Shared hill climbing: Phase 1 moves conflicting students, Phase 2 tries beneficial swaps
-function hillClimb(bestTrial, minViolations, topScore, hillClimbRounds, balance, separateList, bandWidth, tagBalance, prevPairs) {
-    if (!bestTrial) return { bestTrial, minViolations, topScore };
-    // Phase 1: Move students with avoid conflicts
-    for (let r = 0; r < hillClimbRounds; r++) {
-        let improved = false;
-        for (let gIdx = 0; gIdx < bestTrial.length; gIdx++) {
-            for (let sIdx = 0; sIdx < bestTrial[gIdx].length; sIdx++) {
-                const student = bestTrial[gIdx][sIdx];
-                let hasConflict = false;
-                bestTrial[gIdx].forEach(peer => { if (peer !== student && students[student] && (students[student].avoids.has(peer) || students[peer] && students[peer].avoids.has(student))) hasConflict = true; });
-                if (hasConflict) {
-                    for (let tgIdx = 0; tgIdx < bestTrial.length; tgIdx++) {
-                        if (gIdx === tgIdx) continue;
-                        const next = bestTrial.map(g => [...g]);
-                        next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
-                        const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
-                        if (res.violations < minViolations) { minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true; break; }
-                    }
-                }
-                if (improved) break;
-            }
-            if (improved) break;
-        }
-        if (!improved) break;
-    }
-    // Phase 2: Try beneficial swaps for balance improvement
-    for (let r = 0; r < hillClimbRounds; r++) {
-        let improved = false;
-        for (let gIdx = 0; gIdx < bestTrial.length && !improved; gIdx++) {
-            for (let sIdx = 0; sIdx < bestTrial[gIdx].length && !improved; sIdx++) {
-                const student = bestTrial[gIdx][sIdx];
-                for (let tgIdx = gIdx + 1; tgIdx < bestTrial.length && !improved; tgIdx++) {
-                    for (let tsIdx = 0; tsIdx < bestTrial[tgIdx].length && !improved; tsIdx++) {
-                        const next = bestTrial.map(g => [...g]);
-                        next[gIdx][sIdx] = bestTrial[tgIdx][tsIdx];
-                        next[tgIdx][tsIdx] = student;
-                        const res = scoreTrial(next, balance, separateList, bandWidth, tagBalance, prevPairs);
-                        if (res.violations < minViolations || (res.violations === minViolations && res.score > topScore + SCORE_SWAP_THRESHOLD)) {
-                            minViolations = res.violations; topScore = res.score; bestTrial = next; improved = true;
-                        }
-                    }
-                }
-            }
-        }
-        if (!improved) break;
-    }
-    return { bestTrial, minViolations, topScore };
-}
-
-function scoreTrial(groups, balance, separateList, bandWidth, tagBalance, prevPairs) {
+function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
     let score = 0, violations = 0;
-    groups.forEach((g, gi) => {
-        const groupLabel = 'Group ' + (gi + 1);
+    groups.forEach(g => {
         for (let i = 0; i < g.length; i++) { for (let j = i + 1; j < g.length; j++) {
             const a = g[i], b = g[j];
-            const sa = students[a], sb = students[b];
-            if (!sa || !sb) continue;
-            if (sa.wants.has(b)) { score += SCORE_WANT_FULFILLED * ((sa.wantWeights[b] || 5) / 5); }
-            if (sb.wants.has(a)) { score += SCORE_WANT_FULFILLED * ((sb.wantWeights[a] || 5) / 5); }
-            if (sa.avoids.has(b)) { score += SCORE_AVOID_VIOLATION; violations++; }
-            if (sb.avoids.has(a)) { score += SCORE_AVOID_VIOLATION; violations++; }
+            if (students[a].wants.has(b)) { score += SCORE_WANT_FULFILLED * ((students[a].wantWeights[b] || 5) / 5); }
+            if (students[b].wants.has(a)) { score += SCORE_WANT_FULFILLED * ((students[b].wantWeights[a] || 5) / 5); }
+            if (students[a].avoids.has(b)) { score += SCORE_AVOID_VIOLATION; violations++; }
+            if (students[b].avoids.has(a)) { score += SCORE_AVOID_VIOLATION; violations++; }
         } if (g.length === 1) score += SCORE_SOLO_GROUP; }
         if (balance.includes('scores') || directives.arrange_by === 'score') {
-            const scores = g.map(n => students[n] ? students[n].score || 0 : 0);
-            if (scores.length > 1) { const avg = scores.reduce((a,b)=>a+b,0)/scores.length; score -= scores.reduce((s,v)=>s+(v-avg)*(v-avg),0)/10; if (Math.max(...scores)-Math.min(...scores) > bandWidth) score -= 200; }
+            const scores = g.map(n => students[n].score || 0);
+            if (scores.length > 1) { const avg = scores.reduce((a,b)=>a+b,0)/scores.length; score -= scores.reduce((s,v)=>s+(v-avg)*(v-avg),0)/10; if (Math.max(...scores)-Math.min(...scores) > bandWidth) score += SCORE_BAND_VIOLATION; }
         }
-        if (balance.includes('gender')) { const f = g.filter(n=>students[n]&&students[n].gender==='F').length; const m = g.filter(n=>students[n]&&students[n].gender==='M').length; score += SCORE_GENDER_IMBALANCE * Math.abs(f-m); }
-        if (balance.includes('age')) { const ages = g.map(n=>students[n]?students[n].age||0:0).filter(Boolean); if (ages.length>1) { const avg=ages.reduce((a,b)=>a+b,0)/ages.length; score-=ages.reduce((s,v)=>s+(v-avg)*(v-avg),0); } }
-        if (balance.includes('roles')) { const roles = g.map(n=>students[n]?students[n].role:'').filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score+=SCORE_ROLE_UNDIVERSITY; }
-        if (tagBalance) { const tc = g.filter(n=>students[n]&&students[n].tag===tagBalance).length; if (tc>1) score+=SCORE_TAG_OVERLAP*(tc-1); }
-        if (g.filter(n=>students[n]&&students[n].leader).length>1) score+=SCORE_LEADER_CONFLICT;
-        // Capacity enforcement
-        for (const n of g) {
-            if (students[n] && students[n].capacity && g.length > students[n].capacity) {
-                score += SCORE_CAPACITY_VIOLATION; violations++;
-            }
-        }
+        if (balance.includes('gender')) { const f = g.filter(n=>students[n].gender==='F').length; const m = g.filter(n=>students[n].gender==='M').length; score -= Math.abs(f-m)*SCORE_GENDER_IMBALANCE; }
+        if (balance.includes('age')) { const ages = g.map(n=>students[n].age||0).filter(Boolean); if (ages.length>1) { const avg=ages.reduce((a,b)=>a+b,0)/ages.length; score-=ages.reduce((s,v)=>s+(v-avg)*(v-avg),0); } }
+        if (balance.includes('roles')) { const roles = g.map(n=>students[n].role).filter(Boolean); if (roles.length>0 && new Set(roles).size===1 && roles.length>1) score+=SCORE_ROLE_MONO; }
+        if (tagBalance) { const tc = g.filter(n=>students[n].tag===tagBalance).length; if (tc>1) score+=SCORE_TAG_IMBALANCE*(tc-1); }
+        if (g.filter(n=>students[n].leader).length>1) score+=SCORE_MULTI_LEADER;
         // Evaluate custom @rule conditions for this group
-        const ruleResult = evaluateRulesForGroup(g, groups, groupLabel, false, prevPairs);
-        score += ruleResult.score;
-        violations += ruleResult.violations;
+        const rulePenalty = evaluateRulesForGroup(g, groups, 'G', false, lastPrevPairs);
+        score += rulePenalty;
     });
     if (separateList.length>1) { for (let i=0;i<separateList.length-1;i++) for (let j=i+1;j<separateList.length;j++) for (const g of groups) if (g.includes(separateList[i])&&g.includes(separateList[j])) { score+=SCORE_SEPARATE_VIOLATION; violations++; } }
     return { score, violations };
 }
 
-// Evaluate custom @rule conditions for a single group
-// collectConflicts: false during scoring (fast), true only for final display
-function evaluateRulesForGroup(group, allGroups, groupLabel, collectConflicts, prevPairs) {
-    let score = 0, violations = 0;
-    if (!customRules || customRules.length === 0) return { score, violations };
-
-    // Check @apply_rules directive — if set, only apply listed rules
-    const applyRulesStr = directives.apply_rules || '';
-    const applyRulesList = applyRulesStr ? applyRulesStr.split(',').map(s => s.trim()).filter(Boolean) : null;
-
-    for (const rule of customRules) {
-        // Skip this rule if @apply_rules is set and this rule isn't listed
-        if (applyRulesList && !applyRulesList.includes(rule.name)) continue;
-
-        for (const cond of rule.conditions) {
-            let actualVal = 0;
-            let triggered = false;
-
-            switch (cond.func) {
-                case 'same_group':
-                case 'count': {
-                    const attr = cond.args.attr;
-                    const val = cond.args.val;
-                    actualVal = group.filter(n => {
-                        const s = students[n];
-                        if (!s) return false;
-                        if (attr === 'gender') return s.gender === val;
-                        if (attr === 'role') return s.role === val;
-                        if (attr === 'tag') return s.tag === val;
-                        if (attr === 'band') return s.band === val;
-                        if (attr === 'score') return String(s.score) === val;
-                        if (attr === 'age') return String(s.age) === val;
-                        if (attr === 'leader') return s.leader && (val === 'true' || val === '1');
-                        return false;
-                    }).length;
-                    triggered = compareValues(actualVal, cond.op, cond.val);
-                    break;
-                }
-                case 'score_spread': {
-                    const scores = group.map(n => students[n] ? students[n].score || 0 : 0).filter(s => s > 0);
-                    if (scores.length > 1) {
-                        actualVal = Math.max(...scores) - Math.min(...scores);
-                        triggered = compareValues(actualVal, cond.op, cond.val);
-                    }
-                    break;
-                }
-                case 'gender_imbalance': {
-                    const f = group.filter(n => students[n] && students[n].gender === 'F').length;
-                    const m = group.filter(n => students[n] && students[n].gender === 'M').length;
-                    actualVal = Math.abs(f - m);
-                    triggered = compareValues(actualVal, cond.op, cond.val);
-                    break;
-                }
-                case 'leader_count': {
-                    actualVal = group.filter(n => students[n] && students[n].leader).length;
-                    triggered = compareValues(actualVal, cond.op, cond.val);
-                    break;
-                }
-                case 'partnered_before': {
-                    if (prevPairs && prevPairs.size > 0) {
-                        // Fast path: use pre-built pair Set from before MC loop
-                        let repeatCount = 0;
-                        for (let i = 0; i < group.length; i++) {
-                            for (let j = i + 1; j < group.length; j++) {
-                                const pairKey = [group[i], group[j]].sort().join('|');
-                                if (prevPairs.has(pairKey)) repeatCount++;
-                            }
-                        }
-                        actualVal = repeatCount;
-                        triggered = compareValues(actualVal, cond.op, cond.val);
-                    } else if (currentRounds && currentRounds.length > 0) {
-                        // Slow fallback: iterate over round data (for display/collectConflicts)
-                        let repeatCount = 0;
-                        for (let i = 0; i < group.length; i++) {
-                            for (let j = i + 1; j < group.length; j++) {
-                                for (const rd of currentRounds) {
-                                    if (rd.groups) {
-                                        for (const g of rd.groups) {
-                                            if (g.includes(group[i]) && g.includes(group[j])) { repeatCount++; break; }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        actualVal = repeatCount;
-                        triggered = compareValues(actualVal, cond.op, cond.val);
-                    }
-                    break;
-                }
-            }
-
-            if (triggered) {
-                // Only collect conflict details for display (NOT during scoring)
-                if (collectConflicts) {
-                    const condDesc = cond.func === 'same_group' || cond.func === 'count'
-                        ? cond.func + '(' + cond.args.attr + '=' + cond.args.val + ') ' + actualVal + ' ' + cond.op + ' ' + cond.val
-                        : cond.func + '() ' + actualVal + ' ' + cond.op + ' ' + cond.val;
-                    const members = group.map(n => students[n] ? students[n].originalName : n).join(', ');
-                    ruleConflicts.push({
-                        ruleName: rule.name,
-                        condition: condDesc,
-                        groupName: groupLabel || 'Group',
-                        members: members,
-                        action: cond.action
-                    });
-                    group.forEach(n => conflictMap.set(n, true));
-                }
-
-                // Apply the scoring action
-                switch (cond.action) {
-                    case 'separate':
-                        score -= 50000;
-                        violations++;
-                        break;
-                    case 'penalty':
-                        score -= (cond.actionArgs || 1000);
-                        violations++;
-                        break;
-                    case 'avoid':
-                        score -= 5000;
-                        violations++;
-                        break;
-                    case 'prefer':
-                        score += 500;
-                        break;
-                    case 'together':
-                        score += 200;
-                        break;
-                }
-            }
-        }
-    }
-    return { score, violations };
-}
-
-// Collect rule conflicts for the final displayed groups (called ONCE, not during MC scoring)
-function collectRuleConflicts(groups, prevPairsForDisplay) {
-    ruleConflicts = [];
-    if (!customRules || customRules.length === 0) return;
-    groups.forEach((g, gi) => {
-        evaluateRulesForGroup(g, groups, 'Group ' + (gi + 1), true, prevPairsForDisplay || null);
-    });
-}
-
 function identifyConflicts(groups) {
-    conflictMap = new Map();
-    if (!groups) return;
-    groups.forEach(g => {
-        for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) { 
-            if (!students[g[i]] || !students[g[j]]) continue;
-            if (students[g[i]].avoids.has(g[j])||students[g[j]].avoids.has(g[i])) { conflictMap.set(g[i],true); conflictMap.set(g[j],true); } 
-        }
-    });
-    // Note: rule conflicts are added to conflictMap by collectRuleConflicts(), called after this
+    conflictMap = computeConflicts(groups);
+}
+
+// Pure function: compute a conflict Map without mutating global state
+function computeConflicts(groups) {
+    const map = new Map();
+    if (!groups) return map;
+    groups.forEach(g => { for (let i=0;i<g.length;i++) for (let j=i+1;j<g.length;j++) { if (students[g[i]].avoids.has(g[j])||students[g[j]].avoids.has(g[i])) { map.set(g[i],true); map.set(g[j],true); } } });
+    return map;
 }
 
 // ===== RENDER GROUPS =====
@@ -2355,24 +2531,13 @@ function renderGroups(groups, violations) {
         return gn;
     }
 
-    function makeChips(g, gi) {
-        const gLabel = getGroupName(g, gi);
+    function makeChips(g, localConflicts) {
+        const cmap = localConflicts || conflictMap;
         return g.map(function(name) {
             const s = students[name]; if (!s) return '';
-            const isConflict = conflictMap.has(name);
-            // Build tooltip showing which rules are violated for this student
-            let tooltip = '';
-            if (isConflict) {
-                const studentConflicts = ruleConflicts.filter(rc => rc.members.split(', ').includes(s.originalName));
-                if (studentConflicts.length > 0) {
-                    tooltip = studentConflicts.map(rc => '@rule ' + rc.ruleName + ': ' + rc.condition + ' → ' + rc.action).join('; ');
-                } else {
-                    tooltip = 'Avoid constraint violated';
-                }
-            }
+            const isConflict = cmap.has(name);
             return '<span class="chip px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-600 bg-slate-700/50 text-slate-300' + (isConflict ? ' conflict-glow' : '') + '"' +
-                (tooltip ? ' title="' + esc(tooltip) + '"' : '') +
-                ' onmouseenter="inspect(\'' + escJSAttr(name) + '\')"' +
+                ' onmouseenter="inspect(\'' + escJS(name) + '\')"' +
                 ' onmouseleave="uninspect()">' + esc(s.originalName) + '</span>';
         }).join(' ');
     }
@@ -2387,47 +2552,28 @@ function renderGroups(groups, violations) {
         return s;
     }
 
-    function renderGroupsList(gs) {
+    function renderGroupsList(gs, localConflicts) {
         return gs.map(function(g, gi) {
-            // Find rule conflicts for this group
-            const gLabel = getGroupName(g, gi);
-            const gConflicts = ruleConflicts.filter(rc => rc.groupName === gLabel);
-            let conflictHtml = '';
-            if (gConflicts.length > 0) {
-                conflictHtml = '<div class="mt-1.5 pt-1.5 border-t border-red-900/30">' +
-                    gConflicts.map(rc => '<div class="text-[9px] text-red-400/80"><span class="text-pink-400 font-bold">@' + esc(rc.ruleName) + '</span> ' + esc(rc.condition) + ' <span class="text-slate-600">→</span> ' + esc(rc.action) + '</div>').join('') +
-                    '</div>';
-            }
             return '<div class="group-block">' +
                 '<div class="flex justify-between items-center mb-2">' +
                     '<span class="text-[11px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
                     '<span class="text-[9px] text-slate-600">' + g.length + ' members</span>' +
                 '</div>' +
-                '<div class="flex flex-wrap gap-1.5">' + makeChips(g, gi) + '</div>' +
+                '<div class="flex flex-wrap gap-1.5">' + makeChips(g, localConflicts) + '</div>' +
                 (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
-                conflictHtml +
             '</div>';
         }).join('');
     }
 
-    function renderGroupsCards(gs) {
+    function renderGroupsCards(gs, localConflicts) {
         return '<div class="group-grid">' + gs.map(function(g, gi) {
-            const gLabel = getGroupName(g, gi);
-            const gConflicts = ruleConflicts.filter(rc => rc.groupName === gLabel);
-            let conflictHtml = '';
-            if (gConflicts.length > 0) {
-                conflictHtml = '<div class="mt-1.5 pt-1.5 border-t border-red-900/30">' +
-                    gConflicts.map(rc => '<div class="text-[8px] text-red-400/80"><span class="text-pink-400 font-bold">@' + esc(rc.ruleName) + '</span> ' + esc(rc.condition) + '</div>').join('') +
-                    '</div>';
-            }
             return '<div class="group-card">' +
                 '<div class="flex justify-between items-center mb-2">' +
                     '<span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">' + esc(getGroupName(g, gi)) + '</span>' +
                     '<span class="text-[9px] text-slate-600">' + g.length + '</span>' +
                 '</div>' +
-                '<div class="flex flex-wrap gap-1">' + makeChips(g, gi) + '</div>' +
+                '<div class="flex flex-wrap gap-1">' + makeChips(g, localConflicts) + '</div>' +
                 (currentLang === 'advanced' ? '<div class="mt-2 pt-2 border-t border-slate-700/50">' + groupStats(g) + '</div>' : '') +
-                conflictHtml +
             '</div>';
         }).join('') + '</div>';
     }
@@ -2437,31 +2583,31 @@ function renderGroups(groups, violations) {
         // Ensure activeRoundTab is in range
         if (activeRoundTab >= currentRounds.length) activeRoundTab = 0;
         
-        var roundTabsHtml = '<div class="flex flex-wrap gap-1 mb-3 pb-3 border-b border-slate-700/50">';
+        let roundTabsHtml = '<div class="flex flex-wrap gap-1 mb-3 pb-3 border-b border-slate-700/50">';
         for (var ri = 0; ri < currentRounds.length; ri++) {
-            var isActive = ri === activeRoundTab;
-            var rv = currentRounds[ri].violations;
-            var tabColor = isActive ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
-            var vBadge = rv === 0 ? '<span class="text-[8px] text-emerald-400 ml-1">✓</span>' : '<span class="text-[8px] text-red-400 ml-1">' + rv + '</span>';
-            roundTabsHtml += '<button type="button" onclick="switchRoundTab(' + ri + ')" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + tabColor + ' transition-all hover:bg-blue-600/10">' +
+            let isActive = ri === activeRoundTab;
+            let rv = currentRounds[ri].violations;
+            let tabColor = isActive ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
+            let vBadge = rv === 0 ? '<span class="text-[8px] text-emerald-400 ml-1">✓</span>' : '<span class="text-[8px] text-red-400 ml-1">' + rv + '</span>';
+            roundTabsHtml += '<button onclick="switchRoundTab(' + ri + ')" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + tabColor + ' transition-all hover:bg-blue-600/10">' +
                 'R' + (ri + 1) + ': ' + esc(currentRounds[ri].label) + vBadge + '</button>';
         }
         // Cross-Round view tab
-        var isCrossActive = activeRoundTab === -1;
-        var crossColor = isCrossActive ? 'bg-purple-600/20 text-purple-400 border-purple-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
-        roundTabsHtml += '<button type="button" onclick="switchRoundTab(-1)" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + crossColor + ' transition-all hover:bg-purple-600/10">Cross-Round</button>';
+        let isCrossActive = activeRoundTab === -1;
+        let crossColor = isCrossActive ? 'bg-purple-600/20 text-purple-400 border-purple-500/50' : 'bg-slate-800/50 text-slate-500 border-slate-700/50';
+        roundTabsHtml += '<button onclick="switchRoundTab(-1)" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border ' + crossColor + ' transition-all hover:bg-purple-600/10">Cross-Round</button>';
         roundTabsHtml += '</div>';
 
         if (activeRoundTab === -1) {
             // Cross-Round view: show which students are together across rounds
-            var allNames = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
-            var crossHtml = '<div class="space-y-2">';
+            let allNames = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
+            let crossHtml = '<div class="space-y-2">';
             allNames.forEach(function(name) {
-                var s = students[name];
+                let s = students[name];
                 if (!s) return;
-                var partnerCounts = {};
+                let partnerCounts = {};
                 for (var cri = 0; cri < currentRounds.length; cri++) {
-                    var roundGroups = currentRounds[cri].groups;
+                    let roundGroups = currentRounds[cri].groups;
                     if (!roundGroups) continue;
                     for (var gi = 0; gi < roundGroups.length; gi++) {
                         if (roundGroups[gi].includes(name)) {
@@ -2475,9 +2621,9 @@ function renderGroups(groups, violations) {
                         }
                     }
                 }
-                var alwaysWith = Object.keys(partnerCounts).filter(p => partnerCounts[p] === currentRounds.length);
-                var sometimesWith = Object.keys(partnerCounts).filter(p => partnerCounts[p] > 0 && partnerCounts[p] < currentRounds.length);
-                var neverWith = allNames.filter(n => n !== name && !partnerCounts[n]);
+                let alwaysWith = Object.keys(partnerCounts).filter(p => partnerCounts[p] === currentRounds.length);
+                let sometimesWith = Object.keys(partnerCounts).filter(p => partnerCounts[p] > 0 && partnerCounts[p] < currentRounds.length);
+                let neverWith = allNames.filter(n => n !== name && !partnerCounts[n]);
 
                 crossHtml += '<div class="bg-slate-800/30 rounded-lg p-2.5 border border-slate-700/30">';
                 crossHtml += '<div class="text-[11px] font-bold text-slate-300 mb-1.5">' + esc(s.originalName) + '</div>';
@@ -2498,24 +2644,24 @@ function renderGroups(groups, violations) {
             crossHtml += '</div>';
             groupsBox.innerHTML = roundTabsHtml + crossHtml;
         } else {
-            // Show specific round
-            var roundData = currentRounds[activeRoundTab];
-            var roundGroups = roundData ? roundData.groups : groups;
-            // Save current conflict state, compute round-specific conflicts
-            var savedConflicts = ruleConflicts;
-            var savedConflictMap = new Set(conflictMap);
-            if (roundData && roundData.groups) {
-                identifyConflicts(roundData.groups);
-                collectRuleConflicts(roundData.groups, lastPrevPairs);
-            }
-            var roundHeader = '<div class="text-[9px] text-slate-500 mb-2">Round ' + (activeRoundTab + 1) + ': ' + esc(currentRounds[activeRoundTab].label) + (roundData.violations === 0 ? ' — <span class="text-emerald-400">Optimal</span>' : ' — <span class="text-red-400">' + roundData.violations + ' conflict' + (roundData.violations > 1 ? 's' : '') + '</span>') + '</div>';
+            // Show specific round — save/restore ruleConflicts and conflictMap instead of calling identifyConflicts
+            let roundData = currentRounds[activeRoundTab];
+            let roundGroups = roundData ? roundData.groups : groups;
+            let savedRuleConflicts = ruleConflicts;
+            let savedConflictMap = conflictMap;
+            let roundConflicts = computeConflicts(roundData ? roundData.groups : null);
+            let roundRuleConflicts = [];
+            if (roundData && roundData.groups) collectRuleConflicts(roundData.groups, lastPrevPairs);
+            roundRuleConflicts = ruleConflicts;
+            ruleConflicts = roundRuleConflicts;
+            let roundHeader = '<div class="text-[9px] text-slate-500 mb-2">Round ' + (activeRoundTab + 1) + ': ' + esc(currentRounds[activeRoundTab].label) + (roundData.violations === 0 ? ' — <span class="text-emerald-400">Optimal</span>' : ' — <span class="text-red-400">' + roundData.violations + ' conflict' + (roundData.violations > 1 ? 's' : '') + '</span>') + '</div>';
             if (groupViewMode === 'list') {
-                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsList(roundGroups);
+                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsList(roundGroups, roundConflicts);
             } else {
-                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsCards(roundGroups);
+                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsCards(roundGroups, roundConflicts);
             }
-            // Restore conflict state
-            ruleConflicts = savedConflicts;
+            // Restore saved conflict state
+            ruleConflicts = savedRuleConflicts;
             conflictMap = savedConflictMap;
         }
     } else {
@@ -2531,8 +2677,8 @@ function renderGroups(groups, violations) {
 function switchRoundTab(idx) {
     activeRoundTab = idx;
     if (currentRounds && currentRounds.length > 0) {
-        var roundIdx = idx >= 0 ? idx : 0;
-        var roundData = currentRounds[roundIdx] || currentRounds[0];
+        let roundIdx = idx >= 0 ? idx : 0;
+        let roundData = currentRounds[roundIdx] || currentRounds[0];
         renderGroups(roundData.groups, roundData.violations);
     }
 }
@@ -2567,7 +2713,6 @@ function setOverflowMode(mode) {
     const id = mode === 'newgroup' ? 'btn-overflow-newgroup' : mode === 'distributed' ? 'btn-overflow-dist' : 'btn-overflow-' + mode;
     const btn = document.getElementById(id);
     if (btn) { btn.classList.remove('bg-slate-800','text-slate-400','border-slate-700'); btn.classList.add('bg-blue-600','text-white','border-blue-500'); }
-    else { console.warn('setOverflowMode: unknown mode "' + mode + '", button #' + id + ' not found'); }
     runIDE();
 }
 
@@ -2592,11 +2737,12 @@ function switchLang(lang) {
 
     // Load the independent code for this editor
     if (lang === 'simple') {
-        textarea.value = cl.codeSimple;
+        textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+        if (!cl.codeSimple) hasNoSavedCode = true; else hasNoSavedCode = false;
     } else if (lang === 'advanced') {
-        textarea.value = cl.codeAdvanced;
+        textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+        if (!cl.codeAdvanced) hasNoSavedCode = true; else hasNoSavedCode = false;
     }
-    hasNoSavedCode = false;
     updateFileTypeLabel(); runIDE();
 }
 
@@ -2808,9 +2954,7 @@ function doExport() {
     // Close export menu
     document.getElementById('exportMenu').classList.remove('show');
 
-    // Save current editor to the active classroom first
-    saveEditorToClassroom();
-    const data = buildExportData(true);
+    const data = buildExportData();
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -2831,8 +2975,6 @@ function handleFileImport(event) {
 function handleDroppedFile(file) { processImportedFile(file); }
 
 function processImportedFile(file) {
-    // File size limit — prevent browser crash on huge files
-    if (file.size > 10 * 1024 * 1024) { toast('File too large (max 10MB)', 'error'); return; }
     const name = file.name.toLowerCase();
     const ext = '.' + name.split('.').pop();
     const proprietaryExts = ['.gls', '.gla', '.glu', '.json'];
@@ -2915,11 +3057,11 @@ function showImportModal(content, fileType) {
         html = '<div class="mb-4">' +
             '<div class="text-[10px] text-slate-400 mb-2 uppercase font-bold">Import as:</div>' +
             '<div class="flex gap-2 mb-4">' +
-                '<button type="button" onclick="selectImportTier(\'simple\')" class="import-option tier-opt flex-1 text-center" data-tier="simple">' +
+                '<button onclick="selectImportTier(\'simple\')" class="import-option tier-opt flex-1 text-center" data-tier="simple">' +
                     '<div class="text-[10px] font-bold text-green-400">Simple</div>' +
                     '<div class="text-[8px] text-slate-500">.gls mode</div>' +
                 '</button>' +
-                '<button type="button" onclick="selectImportTier(\'advanced\')" class="import-option tier-opt flex-1 text-center" data-tier="advanced">' +
+                '<button onclick="selectImportTier(\'advanced\')" class="import-option tier-opt flex-1 text-center" data-tier="advanced">' +
                     '<div class="text-[10px] font-bold text-blue-400">Advanced</div>' +
                     '<div class="text-[8px] text-slate-500">.gla mode</div>' +
                 '</button>' +
@@ -2943,14 +3085,14 @@ function showImportModal(content, fileType) {
     html += '<div class="mb-4">' +
         '<div class="text-[10px] text-slate-400 mb-2 uppercase font-bold">How to import:</div>' +
         '<div class="space-y-2">' +
-            '<button type="button" onclick="selectImportMethod(\'override\')" class="import-option override-opt w-full text-left flex items-center gap-3" data-method="override">' +
+            '<button onclick="selectImportMethod(\'override\')" class="import-option override-opt w-full text-left flex items-center gap-3" data-method="override">' +
                 '<svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>' +
                 '<div>' +
                     '<div class="text-[10px] font-bold text-red-400">Override Everything</div>' +
                     '<div class="text-[8px] text-slate-500">Replace all current editor content</div>' +
                 '</div>' +
             '</button>' +
-            '<button type="button" onclick="selectImportMethod(\'cursor\')" class="import-option w-full text-left flex items-center gap-3" data-method="cursor">' +
+            '<button onclick="selectImportMethod(\'cursor\')" class="import-option w-full text-left flex items-center gap-3" data-method="cursor">' +
                 '<svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>' +
                 '<div>' +
                     '<div class="text-[10px] font-bold text-blue-400">Insert at Cursor</div>' +
@@ -2969,7 +3111,7 @@ function showImportModal(content, fileType) {
 
     // Confirm button
     html += '<div class="flex justify-end mt-4">' +
-        '<button type="button" onclick="confirmImport()" id="import-confirm-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg opacity-50 cursor-not-allowed" disabled>Select options above</button>' +
+        '<button onclick="confirmImport()" id="import-confirm-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg opacity-50 cursor-not-allowed" disabled>Select options above</button>' +
     '</div>';
 
     area.innerHTML = html;
@@ -3114,7 +3256,7 @@ function confirmImport() {
         if (data.generated_code_advanced && !codeAdvanced) codeAdvanced = data.generated_code_advanced;
     } catch (ex) {
         // Not JSON — check for // lock= metadata comment in .gls/.gla/.glu files
-        var lockMatch = codeContent.match(/^\/\/\s*lock=([sau])/m);
+        let lockMatch = codeContent.match(/^\/\/\s*lock=([sau])/m);
         if (lockMatch) {
             fileLock = lockMatch[1];
             // Strip the lock metadata line from code
@@ -3122,7 +3264,7 @@ function confirmImport() {
         }
         // For .glu files with === SIMPLE === / === ADVANCED === sections
         if (fileType === 'glu' && codeContent.indexOf('=== SIMPLE ===') !== -1) {
-            var sections = codeContent.split(/===\s*(SIMPLE|ADVANCED)\s*===/);
+            let sections = codeContent.split(/===\s*(SIMPLE|ADVANCED)\s*===/);
             for (var si = 1; si < sections.length; si += 2) {
                 if (sections[si] === 'SIMPLE' && sections[si+1]) codeSimple = sections[si+1].trim();
                 if (sections[si] === 'ADVANCED' && sections[si+1]) codeAdvanced = sections[si+1].trim();
@@ -3224,7 +3366,7 @@ function renderClassTabs() {
         const lock = c.lock || 'u';
         const lockLabel = lock === 's' ? 'S' : lock === 'a' ? 'A' : 'U';
         const lockClass = 'lock-' + lock;
-        return '<button type="button" class="c-tab' + on + '" data-cidx="' + i + '">' +
+        return '<button class="c-tab' + on + '" data-cidx="' + i + '">' +
             '<svg class="c-edit" viewBox="0 0 16 16" fill="currentColor" onclick="startClassRename(event,' + i + ')" title="Rename"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.1a.25.25 0 00-.064.108l-.624 2.182 2.182-.624a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.353l-1.248-1.249z"/></svg>' +
             '<span class="c-name">' + esc(c.name) + '</span>' +
             '<span class="c-lock ' + lockClass + '" title="Lock: ' + (lock === 's' ? 'Simple only' : lock === 'a' ? 'Advanced only' : 'Universal') + '" onclick="cycleClassLock(event,' + i + ')">' + lockLabel + '</span>' +
@@ -3362,24 +3504,16 @@ function switchClassroom(idx) {
 
 // ===== PANEL EXPAND =====
 function toggleExpand(id) {
-    var el = document.getElementById(id);
-    var isExpanding = !el.classList.contains('panel-expanded');
-    el.classList.toggle('panel-expanded');
-    document.body.classList.toggle('panel-has-expanded', isExpanding || document.querySelector('.panel-expanded'));
+    const panel = document.getElementById(id);
+    panel.classList.toggle('panel-expanded');
+    document.body.classList.toggle('panel-has-expanded');
 }
-// Click backdrop to close expanded panel
-document.addEventListener('click', function(e) {
-    if (document.body.classList.contains('panel-has-expanded') && !e.target.closest('.panel-expanded') && !e.target.closest('button')) {
-        document.querySelectorAll('.panel-expanded').forEach(function(p) { p.classList.remove('panel-expanded'); });
-        document.body.classList.remove('panel-has-expanded');
-    }
-});
 
 // ===== VERSIONS =====
 function showVersions() {
     const cl = classrooms[activeClass]; const list = document.getElementById('version-list');
     if (!cl.versions || cl.versions.length === 0) { list.innerHTML = '<div class="text-slate-600 text-[10px] text-center py-4">No versions saved</div>'; }
-    else { list.innerHTML = cl.versions.map(function(v, i) { const date = new Date(v.time).toLocaleString(); const preview = (v.code||'').substring(0,60).replace(/\n/g,' '); return '<div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50"><div><div class="text-[10px] text-slate-400 font-bold">v'+(i+1)+' - '+date+'</div><div class="text-[9px] text-slate-600 font-mono truncate max-w-[250px]">'+esc(preview)+'</div></div><button type="button" onclick="restoreVersion('+i+')" class="text-[9px] text-blue-400 hover:text-blue-300 font-bold">Restore</button></div>'; }).join(''); }
+    else { list.innerHTML = cl.versions.map(function(v, i) { const date = new Date(v.time).toLocaleString(); const preview = (v.code||'').substring(0,60).replace(/\n/g,' '); return '<div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50"><div><div class="text-[10px] text-slate-400 font-bold">v'+(i+1)+' - '+date+'</div><div class="text-[9px] text-slate-600 font-mono truncate max-w-[250px]">'+esc(preview)+'</div></div><button onclick="restoreVersion('+i+')" class="text-[9px] text-blue-400 hover:text-blue-300 font-bold">Restore</button></div>'; }).join(''); }
     document.getElementById('version-modal').style.display = 'flex';
 }
 function closeVersions() { document.getElementById('version-modal').style.display = 'none'; }
@@ -3397,17 +3531,15 @@ function pushVersion() {
 
 // ===== SAVE =====
 function scheduleAutoSave() {
-    // Only start the periodic timer if timed saving is enabled and no timer is running
-    if (!saveConfig.timed && !saveConfig.edits) return;
-    if (autoSaveTimer) return; // Timer already running, don't reset it
-    if (saveConfig.timed) {
-        autoSaveTimer = setTimeout(function() {
-            autoSaveTimer = null; // Clear so it can be rescheduled
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(function() {
+        if (saveConfig.timed) {
             saveStorage();
             document.getElementById('savedLabel').textContent = 'Auto-saved ' + new Date().toLocaleTimeString();
-            scheduleAutoSave(); // Reschedule for next interval
-        }, (saveConfig.timedInterval||60)*1000);
-    }
+        }
+        // Restart the timer for recurring timed saves
+        scheduleAutoSave();
+    }, (saveConfig.timedInterval||60)*1000);
 }
 function checkEditSave() {
     if (saveConfig.edits && editCountSinceSave >= (saveConfig.editsCount||25)) {
@@ -3426,16 +3558,12 @@ function manualSave() {
 }
 
 // ===== ACTIVE JSON BACKUP =====
-// Helper: save current editor content to the active classroom slot
-function saveEditorToClassroom() {
+// Shared helper: build the export data object (no side effects beyond saving editor text)
+function buildExportData() {
     const cl = classrooms[activeClass];
+    // Save current editor to correct slot first
     if (currentLang === 'simple') cl.codeSimple = textarea.value;
     else if (currentLang === 'advanced') cl.codeAdvanced = textarea.value;
-}
-
-// Shared helper: build export data object for both JSON export and active backup
-function buildExportData(includeAllStudentFields) {
-    // NOTE: Caller must ensure editor code is saved to the classroom slot before calling this
 
     function formatGeneratedCode(code, modeLabel, className, fileExt) {
         const header = '// GroupLogic ' + modeLabel + ' \u2014 Class: ' + className + '\n// Copy this code into a .' + fileExt + ' file\n';
@@ -3458,7 +3586,7 @@ function buildExportData(includeAllStudentFields) {
             codeAdvanced: c.codeAdvanced || '',
             generated_code_simple: c.codeSimple ? formatGeneratedCode(c.codeSimple, 'Simple', c.name, 'gls') : '',
             generated_code_advanced: c.codeAdvanced ? formatGeneratedCode(c.codeAdvanced, 'Advanced', c.name, 'gla') : '',
-            groupSize: parseInt(sizeInp.value) || 2,
+            groupSize: parseInt(sizeInp.value) || 4,
             overflowMode: overflowMode,
             students: [],
             groups: []
@@ -3466,19 +3594,12 @@ function buildExportData(includeAllStudentFields) {
     });
 
     // Populate active classroom's live data
-    if (includeAllStudentFields) {
-        classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
-            name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
-            score: students[k].score, gender: students[k].gender, age: students[k].age,
-            role: students[k].role, leader: students[k].leader, tasks: students[k].tasks,
-            tag: students[k].tag, band: students[k].band, capacity: students[k].capacity, exclude: students[k].exclude
-        }));
-    } else {
-        classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
-            name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
-            score: students[k].score, gender: students[k].gender, role: students[k].role
-        }));
-    }
+    classroomsData[activeClass].students = Object.keys(students).filter(k => students[k].defined).map(k => ({
+        name: students[k].originalName, wants: [...students[k].wants], avoids: [...students[k].avoids],
+        score: students[k].score, gender: students[k].gender, age: students[k].age,
+        role: students[k].role, leader: students[k].leader, tasks: students[k].tasks,
+        tag: students[k].tag, band: students[k].band, capacity: students[k].capacity, exclude: students[k].exclude
+    }));
     classroomsData[activeClass].groups = currentGroups ? currentGroups.map(g => g.map(n => students[n] ? students[n].originalName : n)) : [];
 
     return {
@@ -3492,8 +3613,7 @@ function buildExportData(includeAllStudentFields) {
 
 function saveActiveJSON() {
     try {
-        saveEditorToClassroom();
-        const data = buildExportData(false);
+        const data = buildExportData();
         localStorage.setItem('glide_active_json', JSON.stringify(data));
     } catch(e) {}
 }
@@ -3693,6 +3813,40 @@ function openDocs() {
         '<p><code>exclude</code> flag — excludes the student from group generation entirely. They will not be placed in any group. Useful for tracking students who are absent.</p>' +
         '<p><b>Scoring system:</b> Fulfilled wants add +500 per pair (scaled by weight). Avoid violations subtract -100000 per pair. Leader conflicts: -500. Solo groups: -5000. Balance penalties vary by type.</p></div></div>' +
 
+        (isAdv ?
+        // ===== CUSTOM @rule SYNTAX =====
+        '<div class="docs-section"><h4>Custom Rules (@rule)</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
+        '<p><code>@rule name ... @end</code> — define custom rules that evaluate conditions on each group and apply actions when triggered. Rules let you express constraints that go beyond the built-in want/avoid system, such as dynamic penalties based on group composition or cross-round checks.</p>' +
+        '<p><b>Syntax:</b></p>' +
+        '<p><code>@rule my_rule_name</code></p>' +
+        '<p>&nbsp;&nbsp;<code>condition -> action</code></p>' +
+        '<p>&nbsp;&nbsp;<code>another_condition -> another_action</code></p>' +
+        '<p><code>@end</code></p>' +
+        '<p>Each line inside the rule block is a condition-action pair separated by <code>-></code> (arrow). When the condition is true for a group, the action is applied. You can have multiple condition-action pairs in one rule block, and multiple @rule blocks in your code.</p>' +
+        '<p><b>Available conditions:</b></p>' +
+        '<p><code>same_group(attr=val) > N</code> — true when more than N students in the group have the specified attribute equal to the value. Example: <code>same_group(gender=F) > 2</code> triggers when there are more than 2 females in a group.</p>' +
+        '<p><code>score_spread() > N</code> — true when the score range (max minus min) in the group exceeds N. Default threshold is 10. Example: <code>score_spread() > 20</code> triggers when scores in a group span more than 20 points.</p>' +
+        '<p><code>gender_imbalance() > N</code> — true when the absolute difference between male and female counts in the group exceeds N. Default threshold is 1. Example: <code>gender_imbalance() > 1</code> triggers when the gender difference is 2 or more.</p>' +
+        '<p><code>leader_count() > N</code> — true when the number of leaders in the group exceeds N. Default threshold is 1. Example: <code>leader_count() > 1</code> triggers when there are multiple leaders in the same group.</p>' +
+        '<p><code>has_leader()</code> — true when the group contains at least one leader.</p>' +
+        '<p><code>partnered_before()</code> — true when any two students in the group have been in the same group in a previous round (requires @rounds). Useful for enforcing variety across rounds.</p>' +
+        '<p><code>no_repeat()</code> — alias for partnered_before(). Triggers when any pair of students in the group have partnered together before.</p>' +
+        '<p><b>Available actions:</b></p>' +
+        '<p><code>separate</code> — applies a +500 penalty to the group score, pushing the optimizer to split the group members apart.</p>' +
+        '<p><code>penalty(N)</code> — applies a custom penalty of N points. Example: <code>penalty(200)</code> adds 200 to the group penalty.</p>' +
+        '<p><code>avoid</code> — applies a +300 penalty. Softer than separate, useful for preferences rather than hard constraints.</p>' +
+        '<p><code>together</code> — applies a -200 bonus (reduces penalty), encouraging the optimizer to keep the group together.</p>' +
+        '<p><code>prefer</code> — applies a -100 bonus. Softer encouragement for group composition.</p>' +
+        '<p><b>Full example:</b></p>' +
+        '<p><code>@rule balance_check</code></p>' +
+        '<p>&nbsp;&nbsp;<code>gender_imbalance() > 1 -> penalty(300)</code></p>' +
+        '<p>&nbsp;&nbsp;<code>score_spread() > 25 -> separate</code></p>' +
+        '<p>&nbsp;&nbsp;<code>leader_count() > 1 -> penalty(500)</code></p>' +
+        '<p><code>@end</code></p>' +
+        '<p>This rule checks every group: if gender imbalance exceeds 1, add 300 penalty; if score spread exceeds 25, strongly separate; if there are multiple leaders, add 500 penalty.</p>' +
+        '<p><b>Activation:</b> Use <code>@apply_rules = true</code> to ensure custom rules are always evaluated during scoring. Without this directive, rules may not be applied in all engine phases.</p></div></div>'
+        : '') +
+
         // ===== MULTI-ROUND GROUPING =====
         '<div class="docs-section"><h4>Multi-Round Grouping (@rounds)</h4><div class="docs-body text-[11px] text-slate-400 space-y-2">' +
         '<p><code>@rounds = mixed:score"Ionic", similar:score"PH", random"Mollar"</code> — generates multiple rounds of groups with different strategies. Each round can have a custom name in quotes that appears in the round tabs.</p>' +
@@ -3736,52 +3890,8 @@ function openDocs() {
         '<p><code>@tag_balance = honors</code> — spread students with this tag across groups</p>' +
         '<p><code>@rounds = mixed:score"Name", similar:score"Name", random"Name"</code> — multi-round grouping with custom names</p>' +
         '<p><code>@no_repeat_partners = true</code> — avoid placing same students together across rounds</p>' +
-        '<p><code>@rule name { condition → action }</code> — define custom grouping rules (see Custom Rules section)</p></div></div>' +
-
-        // ===== CUSTOM RULES =====
-        '<div class="docs-section"><h4>Custom Rules (@rule)</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
-        '<p>The <code>@rule</code> directive lets you define your own grouping constraints using built-in condition functions and actions. This gives you fine-grained control over how groups are formed, beyond the built-in directives like <code>@separate</code> and <code>@together</code>. Custom rules are evaluated for every group during the scoring phase, and violations affect the engine\'s group optimization just like built-in constraints.</p>' +
-        '<p><b>Syntax:</b></p>' +
-        '<p><code>@rule name {</code></p>' +
-        '<p><code>    condition → action</code></p>' +
-        '<p><code>}</code></p>' +
-        '<p>Each rule can contain multiple condition→action lines. The arrow can be written as <code>→</code> (Unicode) or <code>-></code> (ASCII). When a condition is met for any group, the corresponding action is applied as a scoring penalty or bonus.</p>' +
-        '<p class="mt-2"><b>Built-in Condition Functions:</b></p>' +
-        '<p><code>same_group(attr=val) > N</code> — triggers when more than N members with <code>attr=val</code> are in the same group. Works with <code>gender=M</code>, <code>gender=F</code>, <code>role="leader"</code>, <code>tag=honors</code>, <code>band=1</code>, etc. Alias: <code>count()</code>.</p>' +
-        '<p><code>score_spread() > N</code> — triggers when the score range (max minus min) in a group exceeds N. Use this to enforce score uniformity within groups.</p>' +
-        '<p><code>gender_imbalance() > N</code> — triggers when the absolute difference between male and female count in a group exceeds N. For example, <code>gender_imbalance() > 1</code> means no group should have a gender difference greater than 1.</p>' +
-        '<p><code>leader_count() > N</code> — triggers when a group has more than N leaders. <code>has_leader()</code> is a shorthand for <code>leader_count() > 0</code>.</p>' +
-        '<p><code>partnered_before()</code> — triggers when any pair of students in a group were together in a previous round. <code>no_repeat()</code> is an alias. Works with multi-round grouping (<code>@rounds</code>).</p>' +
-        '<p class="mt-2"><b>Built-in Actions:</b></p>' +
-        '<p><code>separate</code> — apply a heavy penalty (-50000) and count as a violation. The engine will strongly avoid this configuration, similar to <code>@separate</code>.</p>' +
-        '<p><code>penalty(N)</code> — apply a custom penalty of N points. Use for softer constraints that should be minimized but aren\'t hard violations.</p>' +
-        '<p><code>together</code> — add a bonus (+200). Use to prefer certain configurations.</p>' +
-        '<p><code>avoid</code> — apply a moderate penalty (-5000). Weaker than <code>separate</code> but still discourages the configuration.</p>' +
-        '<p><code>prefer</code> — add a preference bonus (+500). Encourages the configuration when the condition is met.</p>' +
-        '<p class="mt-2"><b>Examples:</b></p>' +
-        '<p><code>@rule no_boys_club {</code></p>' +
-        '<p><code>    same_group(gender=M) > 2 → separate</code></p>' +
-        '<p><code>}</code></p>' +
-        '<p>This ensures no group has more than 2 males. If 3+ males end up together, the engine treats it as a hard violation and tries to separate them.</p>' +
-        '<p><code>@rule spread_leaders {</code></p>' +
-        '<p><code>    leader_count() > 1 → penalty(500)</code></p>' +
-        '<p><code>}</code></p>' +
-        '<p>This applies a 500-point penalty each time a group has more than one leader, encouraging leaders to be spread across groups.</p>' +
-        '<p><code>@rule tight_scores {</code></p>' +
-        '<p><code>    score_spread() > 25 → penalty(200)</code></p>' +
-        '<p><code>}</code></p>' +
-        '<p>This penalizes groups where the score spread exceeds 25 points, encouraging score-uniform groups.</p>' +
-        '<p><code>@rule fresh_partners {</code></p>' +
-        '<p><code>    partnered_before() → separate</code></p>' +
-        '<p><code>}</code></p>' +
-        '<p>This ensures no two students who were together in a previous round end up together again. Equivalent to <code>@no_repeat_partners = true</code> but as a custom rule.</p>' +
-        '<p class="mt-2"><b>Activating Rules with @apply_rules:</b></p>' +
-        '<p>By default, ALL defined rules are automatically active. Use <code>@apply_rules</code> to selectively enable only specific rules by name. This is useful when you want to define multiple rules but only use some of them.</p>' +
-        '<p><code>@apply_rules = mixed_genders</code> — only the <code>mixed_genders</code> rule will run</p>' +
-        '<p><code>@apply_rules = spread_leaders, tight_scores</code> — multiple rules, comma-separated</p>' +
-        '<p>If <code>@apply_rules</code> is not specified, ALL defined rules are applied automatically.</p>' +
-        '<p class="mt-2"><b>Rule Conflict Display:</b></p>' +
-        '<p>When a rule is violated, the conflict is shown directly under the affected group in the output. Hover over a red-glowing student chip to see which rule was violated and the specific condition that triggered it. Conflicts from <code>separate</code>, <code>penalty</code>, and <code>avoid</code> actions all appear with the rule name and condition details.</p></div></div>' +
+        '<p><code>@rule name ... @end</code> — define custom condition-action rules for group evaluation</p>' +
+        '<p><code>@apply_rules = true</code> — activate custom @rule evaluation during scoring</p></div></div>' +
 
         // ===== FILE TYPES & LOCKS =====
         '<div class="docs-section"><h4>File Types & Locks</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
@@ -3825,173 +3935,8 @@ function openDocs() {
     overlay.querySelectorAll('.docs-section h4').forEach(function(h4) { h4.addEventListener('click', function() { this.parentElement.classList.toggle('open'); }); });
 }
 
-// ===== AI PROMPT COPY =====
-var AI_PROMPT_TEXT = [
-    'You are helping me build and modify GroupLogic IDE — an advanced group generator that\'s not really random. It uses a two-stage optimization pipeline (Monte Carlo stochastic search with 2,500 iterations + Hill Climbing refinement with 20 rounds) to form optimal groups based on user-defined constraints.',
-    '',
-    'The project is a single monolithic HTML file containing the full IDE with:',
-    '',
-    '=== EDITOR ===',
-    '- A code editor with transparent overlay syntax highlighting (highlighter div behind at z-index:1, transparent textarea on top at z-index:2, scrollTop/scrollLeft sync for perfect alignment). DO NOT modify the editor overlay system — it is fragile and already works correctly.',
-    '- Tier switcher: Simple / Advanced tabs. Each class stores both codes.',
-    '',
-    '=== SIMPLE MODE LANGUAGE ===',
-    '- Define a student: Name: +Want -Avoid',
-    '- Each student gets their own line. The colon separates the name from constraints.',
-    '- +Name = want constraint (soft, engine tries to satisfy). Weighted: +Name@8 (1-10 scale, default 5).',
-    '- -Name = avoid constraint (hard, 200x weight of want, -100,000 penalty).',
-    '- Comments: // or # prefix. Lines starting with these are ignored.',
-    '- Undefined target warning: yellow dotted underline if + or - references a name with no definition line.',
-    '- UI controls: Per Group input, Overflow buttons, Roster Sort (Manual allows drag-and-drop reorder).',
-    '',
-    '=== ADVANCED MODE LANGUAGE ===',
-    'Inherits all Simple syntax, plus:',
-    '',
-    'Student attributes:',
-    '- score=85 — numeric test/performance score for ability-based grouping.',
-    '- band=high — categorical band label (high, mid, low, honors, etc.).',
-    '- gender=M / gender=F / gender=X — gender category for balance.',
-    '- age=16 — numeric age for age-balanced grouping.',
-    '- role=pm — freeform role string (pm, dev, researcher, etc.).',
-    '- leader — flags student as group leader. Engine tries one per group (-500 penalty for multiples).',
-    '- tag=honors — category tag for custom rules and @tag_balance.',
-    '- capacity=3 — limits group size when this student is present.',
-    '- exclude — excludes student from groups entirely (absent).',
-    '',
-    'Directives:',
-    '- @group_size = 4 — target students per group (replaces UI control in Advanced mode).',
-    '- @min_group = 2 / @max_group = 6 — hard bounds on group sizes.',
-    '- @overflow = even|newgroup|small — how to handle leftover students. even=distribute, newgroup=create extra group, small=last group smaller.',
-    '- @group_name = "Lab %d" — custom naming (%d=number, %s=size).',
-    '- @name_dynamic = true — name groups after their leader.',
-    '- @arrange_by = score|gender|age — initial Monte Carlo seeding strategy.',
-    '- @balance = gender,scores,roles,age — balance criteria (comma-separated). Gender minimizes M/F difference per group. Scores minimizes within-group variance.',
-    '- @band_width = 10 — max score spread within a group. Heavy penalty if exceeded.',
-    '- @separate = Alice,Bob — force into different groups (-50,000 per pair violation). All pairs are mutual.',
-    '- @together = Alice,Bob — force into same group. All listed students placed together.',
-    '- @iterations = 5000 — Monte Carlo trial count (default 2500).',
-    '- @hill_climb = 30 — refinement rounds (default 20).',
-    '- @strict = true — any avoid violation is unacceptable, shows STRICT label.',
-    '- @template = score-lab|gender-balance|leader-projects|basic — load a preset template.',
-    '- @tag_balance = honors — spread students with this tag across groups.',
-    '',
-    'Multi-Round Grouping:',
-    '- @rounds = mixed:score"Ionic", similar:score"PH", random"Mollar" — multiple rounds with strategies and custom names.',
-    '- Strategies: mixed:score (snake-draft, high+low together), similar:score (sequential, high+high), mixed:gender, similar:gender, random.',
-    '- @no_repeat_partners = true — ensures no two students are together across rounds.',
-    '- @apply_rules = rule1,rule2 — only apply the listed custom rules. If not specified, ALL defined rules are applied.',
-    '- Cross-Round tab shows who is always/sometimes/never together.',
-    '',
-    'Conditional Constraints:',
-    '- if(condition) { constraints } — applies constraints only when condition is true at parse time.',
-    '- Conditions: count > 10, has_role leader, any_score >= 90.',
-    '- Comparison operators: > < >= <= == !=',
-    '',
-    'Custom Rules (@rule):',
-    '- @rule name { condition → action } — define custom grouping constraints.',
-    '- Arrow can be → (Unicode) or -> (ASCII).',
-    '- Conditions:',
-    '  same_group(attr=val) > N — triggers when >N members with that attribute are in the same group. Works with gender=M, role="leader", tag=honors, band=1, etc.',
-    '  count(attr=val) > N — alias for same_group().',
-    '  score_spread() > N — triggers when score range (max-min) exceeds N.',
-    '  gender_imbalance() > N — triggers when |male-female| > N.',
-    '  leader_count() > N — triggers when group has >N leaders.',
-    '  has_leader() — shorthand for leader_count() > 0.',
-    '  partnered_before() — triggers when any pair was together in a previous round.',
-    '  no_repeat() — alias for partnered_before().',
-    '- Actions:',
-    '  separate — heavy penalty (-50,000) + violation count. Like @separate.',
-    '  penalty(N) — custom N-point penalty. For softer constraints.',
-    '  avoid — moderate penalty (-5,000). Weaker than separate.',
-    '  together — bonus (+200). Prefer this configuration.',
-    '  prefer — bonus (+500). Encourage when condition is met.',
-    '- @apply_rules = name1,name2 — only activate listed rules. Without this directive, all defined rules run.',
-    '- Rule conflicts are displayed under each group in the output, showing which rule was violated and the specific condition. Red-glowing chips indicate affected students, with tooltip details on hover.',
-    '',
-    '=== SCORING SYSTEM ===',
-    '- Avoid violation: -100,000 per pair (hard constraint, 200x weight).',
-    '- Want satisfaction: +500 per pair, scaled by weight (@8 = 800, etc.).',
-    '- Leader conflict (multiple leaders in group): -500 per extra leader.',
-    '- Solo group (1 person): -5,000.',
-    '- Score proximity within band: +200 per close pair.',
-    '- Missing required role: -10,000 per group.',
-    '- Custom @rule penalties/bonuses are layered on top of base scoring.',
-    '',
-    '=== UI FEATURES ===',
-    '- Interactive roster panel (250px default, shows 4-6 names).',
-    '- Live output panel (360px default, shows ~3 groups).',
-    '- Resizable panels with drag handles on editor, roster, and output.',
-    '- Fullscreen panel mode with backdrop overlay (body.panel-has-expanded::after).',
-    '- Conflict glow: pulsing red border on students with avoid violations.',
-    '- Hover-to-inspect: hover any roster student to see their wants/avoids.',
-    '- Multi-class tabs with rename & lock (U/S/A modes).',
-    '- Version history: max 3 snapshots, restore from status bar.',
-    '- Auto-save: timed (60s default) and edit-count (25 default).',
-    '- Rich export: .gls (Simple), .gla (Advanced), .glu (Universal), .json (full backup).',
-    '- Import: .gls/.gla/.glu/.json/.txt (txt needs [[glu]] marker).',
-    '- Settings gear icon in header.',
-    '',
-    '=== FILE TYPES ===',
-    '- .gls = GroupLogic Simple (lock: s). .gla = Advanced (lock: a). .glu = Universal (lock: u).',
-    '- .json = full backup with all classrooms, lock settings, both editor codes, student data.',
-    '- Lock system: U (universal, both editors), S (Simple only), A (Advanced only). Click lock badge to cycle.',
-    '',
-    'GitHub: https://github.com/PandaGamesCode/GroupLogic-IDE',
-    'Website: https://sites.google.com/view/grouplogic-ide/',
-    '',
-    'WHAT I WANT YOU TO HELP ME WITH:',
-    '[Describe what you want the AI to code or change here]'
-].join('\n');
-
-function copyAIPromptIDE(btn) {
-    function onSuccess() {
-        btn.classList.add('copied', 'pop');
-        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!';
-        setTimeout(function() {
-            btn.classList.remove('copied', 'pop');
-            btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg> Copy AI Prompt';
-        }, 2500);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(AI_PROMPT_TEXT).then(onSuccess).catch(function() {
-            fallbackCopyIDE(AI_PROMPT_TEXT); onSuccess();
-        });
-    } else {
-        fallbackCopyIDE(AI_PROMPT_TEXT); onSuccess();
-    }
-}
-function fallbackCopyIDE(text) {
-    var ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); } catch(e) {}
-    document.body.removeChild(ta);
-}
-
-// ===== LOAD EXAMPLE =====
-function loadExample() {
-    const cl = classrooms[activeClass];
-    // Switch to Simple mode and load the example
-    if (currentLang !== 'simple') {
-        // Save current advanced code first
-        cl.codeAdvanced = textarea.value;
-        currentLang = 'simple';
-        updateLangTabs();
-    }
-    textarea.value = DEFAULT_SIMPLE;
-    cl.codeSimple = DEFAULT_SIMPLE;
-    hasNoSavedCode = true;
-    // Close docs
-    const overlay = document.getElementById('docsOverlay');
-    if (overlay) overlay.remove();
-    updateFileTypeLabel(); runIDE();
-    toast('Example code loaded into Simple editor', 'success');
-}
-
-// Init — set overflow mode before first run to avoid double computation
-overflowMode = 'even';
-document.getElementById('btn-overflow-even').classList.remove('bg-slate-800','text-slate-400','border-slate-700');
-document.getElementById('btn-overflow-even').classList.add('bg-blue-600','text-white','border-blue-500');
+// Init
+setOverflowMode('even');
 </script>
 </body>
 </html>
