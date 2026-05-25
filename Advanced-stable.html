@@ -586,7 +586,7 @@
                     <div class="flex items-center gap-2"><span class="text-cyan-400 font-bold">score=</span><span class="text-slate-600">85</span></div>
                     <div class="flex items-center gap-2"><span class="text-cyan-400 font-bold">gender=</span><span class="text-slate-600">M/F/X</span></div>
                     <div class="flex items-center gap-2"><span class="text-cyan-400 font-bold">age=</span><span class="text-slate-600">16</span></div>
-                    <div class="flex items-center gap-2"><span class="text-orange-400 font-bold">role=</span><span class="text-slate-600">"leader"</span></div>
+                    <div class="flex items-center gap-2"><span class="text-orange-400 font-bold">role=</span><span class="text-slate-600">"leader"|"teacher"</span></div>
                     <div class="flex items-center gap-2"><span class="text-teal-400 font-bold">leader</span></div>
                     <div class="flex items-center gap-2"><span class="text-purple-400 font-bold">task=</span></div>
                     <div class="flex items-center gap-2"><span class="text-orange-300 font-bold">tag=</span></div>
@@ -753,6 +753,7 @@ let directives = {};
 let customRules = [];
 let ruleConflicts = [];
 let overflowMode = 'even';
+let autoExcludedTeachers = []; // teachers auto-excluded because student count is even
 let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
 let hasNoSavedCode = true;
@@ -1380,6 +1381,7 @@ All Simple syntax PLUS:
 - band=high — categorical band label
 - capacity=3 — limits group size when student is present
 - exclude — excludes student from grouping entirely
+- role="teacher" — auto overflow: included when odd students, excluded when even
 - +Target@w — weighted want (1-10)
 
 === DIRECTIVES (@key = value) ===
@@ -2203,7 +2205,25 @@ function _calculateGroupsInner() {
         return;
     }
 
-    const keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
+    let keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
+
+    // ===== Smart Teacher Overflow =====
+    // role="teacher" entities are auto-included when student count is odd
+    // (teacher fills the last pair), and auto-excluded when even (all students
+    // pair perfectly). Teachers with explicit 'exclude' stay excluded.
+    const teacherKeys = keys.filter(k => students[k].role === 'teacher');
+    const nonTeacherKeys = keys.filter(k => students[k].role !== 'teacher');
+    autoExcludedTeachers = []; // track for rendering
+    if (teacherKeys.length > 0) {
+        if (nonTeacherKeys.length % 2 === 0) {
+            // Even number of students: teacher sits out — perfect pairs
+            keys = nonTeacherKeys;
+            autoExcludedTeachers = teacherKeys;
+        }
+        // Odd number of students: teacher stays in keys to fill the last pair
+        // (already in keys, no action needed)
+    }
+
     if (keys.length < 2) {
         currentRounds = null;
         groupsBox.innerHTML = '<div class="text-slate-700 text-[10px] text-center py-16 font-bold uppercase">Add students to generate groups</div>';
@@ -2536,9 +2556,12 @@ function renderGroups(groups, violations) {
         return g.map(function(name) {
             const s = students[name]; if (!s) return '';
             const isConflict = cmap.has(name);
-            return '<span class="chip px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-600 bg-slate-700/50 text-slate-300' + (isConflict ? ' conflict-glow' : '') + '"' +
+            const isTeacher = s.role === 'teacher';
+            const teacherClass = isTeacher ? ' border-amber-600/60 bg-amber-900/30 text-amber-300' : '';
+            const teacherIcon = isTeacher ? '<svg class="w-3 h-3 inline mr-0.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : '';
+            return '<span class="chip px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-600 bg-slate-700/50 text-slate-300' + (isConflict ? ' conflict-glow' : '') + teacherClass + '"' +
                 ' onmouseenter="inspect(\'' + escJS(name) + '\')"' +
-                ' onmouseleave="uninspect()">' + esc(s.originalName) + '</span>';
+                ' onmouseleave="uninspect()">' + teacherIcon + esc(s.originalName) + '</span>';
         }).join(' ');
     }
 
@@ -2642,7 +2665,7 @@ function renderGroups(groups, violations) {
                 crossHtml += '</div>';
             });
             crossHtml += '</div>';
-            groupsBox.innerHTML = roundTabsHtml + crossHtml;
+            groupsBox.innerHTML = roundTabsHtml + crossHtml + renderAutoExcludedTeachers();
         } else {
             // Show specific round — save/restore ruleConflicts and conflictMap instead of calling identifyConflicts
             let roundData = currentRounds[activeRoundTab];
@@ -2656,9 +2679,9 @@ function renderGroups(groups, violations) {
             ruleConflicts = roundRuleConflicts;
             let roundHeader = '<div class="text-[9px] text-slate-500 mb-2">Round ' + (activeRoundTab + 1) + ': ' + esc(currentRounds[activeRoundTab].label) + (roundData.violations === 0 ? ' — <span class="text-emerald-400">Optimal</span>' : ' — <span class="text-red-400">' + roundData.violations + ' conflict' + (roundData.violations > 1 ? 's' : '') + '</span>') + '</div>';
             if (groupViewMode === 'list') {
-                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsList(roundGroups, roundConflicts);
+                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsList(roundGroups, roundConflicts) + renderAutoExcludedTeachers();
             } else {
-                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsCards(roundGroups, roundConflicts);
+                groupsBox.innerHTML = roundTabsHtml + roundHeader + renderGroupsCards(roundGroups, roundConflicts) + renderAutoExcludedTeachers();
             }
             // Restore saved conflict state
             ruleConflicts = savedRuleConflicts;
@@ -2667,11 +2690,26 @@ function renderGroups(groups, violations) {
     } else {
         // Single round (original behavior)
         if (groupViewMode === 'list') {
-            groupsBox.innerHTML = renderGroupsList(groups);
+            groupsBox.innerHTML = renderGroupsList(groups) + renderAutoExcludedTeachers();
         } else {
-            groupsBox.innerHTML = renderGroupsCards(groups);
+            groupsBox.innerHTML = renderGroupsCards(groups) + renderAutoExcludedTeachers();
         }
     }
+}
+
+// Render a small info block for teachers auto-excluded because student count is even
+function renderAutoExcludedTeachers() {
+    if (autoExcludedTeachers.length === 0) return '';
+    return '<div class="mt-3 pt-3 border-t border-slate-700/30">' +
+        '<div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1.5">Teacher (Standing By — Even Student Count)</div>' +
+        autoExcludedTeachers.map(k => {
+            const s = students[k];
+            return '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-amber-700/40 bg-amber-900/20 text-amber-300">' +
+                '<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
+                esc(s.originalName) + '</span>';
+        }).join(' ') +
+        '<div class="text-[8px] text-slate-600 mt-1">All students paired perfectly — teacher is not assigned to a group.</div>' +
+    '</div>';
 }
 
 function switchRoundTab(idx) {
@@ -2737,10 +2775,10 @@ function switchLang(lang) {
 
     // Load the independent code for this editor
     if (lang === 'simple') {
-        textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+        textarea.value = cl.codeSimple || '';
         if (!cl.codeSimple) hasNoSavedCode = true; else hasNoSavedCode = false;
     } else if (lang === 'advanced') {
-        textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+        textarea.value = cl.codeAdvanced || '';
         if (!cl.codeAdvanced) hasNoSavedCode = true; else hasNoSavedCode = false;
     }
     updateFileTypeLabel(); runIDE();
@@ -3216,10 +3254,10 @@ function confirmImport() {
             else currentLang = cl.lang || 'simple';
 
             if (currentLang === 'simple') {
-                textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+                textarea.value = cl.codeSimple || '';
                 hasNoSavedCode = !cl.codeSimple;
             } else {
-                textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+                textarea.value = cl.codeAdvanced || '';
                 hasNoSavedCode = !cl.codeAdvanced;
             }
             // Restore editor height if saved in the import
@@ -3341,11 +3379,11 @@ function confirmImport() {
         if (tier === 'simple' && currentLang !== 'simple') {
             currentLang = 'simple';
             updateLangTabs();
-            textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+            textarea.value = cl.codeSimple || '';
         } else if (tier === 'advanced' && currentLang !== 'advanced') {
             currentLang = 'advanced';
             updateLangTabs();
-            textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+            textarea.value = cl.codeAdvanced || '';
         }
 
         pendingImportContent = codeContent;
@@ -3400,13 +3438,13 @@ function cycleClassLock(e, idx) {
     if (newLock === 's' && currentLang === 'advanced') {
         cl.codeAdvanced = textarea.value;
         currentLang = 'simple';
-        textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+        textarea.value = cl.codeSimple || '';
     }
     // If locking to 'a' and currently in simple, switch to advanced
     if (newLock === 'a' && currentLang === 'simple') {
         cl.codeSimple = textarea.value;
         currentLang = 'advanced';
-        textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+        textarea.value = cl.codeAdvanced || '';
     }
 
     cl.lock = newLock;
@@ -3435,10 +3473,10 @@ function removeClassroom(e, idx) {
     const c = classrooms[activeClass];
     // Restore editor for the new active classroom
     if (currentLang === 'simple') {
-        textarea.value = c.codeSimple || DEFAULT_SIMPLE;
+        textarea.value = c.codeSimple || '';
         hasNoSavedCode = !c.codeSimple;
     } else {
-        textarea.value = c.codeAdvanced || DEFAULT_ADVANCED;
+        textarea.value = c.codeAdvanced || '';
         hasNoSavedCode = !c.codeAdvanced;
     }
     updateLangTabs();
@@ -3493,10 +3531,10 @@ function switchClassroom(idx) {
     updateLangTabs();
 
     if (targetLang === 'simple') {
-        textarea.value = c.codeSimple || DEFAULT_SIMPLE;
+        textarea.value = c.codeSimple || '';
         hasNoSavedCode = !c.codeSimple;
     } else {
-        textarea.value = c.codeAdvanced || DEFAULT_ADVANCED;
+        textarea.value = c.codeAdvanced || '';
         hasNoSavedCode = !c.codeAdvanced;
     }
     renderClassTabs(); runIDE();
@@ -3666,10 +3704,10 @@ function loadStorage() {
             else if (cl.lang) currentLang = cl.lang;
 
             if (currentLang === 'simple') {
-                textarea.value = cl.codeSimple || DEFAULT_SIMPLE;
+                textarea.value = cl.codeSimple || '';
                 hasNoSavedCode = !cl.codeSimple;
             } else {
-                textarea.value = cl.codeAdvanced || DEFAULT_ADVANCED;
+                textarea.value = cl.codeAdvanced || '';
                 hasNoSavedCode = !cl.codeAdvanced;
             }
         }
@@ -3811,6 +3849,7 @@ function openDocs() {
         '<p><code>@strict = true</code> — in strict mode, any avoid violation is considered unacceptable. The engine label will show "STRICT" with the number of unresolved violations, making it clear when constraints cannot be satisfied.</p>' +
         '<p><code>capacity=3</code> on a student — limits the group size when that student is present. If a student has capacity=3, no group containing them can exceed 3 members.</p>' +
         '<p><code>exclude</code> flag — excludes the student from group generation entirely. They will not be placed in any group. Useful for tracking students who are absent.</p>' +
+        '<p><code>role="teacher"</code> — smart overflow handling. When a student has the teacher role, the engine automatically includes or excludes them based on student count parity. If the number of non-teacher students is even, the teacher sits out (all students form perfect pairs). If odd, the teacher is included and paired with the leftover student. This means you never need to manually toggle <code>exclude</code> on the teacher when your class size changes. The teacher chip is highlighted with an amber border and person icon in groups.</p>' +
         '<p><b>Scoring system:</b> Fulfilled wants add +500 per pair (scaled by weight). Avoid violations subtract -100000 per pair. Leader conflicts: -500. Solo groups: -5000. Balance penalties vary by type.</p></div></div>' +
 
         (isAdv ?
