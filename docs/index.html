@@ -431,8 +431,8 @@
         // ============================================
         // SET THIS TO true WHEN THE GITHUB REPO IS READY
         // ============================================
-        var SHOW_GITHUB = false;
-        var GITHUB_URL  = "https://github.com/YOUR_ORG/grouplogic-ide";
+        var SHOW_GITHUB = true;
+        var GITHUB_URL  = "https://github.com/PandaGamesCode/GroupLogic-IDE/";
     </script>
 
     <!-- Navigation -->
@@ -636,315 +636,354 @@
     <section class="doc-section" id="how-it-works">
         <div class="max-w-5xl mx-auto px-6">
             <div class="flex items-center gap-3 mb-6">
-                <span class="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em]">Section 02</span>
+                <span class="text-[10px] font-black text-green-400 uppercase tracking-[0.2em]">Section 02</span>
                 <span class="flex-1 h-px bg-slate-800"></span>
             </div>
             <h2 class="text-4xl md:text-5xl font-black text-white mb-8">How It Works</h2>
-            <p class="text-slate-400 text-lg max-w-3xl mb-20 leading-relaxed">
+            <p class="text-slate-400 text-lg max-w-3xl mb-16 leading-relaxed">
                 The engine uses a two-stage optimization pipeline designed for constraint satisfaction. Stage 1 casts a wide net with randomized sampling; Stage 2 tightens the result with targeted local search.
             </p>
 
-            <!-- Algorithm Pipeline -->
-            <div class="grid md:grid-cols-5 gap-6 items-center mb-20">
+            <!-- Pipeline visual -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-20 items-center">
                 <div class="algo-step md:col-span-1">
-                    <div class="text-3xl mb-4">&#x1F4DD;</div>
-                    <h4 class="font-bold text-white text-sm mb-2">Parse Rules</h4>
-                    <p class="text-[11px] text-slate-500">Build student graph with wants, avoids, scores &amp; roles</p>
+                    <div class="text-2xl mb-3">📝</div>
+                    <div class="text-sm font-bold text-white mb-1">Parse Rules</div>
+                    <div class="text-xs text-slate-500">Build graph</div>
                 </div>
-                <div class="algo-arrow hidden md:flex">&#x2192;</div>
+                <div class="algo-arrow hidden md:flex">→</div>
                 <div class="algo-step md:col-span-1">
-                    <div class="text-3xl mb-4">&#x1F3B2;</div>
-                    <h4 class="font-bold text-white text-sm mb-2">Monte Carlo</h4>
-                    <p class="text-[11px] text-slate-500">2,500 random shuffles scored &amp; ranked</p>
+                    <div class="text-2xl mb-3">🎲</div>
+                    <div class="text-sm font-bold text-white mb-1">Monte Carlo</div>
+                    <div class="text-xs text-slate-500">2,500 shuffles</div>
                 </div>
-                <div class="algo-arrow hidden md:flex">&#x2192;</div>
+                <div class="algo-arrow hidden md:flex">→</div>
                 <div class="algo-step md:col-span-1">
-                    <div class="text-3xl mb-4">&#x26F0;&#xFE0F;</div>
-                    <h4 class="font-bold text-white text-sm mb-2">Hill Climbing</h4>
-                    <p class="text-[11px] text-slate-500">Swap conflicting students to better groups</p>
+                    <div class="text-2xl mb-3">🧗</div>
+                    <div class="text-sm font-bold text-white mb-1">Hill Climbing</div>
+                    <div class="text-xs text-slate-500">Swap conflicts</div>
                 </div>
             </div>
 
-            <!-- Stage Details -->
-            <div class="grid md:grid-cols-2 gap-10 mb-20">
-                <div class="gradient-border">
-                    <div class="gradient-border-inner">
-                        <div class="flex items-center gap-3 mb-5">
-                            <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-lg text-xs font-bold">STAGE 1</span>
-                            <h3 class="text-lg font-bold text-white">Stochastic Monte Carlo</h3>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-6 leading-relaxed">
-                            The engine generates 2,500 independent random groupings by shuffling all students and distributing them round-robin into groups of the target size. Each trial is immediately scored using the weighted evaluation function. The trial with the fewest constraint violations (and highest satisfaction score among ties) becomes the candidate for refinement. In advanced mode, the initial shuffle respects score bands, so students with similar scores are more likely to start in the same group before optimization reshuffles them.
-                        </p>
-                        <div class="code-block">
-                            <div class="code-body text-xs">
+            <!-- Stage 1 -->
+            <div class="grid md:grid-cols-2 gap-12 mb-20">
+                <div>
+                    <h3 class="text-2xl font-bold text-white mb-4">Stage 1: Stochastic Monte Carlo</h3>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        The engine generates 2,500 independent random groupings by shuffling all students and distributing them round-robin into groups of the target size. Each trial is immediately scored using the weighted evaluation function. The trial with the fewest constraint violations (and highest satisfaction score among ties) becomes the candidate for refinement.
+                    </p>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        In advanced mode, the initial shuffle respects score bands, so students with similar scores are more likely to start in the same group before optimization reshuffles them.
+                    </p>
+                </div>
+                <div class="code-block shadow-xl shadow-black/20">
+                    <div class="code-block-header">
+                        <span class="code-dot code-dot-red"></span>
+                        <span class="code-dot code-dot-yellow"></span>
+                        <span class="code-dot code-dot-green"></span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-2">Monte Carlo</span>
+                    </div>
+                    <div class="code-body text-xs">
 <span class="syn-keyword">for</span> i = <span class="syn-number">0</span> .. <span class="syn-number">2500</span>:
-  trial = random_shuffle(students)
-  trial_groups = distribute(trial, group_size)
-  <span class="syn-keyword">if</span> score(trial_groups) > best_score:
+  trial = <span class="syn-func">random_shuffle</span>(students)
+  trial_groups = <span class="syn-func">distribute</span>(trial, group_size)
+  <span class="syn-keyword">if</span> <span class="syn-func">score</span>(trial_groups) > best_score:
     best = trial_groups
   <span class="syn-keyword">if</span> violations == <span class="syn-number">0</span>: <span class="syn-keyword">break</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="gradient-border">
-                    <div class="gradient-border-inner">
-                        <div class="flex items-center gap-3 mb-5">
-                            <span class="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-lg text-xs font-bold">STAGE 2</span>
-                            <h3 class="text-lg font-bold text-white">Hill Climbing Refinement</h3>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-6 leading-relaxed">
-                            If violations remain after Stage 1, the engine identifies students currently placed in groups with their avoided peers and attempts to move them to another group. For each conflicting student, every possible target group is tested. If a swap reduces total violations, it's accepted immediately. This process repeats up to 20 refinement loops or until no further improvement is possible. In advanced mode, the hill climbing also considers score proximity and role coverage as secondary optimization targets.
-                        </p>
-                        <div class="code-block">
-                            <div class="code-body text-xs">
+            <!-- Stage 2 -->
+            <div class="grid md:grid-cols-2 gap-12 mb-20">
+                <div class="code-block shadow-xl shadow-black/20 md:order-2">
+                    <div class="code-block-header">
+                        <span class="code-dot code-dot-red"></span>
+                        <span class="code-dot code-dot-yellow"></span>
+                        <span class="code-dot code-dot-green"></span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-2">Hill Climbing</span>
+                    </div>
+                    <div class="code-body text-xs">
 <span class="syn-keyword">for</span> round = <span class="syn-number">0</span> .. <span class="syn-number">20</span>:
   <span class="syn-keyword">for each</span> student <span class="syn-keyword">in</span> conflict:
     <span class="syn-keyword">for each</span> other_group:
-      test = move(student, other_group)
-      <span class="syn-keyword">if</span> violations(test) < violations(best):
-        accept(test); <span class="syn-keyword">break</span>
+      test = <span class="syn-func">move</span>(student, other_group)
+      <span class="syn-keyword">if</span> <span class="syn-func">violations</span>(test) < <span class="syn-func">violations</span>(best):
+        <span class="syn-func">accept</span>(test); <span class="syn-keyword">break</span>
   <span class="syn-keyword">if</span> !improved: <span class="syn-keyword">break</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Scoring Function -->
-            <h3 class="text-2xl font-bold text-white mb-8">Scoring Function</h3>
-            <p class="text-slate-400 mb-8 leading-relaxed max-w-3xl">
-                The evaluation function assigns a numerical score to each candidate grouping. The scoring is deliberately asymmetric: avoidance violations are penalized far more heavily than preference satisfactions are rewarded. This ensures the optimizer always prioritizes separating conflicting pairs over pairing preferred ones.
-            </p>
-
-            <div class="code-block max-w-2xl mb-8">
-                <div class="code-block-header">
-                    <span class="code-dot code-dot-red"></span>
-                    <span class="code-dot code-dot-yellow"></span>
-                    <span class="code-dot code-dot-green"></span>
-                    <span class="text-[11px] text-slate-500 ml-2 font-mono">scoring.gl</span>
-                </div>
-                <div class="code-body text-sm">
-<span class="syn-comment">// Per pair (a, b) in the same group:</span>
-<span class="syn-keyword">if</span> a.<span class="syn-func">wants</span>(b):  score += <span class="syn-number">+500</span>    <span class="syn-comment">// Soft preference</span>
-<span class="syn-keyword">if</span> a.<span class="syn-func">avoids</span>(b): score += <span class="syn-number">-100,000</span> <span class="syn-comment">// Hard constraint (200x weight)</span>
-<span class="syn-keyword">if</span> group.<span class="syn-func">size</span> == <span class="syn-number">1</span>: score += <span class="syn-number">-5,000</span>  <span class="syn-comment">// Loneliness penalty</span>
-
-<span class="syn-comment">// Advanced mode additions:</span>
-<span class="syn-keyword">if</span> |a.<span class="syn-func">score</span> - b.<span class="syn-func">score</span>| < <span class="syn-name">band_width</span>: score += <span class="syn-number">+200</span>
-<span class="syn-keyword">if</span> !group.<span class="syn-func">has_role</span>(<span class="syn-string">"leader"</span>):   score += <span class="syn-number">-10,000</span>
+                <div class="md:order-1">
+                    <h3 class="text-2xl font-bold text-white mb-4">Stage 2: Hill Climbing Refinement</h3>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        If violations remain after Stage 1, the engine identifies students currently placed in groups with their avoided peers and attempts to move them to another group. For each conflicting student, every possible target group is tested. If a swap reduces total violations, it's accepted immediately.
+                    </p>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        This process repeats up to 20 refinement loops or until no further improvement is possible. In advanced mode, the hill climbing also considers score proximity and role coverage as secondary optimization targets.
+                    </p>
                 </div>
             </div>
 
-            <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-8">
-                <p class="text-sm text-slate-400 leading-relaxed">
-                    <span class="text-white font-semibold">Why the asymmetry?</span> A group where two people conflict is often worse than a group where nobody specifically requested each other. Conflict can derail an entire project, while the absence of a preferred partner is merely suboptimal. The 200:1 penalty ratio ensures the engine will break preference pairs to resolve conflicts before it considers breaking preference pairs to satisfy other preferences. This mirrors how real facilitators think: "First, do no harm." Score proximity and role coverage are secondary&mdash;important, but never at the cost of creating a conflict.
-                </p>
+            <!-- Scoring -->
+            <div class="gradient-border max-w-4xl mx-auto">
+                <div class="gradient-border-inner">
+                    <h3 class="text-2xl font-bold text-white mb-6 text-center">Scoring Function</h3>
+                    <p class="text-slate-400 text-center mb-8 max-w-2xl mx-auto">
+                        The evaluation function is deliberately asymmetric: avoidance violations are penalized far more heavily than preference satisfactions are rewarded.
+                    </p>
+                    <div class="code-block shadow-xl shadow-black/20">
+                        <div class="code-block-header">
+                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Scoring</span>
+                        </div>
+                        <div class="code-body text-xs">
+<span class="syn-comment"># Per pair (a, b) in the same group:</span>
+<span class="syn-keyword">if</span> a.<span class="syn-func">wants</span>(b):   score += <span class="syn-number">+500</span>       <span class="syn-comment"># Soft preference</span>
+<span class="syn-keyword">if</span> a.<span class="syn-func">avoids</span>(b):  score += <span class="syn-number">-100,000</span>   <span class="syn-comment"># Hard constraint (200x weight)</span>
+<span class="syn-keyword">if</span> group.size == <span class="syn-number">1</span>: score += <span class="syn-number">-5,000</span>  <span class="syn-comment"># Loneliness penalty</span>
+
+<span class="syn-comment"># Advanced mode additions:</span>
+<span class="syn-keyword">if</span> |a.score - b.score| < band_width: score += <span class="syn-number">+200</span>
+<span class="syn-keyword">if</span> !group.<span class="syn-func">has_role</span>(<span class="syn-string">"leader"</span>):        score += <span class="syn-number">-10,000</span>
+                        </div>
+                    </div>
+                    <div class="mt-8 bg-slate-900/50 border border-slate-700/50 rounded-xl p-6">
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            <span class="text-white font-bold">Why the asymmetry?</span> A group where two people conflict is often worse than a group where nobody specifically requested each other. Conflict can derail an entire project, while the absence of a preferred partner is merely suboptimal. The 200:1 penalty ratio ensures the engine will break preference pairs to resolve conflicts before it considers breaking preference pairs to satisfy other preferences. This mirrors how real facilitators think: <span class="text-white font-medium">"First, do no harm."</span> Score proximity and role coverage are secondary — important, but never at the cost of creating a conflict.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
     <div class="section-divider"></div>
 
-    <!-- ============================== LANGUAGE TIERS ============================== -->
+    <!-- ============================== LANGUAGE ============================== -->
     <section class="doc-section" id="language">
         <div class="max-w-5xl mx-auto px-6">
             <div class="flex items-center gap-3 mb-6">
-                <span class="text-[10px] font-black text-green-400 uppercase tracking-[0.2em]">Section 03</span>
+                <span class="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em]">Section 03</span>
                 <span class="flex-1 h-px bg-slate-800"></span>
             </div>
             <h2 class="text-4xl md:text-5xl font-black text-white mb-8">The Language</h2>
-            <p class="text-slate-400 text-lg max-w-3xl mb-10 leading-relaxed">
-                Three language tiers, switchable in the editor with one click. Start simple, grow into power. Every tier uses the same engine&mdash;the language just controls how much you can express.
+            <p class="text-slate-400 text-lg max-w-3xl mb-12 leading-relaxed">
+                Three language tiers, switchable in the editor with one click. Start simple, grow into power. Every tier uses the same engine — the language just controls how much you can express.
             </p>
 
             <!-- Tier Selector -->
-            <div class="tier-selector max-w-2xl mb-14">
-                <button class="tier-btn active-simple" onclick="showTier('simple')" id="btn-simple">Simple</button>
-                <button class="tier-btn" onclick="showTier('advanced')" id="btn-advanced">Advanced</button>
-                <button class="tier-btn" onclick="showTier('python')" id="btn-python">GroupLogic.py</button>
+            <div class="tier-selector max-w-xl mx-auto mb-16">
+                <button class="tier-btn active-simple" data-tier="simple" onclick="switchTier('simple')">Simple</button>
+                <button class="tier-btn" data-tier="advanced" onclick="switchTier('advanced')">Advanced</button>
+                <button class="tier-btn" data-tier="python" onclick="switchTier('python')">GroupLogic.py</button>
             </div>
 
-            <!-- ========== SIMPLE TIER ========== -->
+            <!-- =================== SIMPLE TIER =================== -->
             <div class="tier-panel visible" id="tier-simple">
-                <div class="bg-green-500/5 border border-green-500/20 rounded-2xl p-8 mb-10">
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="status-badge status-done">Current</span>
-                        <h3 class="text-xl font-bold text-white">Simple Mode &mdash; The OG Language</h3>
-                    </div>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        The original GroupLogic DSL. One line per person, prefix operators for preferences, nothing else to learn. Designed for the 5-second onboarding: if you can type a name and add + or - in front of another name, you can use it. This tier is perfect for simple social constraints&mdash;who likes who, who can't work with who&mdash;and covers 80% of real classroom use cases.
-                    </p>
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="status-badge status-done">Current</span>
+                    <h3 class="text-2xl font-bold text-white">Tier 1: Simple — The OG Language</h3>
                 </div>
-                <div class="grid md:grid-cols-2 gap-10 mb-10">
-                    <div>
-                        <h4 class="text-lg font-bold text-white mb-6">Syntax Reference</h4>
-                        <div class="space-y-5">
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-3 mb-3"><span class="syn-name font-mono text-sm">Name</span><span class="syn-op font-mono">:</span></div>
-                                <p class="text-xs text-slate-400">A person definition. Names are case-insensitive. Each name defines one "node" in the social graph.</p>
+                <p class="text-slate-400 mb-10 leading-relaxed max-w-3xl">
+                    The original GroupLogic DSL. One line per person, prefix operators for preferences, nothing else to learn. Designed for the 5-second onboarding: if you can type a name and add <code class="text-blue-400">+</code> or <code class="text-red-400">-</code> in front of another name, you can use it. This tier is perfect for simple social constraints — who likes who, who can't work with who — and covers 80% of real classroom use cases.
+                </p>
+
+                <!-- Syntax reference -->
+                <div class="grid md:grid-cols-2 gap-6 mb-12">
+                    <div class="feature-card">
+                        <h4 class="text-sm font-bold text-green-400 uppercase tracking-wider mb-6">Syntax Reference</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <code class="text-blue-400 font-bold text-sm">Name:</code>
+                                <p class="text-slate-500 text-sm mt-1">A person definition. Names are case-insensitive. Each name defines one "node" in the social graph.</p>
                             </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-3 mb-3"><span class="syn-op font-mono text-sm">+</span><span class="syn-want font-mono text-sm">Target</span></div>
-                                <p class="text-xs text-slate-400">A <strong class="text-green-400">want</strong> constraint. Soft&mdash;the optimizer tries to satisfy it but will break it to resolve a conflict.</p>
+                            <div>
+                                <code class="text-green-400 font-bold text-sm">+Target</code>
+                                <p class="text-slate-500 text-sm mt-1">A <strong class="text-green-400">want</strong> constraint. Soft — the optimizer tries to satisfy it but will break it to resolve a conflict.</p>
                             </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-3 mb-3"><span class="syn-op font-mono text-sm">-</span><span class="syn-avoid font-mono text-sm">Target</span></div>
-                                <p class="text-xs text-slate-400">An <strong class="text-red-400">avoid</strong> constraint. Hard constraint with 200x the weight of a want.</p>
+                            <div>
+                                <code class="text-red-400 font-bold text-sm">-Target</code>
+                                <p class="text-slate-500 text-sm mt-1">An <strong class="text-red-400">avoid</strong> constraint. Hard constraint with 200x the weight of a want.</p>
                             </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-3 mb-3"><span class="syn-comment font-mono text-sm">// comment</span></div>
-                                <p class="text-xs text-slate-400">Comment line. Ignored by the parser. Use to annotate or temporarily disable rules.</p>
+                            <div>
+                                <code class="text-slate-500 font-bold text-sm">// comment</code>
+                                <p class="text-slate-500 text-sm mt-1">Comment line. Ignored by the parser. Use to annotate or temporarily disable rules.</p>
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <h4 class="text-lg font-bold text-white mb-6">Example</h4>
-                        <div class="code-block">
-                            <div class="code-block-header">
-                                <span class="code-dot code-dot-red"></span><span class="code-dot code-dot-yellow"></span><span class="code-dot code-dot-green"></span>
-                                <span class="text-[11px] text-slate-500 ml-2 font-mono">classroom.gl</span>
-                            </div>
-                            <div class="code-body text-sm">
+                    <div class="code-block shadow-xl shadow-black/20 h-fit">
+                        <div class="code-block-header">
+                            <span class="code-dot code-dot-red"></span>
+                            <span class="code-dot code-dot-yellow"></span>
+                            <span class="code-dot code-dot-green"></span>
+                            <span class="text-[10px] font-bold text-green-400 uppercase tracking-wider ml-2">simple</span>
+                        </div>
+                        <div class="code-body text-xs">
 <span class="syn-comment">// Science Fair Teams (groups of 3)</span>
 <span class="syn-name">Alice</span><span class="syn-op">:</span> <span class="syn-op">+</span><span class="syn-want">Bob</span> <span class="syn-op">+</span><span class="syn-want">Diana</span> <span class="syn-op">-</span><span class="syn-avoid">Charlie</span>
-<span class="syn-name">Bob</span><span class="syn-op">:</span> <span class="syn-op">+</span><span class="syn-want">Alice</span> <span class="syn-op">-</span><span class="syn-avoid">Eve</span>
+<span class="syn-name">Bob</span><span class="syn-op">:</span>   <span class="syn-op">+</span><span class="syn-want">Alice</span> <span class="syn-op">-</span><span class="syn-avoid">Eve</span>
 <span class="syn-name">Charlie</span><span class="syn-op">:</span> <span class="syn-op">-</span><span class="syn-avoid">Alice</span>
 <span class="syn-name">Diana</span><span class="syn-op">:</span> <span class="syn-op">+</span><span class="syn-want">Alice</span>
-<span class="syn-name">Eve</span><span class="syn-op">:</span> <span class="syn-op">+</span><span class="syn-want">Frank</span> <span class="syn-op">-</span><span class="syn-avoid">Bob</span>
+<span class="syn-name">Eve</span><span class="syn-op">:</span>   <span class="syn-op">+</span><span class="syn-want">Frank</span> <span class="syn-op">-</span><span class="syn-avoid">Bob</span>
 <span class="syn-name">Frank</span><span class="syn-op">:</span> <span class="syn-op">+</span><span class="syn-want">Eve</span>
 <span class="syn-name">Grace</span><span class="syn-op">:</span> <span class="syn-op">+</span><span class="syn-want">Frank</span>
 <span class="syn-name">Henry</span><span class="syn-op">:</span>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ========== ADVANCED TIER ========== -->
+            <!-- =================== ADVANCED TIER =================== -->
             <div class="tier-panel" id="tier-advanced">
-                <div class="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-8 mb-10">
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="status-badge status-done">Current</span>
-                        <h3 class="text-xl font-bold text-white">Advanced Mode &mdash; Scores, Roles & Weighted Preferences</h3>
-                    </div>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        Extends the simple syntax with everything a teacher needs for data-driven grouping. Score-based banding groups students by test performance. Role tags ensure each group has the right mix. Weighted preferences let you express "I strongly want Bob" vs. "I'd mildly prefer Diana." The <code class="text-slate-300 bg-slate-800 px-1 rounded">separate</code> and <code class="text-slate-300 bg-slate-800 px-1 rounded">together</code> directives handle multi-person constraints. All while keeping line-by-line readability.
-                    </p>
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="status-badge status-done">Shipped</span>
+                    <h3 class="text-2xl font-bold text-white">Tier 2: Advanced — Scores, Roles & Weighted Preferences</h3>
                 </div>
-                <div class="grid md:grid-cols-2 gap-10 mb-10">
-                    <div>
-                        <h4 class="text-lg font-bold text-white mb-6">New Syntax</h4>
-                        <div class="space-y-5">
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-2 mb-3 flex-wrap"><span class="syn-name font-mono text-sm">Name</span><span class="syn-op font-mono">:</span><span class="syn-op font-mono text-sm">+</span><span class="syn-want font-mono text-sm">Target</span><span class="syn-keyword font-mono">@N</span></div>
-                                <p class="text-xs text-slate-400">Weighted preference. <code class="text-slate-300 bg-slate-800 px-1 rounded">@8</code> means "strongly want" (1-10 scale). Default is 5.</p>
-                            </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">score</span><span class="syn-op font-mono">=</span><span class="syn-number font-mono text-sm">N</span></div>
-                                <p class="text-xs text-slate-400">Test/performance score. The engine uses scores for band-based grouping.</p>
-                            </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">role</span><span class="syn-op font-mono">=</span><span class="syn-string font-mono text-sm">"type"</span></div>
-                                <p class="text-xs text-slate-400">Tag a student with a role. "leader", "researcher", etc. Use <code class="text-slate-300 bg-slate-800 px-1 rounded">balance</code> to require role distribution.</p>
-                            </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">separate</span> <span class="syn-name font-mono text-sm">A</span><span class="syn-op font-mono">,</span> <span class="syn-name font-mono text-sm">B</span></div>
-                                <p class="text-xs text-slate-400">All listed students must be in different groups. Like mutual -avoid but concise.</p>
-                            </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">together</span> <span class="syn-name font-mono text-sm">A</span><span class="syn-op font-mono">,</span> <span class="syn-name font-mono text-sm">B</span></div>
-                                <p class="text-xs text-slate-400">Hard pair: A and B must be in the same group. Cannot be broken even for conflicts.</p>
-                            </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">band_strategy</span><span class="syn-op font-mono">=</span><span class="syn-string font-mono text-sm">"similar"</span></div>
-                                <p class="text-xs text-slate-400">How to group by scores. "similar", "mixed", or "bands".</p>
-                            </div>
-                            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                                <div class="flex items-center gap-2 mb-3"><span class="syn-keyword font-mono text-sm">balance</span> <span class="syn-string font-mono text-sm">"role"</span> <span class="syn-keyword font-mono text-sm">min</span> <span class="syn-number font-mono text-sm">N</span></div>
-                                <p class="text-xs text-slate-400">Each group must have at least N students with that role.</p>
-                            </div>
+                <p class="text-slate-400 mb-10 leading-relaxed max-w-3xl">
+                    Extends the simple syntax with everything a teacher needs for data-driven grouping. Score-based banding groups students by test performance. Role tags ensure each group has the right mix. Weighted preferences let you express "I strongly want Bob" vs. "I'd mildly prefer Diana." The <code class="text-blue-400">separate</code> and <code class="text-blue-400">together</code> directives handle multi-person constraints. Overflow modes control how extra students are distributed. All while keeping line-by-line readability.
+                </p>
+
+                <!-- Syntax reference -->
+                <div class="feature-card mb-12">
+                    <h4 class="text-sm font-bold text-blue-400 uppercase tracking-wider mb-6">New Syntax</h4>
+                    <div class="space-y-5">
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-green-400 font-bold text-sm">Name: +Target@N</code>
+                            <p class="text-slate-500 text-sm">Weighted preference. <code class="text-cyan-400">@8</code> means "strongly want" (1-10 scale). Default is 5.</p>
+                        </div>
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-cyan-400 font-bold text-sm">score=N</code>
+                            <p class="text-slate-500 text-sm">Test/performance score. The engine uses scores for band-based grouping.</p>
+                        </div>
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-amber-400 font-bold text-sm">role="type"</code>
+                            <p class="text-slate-500 text-sm">Tag a student with a role. "leader", "researcher", etc. Use <code class="text-blue-400">balance</code> to require role distribution.</p>
+                        </div>
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-red-400 font-bold text-sm">separate A, B</code>
+                            <p class="text-slate-500 text-sm">All listed students must be in different groups. Like mutual -avoid but concise.</p>
+                        </div>
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-green-400 font-bold text-sm">together A, B</code>
+                            <p class="text-slate-500 text-sm">Hard pair: A and B must be in the same group. Cannot be broken even for conflicts.</p>
+                        </div>
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-purple-400 font-bold text-sm">band_strategy="similar"</code>
+                            <p class="text-slate-500 text-sm">How to group by scores. "similar", "mixed", or "bands".</p>
+                        </div>
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-orange-400 font-bold text-sm">@overflow = absorb|even|newgroup|small</code>
+                            <p class="text-slate-500 text-sm">How to handle extra students. <strong class="text-white">absorb</strong> (default): distribute into existing groups, no solo groups. <strong class="text-white">even</strong>: balance across all groups. <strong class="text-white">newgroup</strong>: fill groups fully, overflow forms new group. <strong class="text-white">small</strong>: same as newgroup.</p>
+                        </div>
+                        <div class="grid md:grid-cols-[240px_1fr] gap-2 items-start">
+                            <code class="text-pink-400 font-bold text-sm">balance "role" min N</code>
+                            <p class="text-slate-500 text-sm">Each group must have at least N students with that role.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Example -->
+                <div class="grid md:grid-cols-2 gap-8 mb-12">
+                    <div class="code-block shadow-xl shadow-black/20">
+                        <div class="code-block-header">
+                            <span class="code-dot code-dot-red"></span>
+                            <span class="code-dot code-dot-yellow"></span>
+                            <span class="code-dot code-dot-green"></span>
+                            <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider ml-2">advanced</span>
+                        </div>
+                        <div class="code-body text-xs">
+<span class="syn-comment">// Post-test grouping strategy</span>
+<span class="syn-keyword">@group_size</span> = <span class="syn-number">4</span>
+<span class="syn-keyword">@overflow</span> = <span class="syn-string">absorb</span>
+<span class="syn-keyword">@balance</span> = <span class="syn-string">scores</span>
+<span class="syn-name">band_strategy</span> = <span class="syn-string">"similar"</span>
+<span class="syn-name">band_width</span> = <span class="syn-number">15</span>
+
+<span class="syn-name">Alice</span><span class="syn-op">:</span>   <span class="syn-name">score</span>=<span class="syn-number">92</span> <span class="syn-name">role</span>=<span class="syn-string">"leader"</span>     <span class="syn-op">+</span><span class="syn-want">Bob</span><span class="syn-keyword">@8</span>
+<span class="syn-name">Bob</span><span class="syn-op">:</span>     <span class="syn-name">score</span>=<span class="syn-number">88</span> <span class="syn-name">role</span>=<span class="syn-string">"researcher"</span> <span class="syn-op">+</span><span class="syn-want">Alice</span>
+<span class="syn-name">Charlie</span><span class="syn-op">:</span> <span class="syn-name">score</span>=<span class="syn-number">85</span> <span class="syn-op">-</span><span class="syn-avoid">Eve</span>
+<span class="syn-name">Diana</span><span class="syn-op">:</span>   <span class="syn-name">score</span>=<span class="syn-number">91</span> <span class="syn-name">role</span>=<span class="syn-string">"leader"</span>     <span class="syn-op">+</span><span class="syn-want">Alice</span><span class="syn-keyword">@3</span>
+<span class="syn-name">Eve</span><span class="syn-op">:</span>     <span class="syn-name">score</span>=<span class="syn-number">72</span> <span class="syn-op">-</span><span class="syn-avoid">Charlie</span> <span class="syn-op">+</span><span class="syn-want">Frank</span>
+<span class="syn-name">Frank</span><span class="syn-op">:</span>   <span class="syn-name">score</span>=<span class="syn-number">70</span> <span class="syn-op">+</span><span class="syn-want">Eve</span>
+<span class="syn-name">Grace</span><span class="syn-op">:</span>   <span class="syn-name">score</span>=<span class="syn-number">75</span> <span class="syn-name">role</span>=<span class="syn-string">"presenter"</span>
+<span class="syn-name">Henry</span><span class="syn-op">:</span>   <span class="syn-name">score</span>=<span class="syn-number">68</span>
+
+<span class="syn-keyword">@separate</span> Alice, Diana
+<span class="syn-name">balance</span> <span class="syn-string">"leader"</span> <span class="syn-keyword">min</span> <span class="syn-number">1</span>
                         </div>
                     </div>
                     <div>
-                        <h4 class="text-lg font-bold text-white mb-6">Score-Based Grouping Example</h4>
-                        <div class="code-block mb-8">
-                            <div class="code-block-header">
-                                <span class="code-dot code-dot-red"></span><span class="code-dot code-dot-yellow"></span><span class="code-dot code-dot-green"></span>
-                                <span class="text-[11px] text-slate-500 ml-2 font-mono">science_class.gl</span>
+                        <h4 class="text-lg font-bold text-white mb-4">Result: Score-Banded Groups</h4>
+                        <div class="space-y-4">
+                            <div class="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+                                <div class="text-sm font-bold text-green-400 mb-1">High Band (85-92)</div>
+                                <div class="text-slate-400 text-sm">Alice (92), Bob (88), Charlie (85)</div>
                             </div>
-                            <div class="code-body text-xs">
-<span class="syn-comment">// Post-test grouping strategy</span>
-<span class="syn-keyword">group_size</span> = <span class="syn-number">4</span>
-<span class="syn-keyword">overflow</span> = <span class="syn-string">absorb</span>
-<span class="syn-keyword">balance</span> = <span class="syn-string">scores</span>
-<span class="syn-keyword">band_strategy</span> = <span class="syn-string">"similar"</span>
-<span class="syn-keyword">band_width</span> = <span class="syn-number">15</span>
-
-<span class="syn-name">Alice</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">92</span> <span class="syn-keyword">role</span>=<span class="syn-string">"leader"</span> <span class="syn-op">+</span><span class="syn-want">Bob</span><span class="syn-keyword">@8</span>
-<span class="syn-name">Bob</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">88</span> <span class="syn-keyword">role</span>=<span class="syn-string">"researcher"</span> <span class="syn-op">+</span><span class="syn-want">Alice</span>
-<span class="syn-name">Charlie</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">85</span> <span class="syn-op">-</span><span class="syn-avoid">Eve</span>
-<span class="syn-name">Diana</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">91</span> <span class="syn-keyword">role</span>=<span class="syn-string">"leader"</span> <span class="syn-op">+</span><span class="syn-want">Alice</span><span class="syn-keyword">@3</span>
-<span class="syn-name">Eve</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">72</span> <span class="syn-op">-</span><span class="syn-avoid">Charlie</span> <span class="syn-op">+</span><span class="syn-want">Frank</span>
-<span class="syn-name">Frank</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">70</span> <span class="syn-op">+</span><span class="syn-want">Eve</span>
-<span class="syn-name">Grace</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">75</span> <span class="syn-keyword">role</span>=<span class="syn-string">"presenter"</span>
-<span class="syn-name">Henry</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">68</span>
-
-<span class="syn-keyword">separate</span> <span class="syn-name">Alice</span>, <span class="syn-name">Diana</span>
-<span class="syn-keyword">balance</span> <span class="syn-string">"leader"</span> <span class="syn-keyword">min</span> <span class="syn-number">1</span>
+                            <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                                <div class="text-sm font-bold text-blue-400 mb-1">Mid Band (72-75)</div>
+                                <div class="text-slate-400 text-sm">Diana (91), Eve (72), Grace (75)</div>
+                            </div>
+                            <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                                <div class="text-sm font-bold text-amber-400 mb-1">Low Band (68-70)</div>
+                                <div class="text-slate-400 text-sm">Frank (70), Henry (68)</div>
                             </div>
                         </div>
-                        <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6">
-                            <h4 class="text-sm font-bold text-white mb-4">Result: Score-Banded Groups</h4>
-                            <div class="space-y-3 text-xs text-slate-400">
-                                <div>
-                                    <span class="text-slate-500 font-bold">High Band (85-92):</span>
-                                    <span class="bg-green-500/10 text-green-400 px-2 py-0.5 rounded ml-1">Alice (92)</span>
-                                    <span class="bg-green-500/10 text-green-400 px-2 py-0.5 rounded">Bob (88)</span>
-                                    <span class="bg-green-500/10 text-green-400 px-2 py-0.5 rounded">Charlie (85)</span>
-                                </div>
-                                <div>
-                                    <span class="text-slate-500 font-bold">Mid Band (72-75):</span>
-                                    <span class="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded ml-1">Diana (91)</span>
-                                    <span class="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">Eve (72)</span>
-                                    <span class="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">Grace (75)</span>
-                                </div>
-                                <div>
-                                    <span class="text-slate-500 font-bold">Low Band (68-70):</span>
-                                    <span class="bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded ml-1">Frank (70)</span>
-                                    <span class="bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded">Henry (68)</span>
-                                </div>
-                            </div>
-                        </div>
+
+                        <h4 class="text-lg font-bold text-white mt-8 mb-4">Overflow Modes Explained</h4>
+                        <p class="text-slate-500 text-sm mb-4">When students don't divide evenly into groups, the <code class="text-orange-400">@overflow</code> directive controls how the remainder is handled.</p>
+                        <table class="compare-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mode</th>
+                                    <th>Example (7 / 2)</th>
+                                    <th>Behavior</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="text-orange-400 font-medium">absorb</td>
+                                    <td>[3, 2, 2]</td>
+                                    <td>Distributes overflow. No solo groups.</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white font-medium">even</td>
+                                    <td>[2, 2, 2, 1]</td>
+                                    <td>Creates balanced groups. May produce solo.</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white font-medium">newgroup</td>
+                                    <td>[2, 2, 2, 1]</td>
+                                    <td>Fills groups first, remainder forms new.</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white font-medium">small</td>
+                                    <td>[2, 2, 2, 1]</td>
+                                    <td>Same as newgroup.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- ========== PYTHON TIER ========== -->
+            <!-- =================== PYTHON TIER =================== -->
             <div class="tier-panel" id="tier-python">
-                <div class="bg-purple-500/5 border border-purple-500/20 rounded-2xl p-8 mb-10">
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="status-badge status-planned">Planned</span>
-                        <h3 class="text-xl font-bold text-white">GroupLogic.py &mdash; Python-Powered Super Advanced</h3>
-                    </div>
-                    <p class="text-sm text-slate-400 leading-relaxed mb-4">
-                        The ultimate tier. GroupLogic.py combines Python's familiarity with GroupLogic's domain-specific primitives. For advanced users&mdash;teachers who code, data scientists, researchers&mdash;who need to express grouping logic beyond any DSL. Python holds your hand with familiar syntax while GroupLogic's library provides the domain power.
-                    </p>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        Instead of inventing a new language for complex scenarios, we embed GroupLogic's constraint system inside Python. You get Python's full expressiveness (loops, conditionals, data structures, imports) plus GroupLogic's engine as a library. Write a script that loads scores from CSV, computes dynamic bands, applies different strategies per subject, generates multi-round assignments, and exports as PDF&mdash;all in one file.
-                    </p>
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="status-badge status-planned">Planned</span>
+                    <h3 class="text-2xl font-bold text-white">Tier 3: GroupLogic.py — Python-Powered Super Advanced</h3>
                 </div>
-                <div class="grid md:grid-cols-2 gap-10 mb-10">
-                    <div>
-                        <h4 class="text-lg font-bold text-white mb-6">Library API</h4>
-                        <div class="code-block">
-                            <div class="code-block-header">
-                                <span class="code-dot code-dot-red"></span><span class="code-dot code-dot-yellow"></span><span class="code-dot code-dot-green"></span>
-                                <span class="text-[11px] text-slate-500 ml-2 font-mono">grouplogic_api.py</span>
-                            </div>
-                            <div class="code-body text-xs">
+                <p class="text-slate-400 mb-10 leading-relaxed max-w-3xl">
+                    The ultimate tier. GroupLogic.py combines Python's familiarity with GroupLogic's domain-specific primitives. For advanced users — teachers who code, data scientists, researchers — who need to express grouping logic beyond any DSL. Python holds your hand with familiar syntax while GroupLogic's library provides the domain power.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8 mb-12">
+                    <div class="code-block shadow-xl shadow-black/20">
+                        <div class="code-block-header">
+                            <span class="code-dot code-dot-red"></span>
+                            <span class="code-dot code-dot-yellow"></span>
+                            <span class="code-dot code-dot-green"></span>
+                            <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider ml-2">grouplogic.py</span>
+                        </div>
+                        <div class="code-body text-xs">
 <span class="syn-keyword">import</span> <span class="syn-builtin">grouplogic</span> <span class="syn-keyword">as</span> <span class="syn-name">gl</span>
 
 <span class="syn-comment"># Create a classroom</span>
@@ -952,56 +991,42 @@
 
 <span class="syn-comment"># Add students with rich data</span>
 <span class="syn-name">c</span>.<span class="syn-func">add</span>(<span class="syn-string">"Alice"</span>,
-  score=<span class="syn-number">92</span>, role=<span class="syn-string">"leader"</span>,
-  wants=[<span class="syn-string">"Bob"</span>], avoids=[<span class="syn-string">"Charlie"</span>]
+  <span class="syn-name">score</span>=<span class="syn-number">92</span>, <span class="syn-name">role</span>=<span class="syn-string">"leader"</span>,
+  <span class="syn-name">wants</span>=[<span class="syn-string">"Bob"</span>], <span class="syn-name">avoids</span>=[<span class="syn-string">"Charlie"</span>]
 )
 
 <span class="syn-comment"># Load scores from CSV</span>
 <span class="syn-name">c</span>.<span class="syn-func">load_scores</span>(<span class="syn-string">"test_results.csv"</span>)
 
 <span class="syn-comment"># Generate</span>
-<span class="syn-name">result</span> = <span class="syn-name">c</span>.<span class="syn-func">generate</span>(group_size=<span class="syn-number">4</span>)
+<span class="syn-name">result</span> = <span class="syn-name">c</span>.<span class="syn-func">generate</span>(<span class="syn-name">group_size</span>=<span class="syn-number">4</span>)
 <span class="syn-name">result</span>.<span class="syn-func">to_csv</span>(<span class="syn-string">"groups.csv"</span>)
 <span class="syn-name">result</span>.<span class="syn-func">to_pdf</span>(<span class="syn-string">"groups.pdf"</span>)
-                            </div>
                         </div>
                     </div>
                     <div>
-                        <h4 class="text-lg font-bold text-white mb-6">Multi-Round + Room Layout</h4>
-                        <div class="code-block">
-                            <div class="code-block-header">
-                                <span class="code-dot code-dot-red"></span><span class="code-dot code-dot-yellow"></span><span class="code-dot code-dot-green"></span>
-                                <span class="text-[11px] text-slate-500 ml-2 font-mono">multi_round.py</span>
+                        <h4 class="text-lg font-bold text-white mb-6">What GroupLogic.py Enables</h4>
+                        <div class="space-y-5">
+                            <div>
+                                <div class="text-sm font-bold text-purple-400 mb-1">Dynamic band computation</div>
+                                <p class="text-slate-500 text-sm">Calculate score bands from data, not hardcoded values. Adjust band widths based on score distribution. Apply different band strategies per subject or class period.</p>
                             </div>
-                            <div class="code-body text-xs">
-<span class="syn-keyword">import</span> <span class="syn-builtin">grouplogic</span> <span class="syn-keyword">as</span> <span class="syn-name">gl</span>
-
-<span class="syn-name">c</span> = <span class="syn-class">gl</span>.<span class="syn-func">Classroom</span>(<span class="syn-string">"AP Biology"</span>)
-
-<span class="syn-comment"># Define physical room</span>
-<span class="syn-name">room</span> = <span class="syn-class">gl</span>.<span class="syn-func">Room</span>()
-<span class="syn-name">room</span>.<span class="syn-func">add_table</span>(<span class="syn-string">"Front-Left"</span>, seats=<span class="syn-number">4</span>)
-<span class="syn-name">room</span>.<span class="syn-func">add_table</span>(<span class="syn-string">"Front-Right"</span>, seats=<span class="syn-number">4</span>)
-<span class="syn-name">room</span>.<span class="syn-func">near</span>(<span class="syn-string">"Front-Left"</span>, <span class="syn-string">"Front-Right"</span>)
-
-<span class="syn-comment"># Multi-round: no repeat pairs</span>
-<span class="syn-keyword">for</span> <span class="syn-name">week</span> <span class="syn-keyword">in</span> <span class="syn-func">range</span>(<span class="syn-number">1</span>, <span class="syn-number">5</span>):
-  <span class="syn-name">result</span> = <span class="syn-name">c</span>.<span class="syn-func">generate</span>(
-    avoid_previous=<span class="syn-number">2</span>, room=<span class="syn-name">room</span>
-  )
-  <span class="syn-name">result</span>.<span class="syn-func">render_room</span>(<span class="syn-string">f"week_{week}.png"</span>)
+                            <div>
+                                <div class="text-sm font-bold text-blue-400 mb-1">Multi-round scheduling</div>
+                                <p class="text-slate-500 text-sm">Generate week-by-week assignments with no repeat pairings. Track history. Ensure every student works with every other student at least once over a semester.</p>
                             </div>
-                        </div>
-                        <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 mt-8">
-                            <h4 class="text-sm font-bold text-purple-400 mb-4">GroupLogic.py Key Features</h4>
-                            <ul class="text-xs text-slate-400 space-y-3">
-                                <li><span class="text-white font-bold">Python syntax:</span> Familiar loops, imports, variables</li>
-                                <li><span class="text-white font-bold">Library system:</span> <code class="text-slate-300 bg-slate-800 px-1 rounded">import grouplogic as gl</code></li>
-                                <li><span class="text-white font-bold">CSV/JSON import:</span> Load real data files</li>
-                                <li><span class="text-white font-bold">Multi-round:</span> No repeat pairings across weeks</li>
-                                <li><span class="text-white font-bold">Room layout:</span> Code physical tables and proximity</li>
-                                <li><span class="text-white font-bold">Custom export:</span> PDF, CSV, JSON, PNG room renders</li>
-                            </ul>
+                            <div>
+                                <div class="text-sm font-bold text-amber-400 mb-1">Custom scoring functions</div>
+                                <p class="text-slate-500 text-sm">Override the default scoring with your own Python function. Weight score proximity differently for AP vs. remedial classes.</p>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-cyan-400 mb-1">Data integration</div>
+                                <p class="text-slate-500 text-sm">Load student data from CSV, JSON, Google Sheets. Export results in any format. Integrate with existing gradebooks and LMS platforms.</p>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-green-400 mb-1">Room layout engine</div>
+                                <p class="text-slate-500 text-sm">Define your classroom in code and let the solver place students at seats, respecting proximity constraints. Not a visual drag-and-drop — actual code that's version-controlled and shareable.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1011,248 +1036,227 @@
 
     <div class="section-divider"></div>
 
-    <!-- ============================== CLASSROOM CODE-DRIVEN EDITOR ============================== -->
+    <!-- ============================== CLASSROOM ============================== -->
     <section class="doc-section" id="classroom">
         <div class="max-w-5xl mx-auto px-6">
             <div class="flex items-center gap-3 mb-6">
-                <span class="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">Section 04</span>
+                <span class="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em]">Section 04</span>
                 <span class="flex-1 h-px bg-slate-800"></span>
             </div>
             <h2 class="text-4xl md:text-5xl font-black text-white mb-8">Code-Driven Classroom Layout</h2>
-            <p class="text-slate-400 text-lg max-w-3xl mb-10 leading-relaxed">
-                You code your classroom. Define tables, seats, and proximity in the Advanced language or GroupLogic.py&mdash;not a fancy drag-and-drop editor, but actual code you write and edit. The engine reads your room definition and places students at seats, respecting proximity constraints. Hover over any seat to see who that student is likely to sit near (green) and who they must be kept away from (red).
+            <p class="text-slate-400 text-lg max-w-3xl mb-20 leading-relaxed">
+                You code your classroom. Define tables, seats, and proximity in the Advanced language or GroupLogic.py — not a fancy drag-and-drop editor, but actual code you write and edit. The engine reads your room definition and places students at seats, respecting proximity constraints.
             </p>
 
-            <!-- Code that defines the room -->
-            <div class="code-block mb-12">
-                <div class="code-block-header">
-                    <span class="code-dot code-dot-red"></span><span class="code-dot code-dot-yellow"></span><span class="code-dot code-dot-green"></span>
-                    <span class="text-[11px] text-slate-500 ml-2 font-mono">room_layout.gl</span>
-                </div>
-                <div class="code-body text-xs">
-<span class="syn-comment">// Real classroom constraints — Ms. Rodriguez's 3rd Period</span>
-<span class="syn-keyword">@group_size</span> = <span class="syn-number">4</span>
-<span class="syn-keyword">@overflow</span> = <span class="syn-string">absorb</span>
-<span class="syn-keyword">@balance</span> = <span class="syn-string">scores</span>
-<span class="syn-keyword">@band_width</span> = <span class="syn-number">15</span>
-<span class="syn-keyword">@separate</span> = <span class="syn-name">jake</span>,<span class="syn-name">mario</span>,<span class="syn-name">tyrell</span>    <span class="syn-comment">// These 3 talk constantly — split them up</span>
-<span class="syn-keyword">@separate</span> = <span class="syn-name">sam</span>,<span class="syn-name">devon</span>            <span class="syn-comment">// Exes — keep apart</span>
-<span class="syn-keyword">@together</span> = <span class="syn-name">maya</span>,<span class="syn-name">sofia</span>           <span class="syn-comment">// Best study partners</span>
-
-<span class="syn-comment">// Seating needs</span>
-<span class="syn-comment">// Jake & Mario can't sit in the back (they talk)</span>
-<span class="syn-comment">// Priya needs to sit closer (can't see the board well)</span>
-<span class="syn-comment">// 1 strong student per table for peer support</span>
-
-<span class="syn-comment">// --- Students (score = last test grade) ---</span>
-<span class="syn-name">Maya</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">92</span> <span class="syn-op">+</span><span class="syn-want">Sofia</span>
-<span class="syn-name">Sofia</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">88</span> <span class="syn-op">+</span><span class="syn-want">Maya</span>
-<span class="syn-name">Priya</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">75</span>
-<span class="syn-name">Jake</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">60</span> <span class="syn-op">-</span><span class="syn-avoid">Mario</span>
-<span class="syn-name">Mario</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">55</span> <span class="syn-op">-</span><span class="syn-avoid">Jake</span>
-<span class="syn-name">Sam</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">82</span>
-<span class="syn-name">Devon</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">70</span>
-<span class="syn-name">Tyler</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">95</span>
-<span class="syn-name">Ava</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">85</span>
-<span class="syn-name">Liam</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">48</span>
-<span class="syn-name">Zoe</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">78</span>
-<span class="syn-name">Tyrell</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">62</span>
-<span class="syn-name">Emma</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">90</span>
-<span class="syn-name">Noah</span><span class="syn-op">:</span> <span class="syn-keyword">score</span>=<span class="syn-number">72</span>
-                </div>
-            </div>
-
-            <!-- Visual Preview - code-generated, spaced out -->
-            <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-10 mb-12">
+            <!-- Interactive classroom preview -->
+            <div class="feature-card mb-16 overflow-visible">
                 <div class="flex items-center justify-between mb-8">
-                    <h3 class="text-lg font-bold text-white">Generated Preview (from code above)</h3>
-                    <span class="status-badge status-active">Live</span>
+                    <h3 class="text-lg font-bold text-white">Interactive Preview — 6 Tables × 4 Seats</h3>
+                    <span class="status-badge status-planned">Planned</span>
                 </div>
+                <p class="text-slate-500 text-sm mb-8">Hover over any seat to see who that student is likely to sit near (green) and who they must be kept away from (red).</p>
 
-                <p class="text-xs text-slate-500 mb-8">Hover over a student to see who they're likely to sit near and who they must be kept from.</p>
-
-                <div class="bg-slate-900/60 border border-slate-700/30 rounded-xl p-10">
-                    <!-- Room label -->
-                    <div class="text-center mb-10">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Front of Room</span>
-                        <div class="h-px bg-slate-700 mt-3 max-w-sm mx-auto"></div>
-                    </div>
-
-                    <!-- Tables - spread out with good spacing -->
-                    <div class="grid grid-cols-2 gap-12 max-w-lg mx-auto mb-10">
-                        <div class="text-center">
-                            <div class="table-block">
-                                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2">Table 1</span>
-                                <div class="table-seats">
-                                    <div class="seat-block" onmouseenter="showSeatInfo('maya')" onmouseleave="hideSeatInfo()">
-                                        Maya
-                                        <div class="seat-tooltip" id="tooltip-maya">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: Sofia</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: (none)</div>
-                                        </div>
-                                    </div>
-                                    <div class="seat-block" onmouseenter="showSeatInfo('sofia')" onmouseleave="hideSeatInfo()">
-                                        Sofia
-                                        <div class="seat-tooltip" id="tooltip-sofia">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: Maya</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: (none)</div>
-                                        </div>
+                <div class="flex flex-wrap justify-center gap-8">
+                    <!-- Front row -->
+                    <div class="flex gap-8">
+                        <div class="table-block">
+                            <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">T1 · front-left</div>
+                            <div class="table-seats">
+                                <div class="seat-block" style="border-color: #22c55e;">Emma
+                                    <div class="seat-tooltip">
+                                        <div class="text-green-400 text-xs font-bold">✓ Near: Liam, Olivia</div>
+                                        <div class="text-slate-500 text-xs">score=78 · +front@10</div>
                                     </div>
                                 </div>
-                                <div class="table-seats">
-                                    <div class="seat-block" onmouseenter="showSeatInfo('priya')" onmouseleave="hideSeatInfo()">
-                                        Priya
-                                        <div class="seat-tooltip" id="tooltip-priya">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (score-similar peers)</div>
-                                            <div class="text-[10px] text-amber-400 font-bold">Needs: closer to front</div>
-                                        </div>
+                                <div class="seat-block">Liam
+                                    <div class="seat-tooltip">
+                                        <div class="text-green-400 text-xs font-bold">✓ Near: Emma, Olivia</div>
+                                        <div class="text-slate-500 text-xs">score=82 · +front@10</div>
                                     </div>
-                                    <div class="seat-block" onmouseenter="showSeatInfo('tyler')" onmouseleave="hideSeatInfo()">
-                                        Tyler
-                                        <div class="seat-tooltip" id="tooltip-tyler">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (score band peers)</div>
-                                            <div class="text-[10px] text-blue-400 font-bold">Role: strong student support</div>
-                                        </div>
+                                </div>
+                            </div>
+                            <div class="table-seats">
+                                <div class="seat-block">Olivia
+                                    <div class="seat-tooltip">
+                                        <div class="text-green-400 text-xs font-bold">✓ Near: Emma, Liam</div>
+                                        <div class="text-slate-500 text-xs">score=75 · +front@10</div>
+                                    </div>
+                                </div>
+                                <div class="seat-block" style="border-color: #a855f7;">Aiden
+                                    <div class="seat-tooltip">
+                                        <div class="text-purple-400 text-xs font-bold">★ tutor</div>
+                                        <div class="text-slate-500 text-xs">score=95 · role="tutor"</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-center">
-                            <div class="table-block">
-                                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2">Table 2</span>
-                                <div class="table-seats">
-                                    <div class="seat-block" onmouseenter="showSeatInfo('jake')" onmouseleave="hideSeatInfo()">
-                                        Jake
-                                        <div class="seat-tooltip" id="tooltip-jake">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (none)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: Mario, Tyrell</div>
-                                            <div class="text-[10px] text-amber-400 font-bold">Needs: not in back row</div>
-                                        </div>
-                                    </div>
-                                    <div class="seat-block" onmouseenter="showSeatInfo('ava')" onmouseleave="hideSeatInfo()">
-                                        Ava
-                                        <div class="seat-tooltip" id="tooltip-ava">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (score band peers)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: (none)</div>
-                                        </div>
+                        <div class="table-block">
+                            <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">T2 · front-right</div>
+                            <div class="table-seats">
+                                <div class="seat-block">Noah
+                                    <div class="seat-tooltip">
+                                        <div class="text-red-400 text-xs font-bold">✗ Avoid: Ava</div>
+                                        <div class="text-slate-500 text-xs">score=80</div>
                                     </div>
                                 </div>
-                                <div class="table-seats">
-                                    <div class="seat-block" onmouseenter="showSeatInfo('zoe')" onmouseleave="hideSeatInfo()">
-                                        Zoe
-                                        <div class="seat-tooltip" id="tooltip-zoe">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (score band peers)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: (none)</div>
-                                        </div>
-                                    </div>
-                                    <div class="seat-block" onmouseenter="showSeatInfo('liam')" onmouseleave="hideSeatInfo()">
-                                        Liam
-                                        <div class="seat-tooltip" id="tooltip-liam">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (none)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: (none)</div>
-                                        </div>
+                                <div class="seat-block">Ava
+                                    <div class="seat-tooltip">
+                                        <div class="text-red-400 text-xs font-bold">✗ Avoid: Noah</div>
+                                        <div class="text-slate-500 text-xs">score=77</div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="text-center">
-                            <div class="table-block">
-                                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2">Table 3</span>
-                                <div class="table-seats">
-                                    <div class="seat-block" onmouseenter="showSeatInfo('mario')" onmouseleave="hideSeatInfo()">
-                                        Mario
-                                        <div class="seat-tooltip" id="tooltip-mario">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (none)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: Jake</div>
-                                            <div class="text-[10px] text-amber-400 font-bold">Needs: not in back row</div>
-                                        </div>
-                                    </div>
-                                    <div class="seat-block" onmouseenter="showSeatInfo('emma')" onmouseleave="hideSeatInfo()">
-                                        Emma
-                                        <div class="seat-tooltip" id="tooltip-emma">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (score band peers)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: (none)</div>
-                                        </div>
+                            <div class="table-seats">
+                                <div class="seat-block" style="border-color: #a855f7;">Grace
+                                    <div class="seat-tooltip">
+                                        <div class="text-purple-400 text-xs font-bold">★ tutor</div>
+                                        <div class="text-slate-500 text-xs">score=93 · role="tutor"</div>
                                     </div>
                                 </div>
-                                <div class="table-seats">
-                                    <div class="seat-block" onmouseenter="showSeatInfo('tyrell')" onmouseleave="hideSeatInfo()">
-                                        Tyrell
-                                        <div class="seat-tooltip" id="tooltip-tyrell">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (none)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: Jake</div>
-                                            <div class="text-[10px] text-amber-400 font-bold">Needs: separated from talk group</div>
-                                        </div>
-                                    </div>
-                                    <div class="seat-block" onmouseenter="showSeatInfo('noah')" onmouseleave="hideSeatInfo()">
-                                        Noah
-                                        <div class="seat-tooltip" id="tooltip-noah">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (score band peers)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: (none)</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <div class="table-block">
-                                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2">Table 4</span>
-                                <div class="table-seats">
-                                    <div class="seat-block" onmouseenter="showSeatInfo('sam')" onmouseleave="hideSeatInfo()">
-                                        Sam
-                                        <div class="seat-tooltip" id="tooltip-sam">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (score band peers)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: Devon</div>
-                                        </div>
-                                    </div>
-                                    <div class="seat-block" onmouseenter="showSeatInfo('devon')" onmouseleave="hideSeatInfo()">
-                                        Devon
-                                        <div class="seat-tooltip" id="tooltip-devon">
-                                            <div class="text-[10px] text-green-400 font-bold mb-1">Likely near: (none)</div>
-                                            <div class="text-[10px] text-red-400 font-bold">Must avoid: Sam</div>
-                                        </div>
+                                <div class="seat-block">Mia
+                                    <div class="seat-tooltip">
+                                        <div class="text-red-400 text-xs font-bold">✗ Avoid: Chloe</div>
+                                        <div class="text-slate-500 text-xs">score=74 · -Chloe</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Teacher desk -->
-                    <div class="text-center mt-6">
-                        <div class="inline-block bg-amber-500/10 border border-amber-500/30 rounded-lg px-6 py-2 text-[10px] font-bold text-amber-400 uppercase">Teacher Desk</div>
-                    </div>
-
-                    <!-- Legend -->
-                    <div class="flex justify-center gap-8 text-[10px] mt-8">
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded bg-slate-700 border border-slate-500"></div>
-                            <span class="text-slate-400">Seat (hover to inspect)</span>
+                    <!-- Back row -->
+                    <div class="flex gap-8">
+                        <div class="table-block">
+                            <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">T5 · back-left</div>
+                            <div class="table-seats">
+                                <div class="seat-block">Brandon
+                                    <div class="seat-tooltip">
+                                        <div class="text-red-400 text-xs font-bold">✗ Avoid: Tyler</div>
+                                        <div class="text-slate-500 text-xs">score=69</div>
+                                    </div>
+                                </div>
+                                <div class="seat-block">Sophia
+                                    <div class="seat-tooltip">
+                                        <div class="text-slate-500 text-xs">score=71 · -back</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-seats">
+                                <div class="seat-block" style="border-color: #a855f7;">Lucas
+                                    <div class="seat-tooltip">
+                                        <div class="text-purple-400 text-xs font-bold">★ tutor</div>
+                                        <div class="text-slate-500 text-xs">score=91 · role="tutor"</div>
+                                    </div>
+                                </div>
+                                <div class="seat-block">Zoe
+                                    <div class="seat-tooltip">
+                                        <div class="text-purple-400 text-xs font-bold">★ tutor</div>
+                                        <div class="text-slate-500 text-xs">score=90 · role="tutor"</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-block">
+                            <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">T6 · back-right</div>
+                            <div class="table-seats">
+                                <div class="seat-block">Henry
+                                    <div class="seat-tooltip">
+                                        <div class="text-slate-500 text-xs">score=66</div>
+                                    </div>
+                                </div>
+                                <div class="seat-block">Isabella
+                                    <div class="seat-tooltip">
+                                        <div class="text-slate-500 text-xs">score=73</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-seats">
+                                <div class="seat-block" style="border-color: #a855f7;">Ryan
+                                    <div class="seat-tooltip">
+                                        <div class="text-red-400 text-xs font-bold">✗ Avoid: Jake</div>
+                                        <div class="text-purple-400 text-xs font-bold">★ tutor</div>
+                                        <div class="text-slate-500 text-xs">score=87 · role="tutor"</div>
+                                    </div>
+                                </div>
+                                <div class="seat-block" style="border-color: #a855f7;">Chloe
+                                    <div class="seat-tooltip">
+                                        <div class="text-red-400 text-xs font-bold">✗ Avoid: Mia</div>
+                                        <div class="text-purple-400 text-xs font-bold">★ tutor</div>
+                                        <div class="text-slate-500 text-xs">score=89 · role="tutor"</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
+                <div class="mt-6 text-center">
+                    <span class="text-[10px] text-slate-600">T3 · mid-left and T4 · mid-right omitted for space · Full 6-table layout in editor</span>
                 </div>
             </div>
 
-            <!-- How code-driven works -->
-            <div class="grid md:grid-cols-3 gap-8">
+            <!-- How it works -->
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
                 <div class="feature-card">
-                    <h4 class="text-sm font-bold text-amber-400 mb-4">Keep Talkers Apart</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        Use @separate to keep chatty students in different groups. The engine ensures they're never placed together, and with @overflow = absorb, nobody gets left in a solo group.
+                    <h4 class="text-sm font-bold text-cyan-400 uppercase tracking-wider mb-3">You Code, It Renders</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        The room isn't drawn with a drag-and-drop tool. You write code: <code class="text-cyan-400">table "T1" seats=4 pos="front-left"</code>. The engine reads your code and renders the preview. Change the code, the room updates. Version-controlled, shareable, editable like any other code.
                     </p>
                 </div>
                 <div class="feature-card">
-                    <h4 class="text-sm font-bold text-amber-400 mb-4">1 Strong Student Per Table</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        With @balance = scores and @band_width = 15, score-based grouping distributes strong and weaker students across groups so each table has a peer supporter. Use @overflow = absorb so pairs don't leave anyone alone.
+                    <h4 class="text-sm font-bold text-green-400 uppercase tracking-wider mb-3">Hover to Inspect</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        When you hover over a seat in the preview, you see who that student is likely to be seated near (green: mutual wants, same score band) and who they must be kept away from (red: avoid constraints, proximity conflicts). Interactive and useful for verifying constraints.
                     </p>
                 </div>
                 <div class="feature-card">
-                    <h4 class="text-sm font-bold text-amber-400 mb-4">Seating Needs & Proximity</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        Future classroom layout feature will support physical positioning: "sit closer" and "not in the back" constraints mapped to actual table positions. For now, use @separate for behavioral separation and @together for study partnerships.
+                    <h4 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3">Proximity Constraints</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        Beyond same-group constraints, the classroom editor adds proximity awareness. If Alice and Charlie must be kept apart, the engine ensures they're not only in different groups but at tables that aren't adjacent. <code class="text-amber-400">near</code> and <code class="text-amber-400">far</code> directives define which tables are physically close.
                     </p>
                 </div>
             </div>
+
+            <!-- Scenarios table -->
+            <h3 class="text-2xl font-bold text-white mb-8">Real Classroom Scenarios</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th>Scenario</th>
+                        <th>Constraint Type</th>
+                        <th>Code Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-white font-medium">Keep these people apart</td>
+                        <td><span class="status-badge status-done" style="font-size:10px;">@separate</span></td>
+                        <td><code class="text-red-400 text-xs">@separate Jake, Ryan  // They argue</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-white font-medium">Needs to sit closer (can't see)</td>
+                        <td><span class="status-badge status-done" style="font-size:10px;">Strong want</span></td>
+                        <td><code class="text-green-400 text-xs">Emma: +front@10  // Can't see board</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-white font-medium">No back row (they talk)</td>
+                        <td><span class="status-badge status-done" style="font-size:10px;">Avoid</span></td>
+                        <td><code class="text-red-400 text-xs">Jake: -back  // Talks too much</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-white font-medium">Talkers — spread them out</td>
+                        <td><span class="status-badge status-done" style="font-size:10px;">@separate (multi)</span></td>
+                        <td><code class="text-red-400 text-xs">@separate Jake, Sophia, Tyler, Mia</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-white font-medium">1 smart student per table</td>
+                        <td><span class="status-badge status-done" style="font-size:10px;">Role + balance</span></td>
+                        <td><code class="text-purple-400 text-xs">Aiden: role="tutor" score=95</code> + <code class="text-pink-400 text-xs">balance "tutor" min 1</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-white font-medium">Overflow: no solo groups</td>
+                        <td><span class="status-badge status-done" style="font-size:10px;">@overflow</span></td>
+                        <td><code class="text-orange-400 text-xs">@overflow = absorb  // Default: no solo groups</code></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </section>
 
@@ -1262,7 +1266,7 @@
     <section class="doc-section" id="roadmap">
         <div class="max-w-5xl mx-auto px-6">
             <div class="flex items-center gap-3 mb-6">
-                <span class="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">Section 05</span>
+                <span class="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">Section 05</span>
                 <span class="flex-1 h-px bg-slate-800"></span>
             </div>
             <h2 class="text-4xl md:text-5xl font-black text-white mb-8">Roadmap</h2>
@@ -1270,281 +1274,196 @@
                 From the current simple DSL to an open-source platform with community contributors. Each phase expands what's expressible while preserving the "simple on the surface, powerful underneath" philosophy.
             </p>
 
-            <div class="relative pl-16 space-y-14">
+            <!-- Timeline -->
+            <div class="relative pl-16 space-y-16">
                 <div class="timeline-line"></div>
-
-                <!-- v2.6 -->
-                <div class="relative">
-                    <div class="timeline-dot done" style="top: 8px;"></div>
-                    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v2.6 &mdash; Foundation</h3>
-                            <span class="status-badge status-done">Shipped</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            The foundation: working IDE with live syntax highlighting, Monte Carlo + Hill Climbing optimization, interactive roster with hover-to-inspect, conflict detection with pulsing glow, and plain-text export. Simple language with +want / -avoid.
-                        </p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">+want / -avoid</span>
-                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">Monte Carlo</span>
-                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">Hill Climbing</span>
-                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">Syntax Highlight</span>
-                            <span class="bg-slate-700/50 text-slate-300 px-3 py-1 rounded-lg text-[11px] font-mono">Conflict Glow</span>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- v3.0 -->
                 <div class="relative">
-                    <div class="timeline-dot done" style="top: 8px;"></div>
-                    <div class="bg-slate-800/40 border border-green-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v3.0 &mdash; Official Site + Persistence</h3>
-                            <span class="status-badge status-done">Shipped</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            Full site redesign with better UI, save/load (cloud + local), password-based access (no login), rich export, and improved editor with inline errors and advanced search.
-                        </p>
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Cloud + Local Save</h4>
-                                <p class="text-[11px] text-slate-500">Save code to cloud with a password. Download as .gl files for local. Upload to resume. Both worlds.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Password-Based Access</h4>
-                                <p class="text-[11px] text-slate-500">No accounts, no email. Enter a password to save/retrieve. Student rosters saved separately.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Rich Export</h4>
-                                <p class="text-[11px] text-slate-500">CSV, JSON, PDF export. Copy to clipboard. Print-ready formatting.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Better Editor</h4>
-                                <p class="text-[11px] text-slate-500">Improved highlighting, inline errors, advanced search, resizable panels.</p>
-                            </div>
-                        </div>
+                    <div class="timeline-dot done" style="top: 6px;"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v3.0</span>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Core Engine + Simple Language</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        Working IDE with live syntax highlighting, Monte Carlo + Hill Climbing optimization, interactive roster with hover-to-inspect, conflict detection with pulsing glow, and plain-text export. Simple language with +want / -avoid.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">+want / -avoid</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Monte Carlo</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Hill Climbing</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Syntax Highlight</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Conflict Glow</span>
                     </div>
                 </div>
 
                 <!-- v3.5 -->
                 <div class="relative">
-                    <div class="timeline-dot done" style="top: 8px;"></div>
-                    <div class="bg-slate-800/40 border border-green-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v3.5 &mdash; Advanced Language + Multi-Class</h3>
-                            <span class="status-badge status-done">Shipped</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            Score-based grouping, role tags, weighted preferences, separate/together directives. Class codes for managing 8+ classes per teacher. Enhanced roster with CSV import. Tier selector in the editor.
-                        </p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">score=N</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">role="type"</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">+Want@N</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">separate()</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">together()</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">balance</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">class codes</span>
-                        </div>
+                    <div class="timeline-dot done" style="top: 6px;"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v3.5</span>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                </div>
-
-                <!-- v10.0 -->
-                <div class="relative">
-                    <div class="timeline-dot done" style="top: 8px;"></div>
-                    <div class="bg-slate-800/40 border border-green-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v10.0 &mdash; Advanced Build</h3>
-                            <span class="status-badge status-done">Shipped</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            The current generation. Full constraint language with overflow modes, multi-round assignments, custom roles, rule blocks, and a polished editor experience with drag-and-drop roster, multi-classroom tabs, and version history.
-                        </p>
-                        <div class="flex flex-wrap gap-2 mb-4">
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@group_size</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@balance</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@overflow</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@rounds</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@separate</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@together</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@no_repeat_partners</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@rule</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@role</span>
-                            <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-[11px] font-mono">@strict</span>
-                        </div>
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Overflow Modes</h4>
-                                <p class="text-[11px] text-slate-500">4 modes: absorb, even, newgroup, small. Handle leftover students intelligently instead of leaving solo groups.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Multi-Round Assignments</h4>
-                                <p class="text-[11px] text-slate-500">No-repeat-partners across rounds. Generate week-by-week groups that avoid repeating pairs.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Score-Based Grouping</h4>
-                                <p class="text-[11px] text-slate-500">Band students by score with band_width. Balance strong and weak students across groups for peer support.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Custom Roles & Rules</h4>
-                                <p class="text-[11px] text-slate-500">Define roles with overflow behavior (auto/always/never). Custom @rule blocks with conditions and actions.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">Editor Overhaul</h4>
-                                <p class="text-[11px] text-slate-500">Drag-and-drop roster with rename. Multi-classroom tab management. Resizable editor and panels.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-green-400 mb-1">File I/O & History</h4>
-                                <p class="text-[11px] text-slate-500">.gls/.gla/.glu export and import. Version history with undo. Download/upload for local backup.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- v10.1 -->
-                <div class="relative">
-                    <div class="timeline-dot active" style="top: 8px;"></div>
-                    <div class="bg-slate-800/40 border border-blue-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v10.1 &mdash; Current Release</h3>
-                            <span class="status-badge status-active">Active</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            Bug fixes and overflow overhaul. The absorb mode ensures no solo groups for pair work. Engine reliability improvements and online IDE availability.
-                        </p>
-                        <div class="flex flex-wrap gap-2 mb-4">
-                            <span class="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-lg text-[11px] font-mono">@overflow = absorb</span>
-                            <span class="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-lg text-[11px] font-mono">bug fixes</span>
-                            <span class="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-lg text-[11px] font-mono">online IDE</span>
-                        </div>
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-blue-400 mb-1">Absorb Overflow</h4>
-                                <p class="text-[11px] text-slate-500">No solo groups for pair work. Absorb mode distributes leftover students into existing groups instead of creating groups of 1.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-blue-400 mb-1">Engine Fix</h4>
-                                <p class="text-[11px] text-slate-500">Fixed engine null reference crash. Fixed empty group creation in post-processing. Hard guarantee enforcement after every optimization pass.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-blue-400 mb-1">UI Fix</h4>
-                                <p class="text-[11px] text-slate-500">Fixed chip hover highlighting (data-name attribute). Proper relationship visualization on all interactive elements.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-blue-400 mb-1">Online IDE</h4>
-                                <p class="text-[11px] text-slate-500">Available online at sites.google.com with /bug-report for submitting issues directly to the team.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- v4.0 -->
-                <div class="relative">
-                    <div class="timeline-dot" style="top: 8px; border-color: #06b6d4;"></div>
-                    <div class="bg-slate-800/40 border border-cyan-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v4.0 &mdash; GroupLogic.py + Code-Driven Classroom</h3>
-                            <span class="status-badge status-future">Future</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            Python tier with full library API. Code-driven classroom layout: write your room in code, engine renders the preview with hover-to-inspect. Multi-round assignments. The three-tier editor is the signature UI.
-                        </p>
-                        <div class="grid sm:grid-cols-3 gap-4">
-                            <div class="bg-slate-900/40 rounded-lg p-4 text-center">
-                                <div class="text-cyan-400 text-lg mb-2">&#x1F40D;</div>
-                                <h4 class="text-[11px] font-bold text-white">GroupLogic.py</h4>
-                                <p class="text-[10px] text-slate-500">Python + GL library. CSV import, custom algorithms, room layouts.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4 text-center">
-                                <div class="text-cyan-400 text-lg mb-2">&#x1F3EB;</div>
-                                <h4 class="text-[11px] font-bold text-white">Code-Driven Room</h4>
-                                <p class="text-[10px] text-slate-500">Code tables and seats, see generated preview. Hover for seatmate info.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4 text-center">
-                                <div class="text-cyan-400 text-lg mb-2">&#x1F504;</div>
-                                <h4 class="text-[11px] font-bold text-white">Multi-Round</h4>
-                                <p class="text-[10px] text-slate-500">Week-by-week with no repeat pairings. History tracking.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- v5.0 -->
-                <div class="relative">
-                    <div class="timeline-dot" style="top: 8px; border-color: #f97316;"></div>
-                    <div class="bg-slate-800/40 border border-orange-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v5.0 &mdash; Open Source Launch + Collaborative Platform</h3>
-                            <span class="status-badge status-future">Long-Term</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            GroupLogic IDE goes open source on GitHub. Community contributors can build new language features, optimization algorithms, export formats, and classroom templates. On the platform side, participants submit preferences privately, facilitators define global constraints, and the engine generates groupings respecting everyone's input. Built-in documentation and learning guides for all three language tiers.
-                        </p>
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-orange-400 mb-1">GitHub Open Source</h4>
-                                <p class="text-[11px] text-slate-500">Public repo. Contribution guidelines. Issue tracker. Pull requests welcome. Community-driven feature development.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-orange-400 mb-1">Built-in Docs</h4>
-                                <p class="text-[11px] text-slate-500">Interactive guides embedded in the IDE. Context-aware help. Tutorials for each language tier. Searchable reference.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-orange-400 mb-1">Private Preferences</h4>
-                                <p class="text-[11px] text-slate-500">Students submit preferences via form. Teacher sees aggregated constraints, not individual submissions.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-orange-400 mb-1">Plugin System</h4>
-                                <p class="text-[11px] text-slate-500">Community-built plugins: custom export formats, new constraint types, integration with LMS platforms.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- v6.0 -->
-                <div class="relative">
-                    <div class="timeline-dot" style="top: 8px; border-color: #ec4899;"></div>
-                    <div class="bg-slate-800/40 border border-pink-500/20 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v6.0 &mdash; AI-Assisted Grouping + LMS Integration</h3>
-                            <span class="status-badge status-future">Long-Term</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                            AI suggests optimal grouping strategies based on historical data. Integration with Google Classroom, Canvas, and other LMS platforms for automatic roster sync. The engine learns from past outcomes&mdash;which group compositions led to better project results&mdash;and adjusts its scoring accordingly. Smart defaults that get smarter over time.
-                        </p>
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-pink-400 mb-1">AI Grouping Suggestions</h4>
-                                <p class="text-[11px] text-slate-500">Based on historical outcomes. "Last semester, groups with this composition scored 15% higher."</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-pink-400 mb-1">LMS Integration</h4>
-                                <p class="text-[11px] text-slate-500">Auto-sync rosters from Google Classroom, Canvas, Schoology. Push group assignments back to the LMS.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-pink-400 mb-1">Outcome Tracking</h4>
-                                <p class="text-[11px] text-slate-500">Rate group outcomes. Engine learns which compositions work. Scoring weights adapt over time.</p>
-                            </div>
-                            <div class="bg-slate-900/40 rounded-lg p-4">
-                                <h4 class="text-xs font-bold text-pink-400 mb-1">Smart Defaults</h4>
-                                <p class="text-[11px] text-slate-500">New teacher? AI suggests starting constraints based on class size, subject, and grade level.</p>
-                            </div>
-                        </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Multi-Classroom + Save/Load</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        Multi-classroom tabs, save/load, drag-and-drop roster, and resizable panels. Copy results to clipboard. Download/upload .gl files for local backup.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Multi-tab</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Save/Load</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Drag-and-Drop</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Resizable Panels</span>
                     </div>
                 </div>
 
                 <!-- v7.0 -->
                 <div class="relative">
-                    <div class="timeline-dot" style="top: 8px; border-color: #475569;"></div>
-                    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
-                        <div class="flex flex-wrap items-center gap-3 mb-4">
-                            <h3 class="text-lg font-bold text-white">v7.0 &mdash; Ecosystem + Mobile</h3>
-                            <span class="status-badge status-future">Long-Term</span>
-                        </div>
-                        <p class="text-sm text-slate-400 leading-relaxed">
-                            The long-term vision: GroupLogic as an ecosystem. Mobile app for on-the-go grouping. Template marketplace where teachers share and sell grouping templates. Multi-school district support with centralized constraint policies. Research partnerships with education departments studying optimal group composition. The language becomes a standard, like SQL for databases, but for people grouping.
-                        </p>
+                    <div class="timeline-dot done" style="top: 6px;"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v7.0</span>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
+                    <h4 class="text-lg font-bold text-white mb-2">UI Overhaul + Enhanced Roster</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        Better highlighting, inline errors, advanced search. Enhanced roster: add/remove students without editing code. UI overhaul with resizable panels and drag-and-drop.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Inline Errors</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Enhanced Roster</span>
+                        <span class="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">Hover-to-Inspect</span>
+                    </div>
+                </div>
+
+                <!-- v10.0 -->
+                <div class="relative">
+                    <div class="timeline-dot done" style="top: 6px;"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v10.0</span>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Advanced Language Tier</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        Advanced language tier with scores, roles, weighted preferences, overflow modes, balance directives, separate/together constraints, multi-round support. The tier switcher UI. Full three-tier editor experience.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">score=N</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">role="type"</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">+Want@N</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">@overflow</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">@separate</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">@together</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">balance</span>
+                    </div>
+                </div>
+
+                <!-- v10.1 -->
+                <div class="relative">
+                    <div class="timeline-dot active" style="top: 6px;"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v10.1</span>
+                        <span class="status-badge status-active">Current Release</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">GitHub Open Source + Online IDE</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        GitHub open source. Online IDE live at sites.google.com/view/grouplogic-ide. Bug report form. Multi-round support. Contribution guidelines and issue templates. Community-driven development begins.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">Open Source</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">Online IDE</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">Bug Report</span>
+                        <span class="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-1 rounded">@rounds</span>
+                    </div>
+                </div>
+
+                <!-- v11.0 -->
+                <div class="relative">
+                    <div class="timeline-dot" style="top: 6px; border-color: var(--accent-cyan);"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v11.0</span>
+                        <span class="status-badge status-coming">Planned</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Code-Driven Classroom + Room Layouts</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        Code-driven classroom layout: write your room in code, engine renders the preview with hover-to-inspect. Multi-round assignments with no repeat pairings. Enhanced roster with CSV import.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">room/table/near/far</span>
+                        <span class="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">code-driven preview</span>
+                        <span class="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">hover-to-inspect</span>
+                        <span class="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">multi-round</span>
+                        <span class="text-[10px] font-bold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">CSV import</span>
+                    </div>
+                </div>
+
+                <!-- v12.0 -->
+                <div class="relative">
+                    <div class="timeline-dot" style="top: 6px; border-color: var(--accent-purple);"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v12.0</span>
+                        <span class="status-badge status-future">Future</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">GroupLogic.py + Python Library</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        Python tier with full library API. Code-driven classroom layout: write your room in code, engine renders the preview with hover-to-inspect. Multi-round assignments. The three-tier editor is the signature UI.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-purple-400 bg-purple-400/10 px-2 py-1 rounded">GroupLogic.py</span>
+                        <span class="text-[10px] font-bold text-purple-400 bg-purple-400/10 px-2 py-1 rounded">CSV import</span>
+                        <span class="text-[10px] font-bold text-purple-400 bg-purple-400/10 px-2 py-1 rounded">custom algorithms</span>
+                        <span class="text-[10px] font-bold text-purple-400 bg-purple-400/10 px-2 py-1 rounded">room layouts</span>
+                        <span class="text-[10px] font-bold text-purple-400 bg-purple-400/10 px-2 py-1 rounded">multi-round</span>
+                    </div>
+                </div>
+
+                <!-- v5.0 Long-term -->
+                <div class="relative">
+                    <div class="timeline-dot" style="top: 6px; border-color: var(--accent-orange);"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v5.0</span>
+                        <span class="status-badge status-deprecated">Long-Term</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Collaborative Platform</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        Community contributors can build new language features, optimization algorithms, export formats, and classroom templates. Participants submit preferences privately, facilitators define global constraints, and the engine generates groupings respecting everyone's input. Built-in documentation and learning guides for all three language tiers.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded">Built-in Docs</span>
+                        <span class="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded">Private Preferences</span>
+                        <span class="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded">Plugin System</span>
+                    </div>
+                </div>
+
+                <!-- v6.0 Long-term -->
+                <div class="relative">
+                    <div class="timeline-dot" style="top: 6px; border-color: var(--accent-pink);"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v6.0</span>
+                        <span class="status-badge status-deprecated">Long-Term</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">AI-Assisted Grouping + LMS Integration</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-3">
+                        AI suggests optimal grouping strategies based on historical data. Integration with Google Classroom, Canvas, and other LMS platforms for automatic roster sync. The engine learns from past outcomes and adjusts its scoring accordingly. Smart defaults that get smarter over time.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[10px] font-bold text-pink-400 bg-pink-400/10 px-2 py-1 rounded">AI Suggestions</span>
+                        <span class="text-[10px] font-bold text-pink-400 bg-pink-400/10 px-2 py-1 rounded">LMS Integration</span>
+                        <span class="text-[10px] font-bold text-pink-400 bg-pink-400/10 px-2 py-1 rounded">Outcome Tracking</span>
+                        <span class="text-[10px] font-bold text-pink-400 bg-pink-400/10 px-2 py-1 rounded">Smart Defaults</span>
+                    </div>
+                </div>
+
+                <!-- v7.0 Long-term -->
+                <div class="relative">
+                    <div class="timeline-dot" style="top: 6px; border-color: var(--accent-amber);"></div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xl font-black text-white">v7.0</span>
+                        <span class="status-badge status-deprecated">Long-Term</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-2">Ecosystem + Mobile</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        The long-term vision: GroupLogic as an ecosystem. Mobile app for on-the-go grouping. Template marketplace where teachers share and sell grouping templates. Multi-school district support. Research partnerships with education departments. The language becomes a standard, like SQL for databases, but for people grouping.
+                    </p>
                 </div>
             </div>
         </div>
@@ -1552,127 +1471,330 @@
 
     <div class="section-divider"></div>
 
-    <!-- ============================== FEATURE STATUS ============================== -->
+    <!-- ============================== FEATURES ============================== -->
     <section class="doc-section" id="features">
         <div class="max-w-5xl mx-auto px-6">
             <div class="flex items-center gap-3 mb-6">
-                <span class="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em]">Section 06</span>
+                <span class="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">Section 06</span>
                 <span class="flex-1 h-px bg-slate-800"></span>
             </div>
-            <h2 class="text-4xl md:text-5xl font-black text-white mb-8">Feature Status</h2>
-            <p class="text-slate-400 text-lg max-w-3xl mb-8 leading-relaxed">
-                Every feature tracked with a live status. To update: edit this HTML file directly&mdash;change the <code class="text-slate-300 bg-slate-800 px-1 rounded">status-badge</code> class on any feature row.
-            </p>
+            <h2 class="text-4xl md:text-5xl font-black text-white mb-4">Feature Status</h2>
+            <p class="text-slate-500 text-sm mb-16">Every feature tracked with a live status. <span class="status-badge status-done" style="font-size:9px;">Shipped</span> <span class="status-badge status-active" style="font-size:9px;">In Progress</span> <span class="status-badge status-planned" style="font-size:9px;">Planned</span> <span class="status-badge status-coming" style="font-size:9px;">Coming Soon</span> <span class="status-badge status-future" style="font-size:9px;">Future</span> <span class="status-badge status-deprecated" style="font-size:9px;">Deprecated</span> <span class="status-badge status-cancelled" style="font-size:9px;">Cancelled</span></p>
 
-            <!-- Legend -->
-            <div class="flex flex-wrap gap-3 mb-10">
-                <div class="flex items-center gap-2"><span class="status-badge status-done">Shipped</span></div>
-                <div class="flex items-center gap-2"><span class="status-badge status-active">In Progress</span></div>
-                <div class="flex items-center gap-2"><span class="status-badge status-planned">Planned</span></div>
-                <div class="flex items-center gap-2"><span class="status-badge status-coming">Coming Soon</span></div>
-                <div class="flex items-center gap-2"><span class="status-badge status-future">Future</span></div>
-                <div class="flex items-center gap-2"><span class="status-badge status-deprecated">Deprecated</span></div>
-                <div class="flex items-center gap-2"><span class="status-badge status-cancelled">Cancelled</span></div>
+            <!-- Core Engine -->
+            <div class="mb-16">
+                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                    Core Engine
+                </h3>
+                <div class="feature-card">
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Monte Carlo Stochastic Search (2,500 iterations)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Hill Climbing Refinement (20 rounds)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Weighted scoring function (200:1 avoid:want ratio)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Overflow modes (absorb, even, newgroup, small)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Score-band proximity scoring</div>
+                        </div>
+                        <span class="status-badge status-active">In Progress</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Role coverage constraint solver</div>
+                        </div>
+                        <span class="status-badge status-active">In Progress</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Multi-round assignment (no repeat pairings)</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Proximity-aware room constraint solver</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">AI-assisted grouping strategy suggestions</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Feature List -->
-            <div class="space-y-8">
-                <!-- Core Engine -->
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden">
-                    <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-700/50">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Core Engine</h3>
+            <!-- Language -->
+            <div class="mb-16">
+                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+                    Language
+                </h3>
+                <div class="feature-card">
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Simple tier: +want / -avoid syntax</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                    <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Monte Carlo Stochastic Search (2,500 iterations)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Hill Climbing Refinement (20 rounds)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Weighted scoring function (200:1 avoid:want ratio)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Score-band proximity scoring</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Role coverage constraint solver</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multi-round assignment (no repeat pairings)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Overflow modes: absorb, even, newgroup, small</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Custom @rule blocks with conditions and actions</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Hard guarantee post-processing (no empty groups)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Proximity-aware room constraint solver</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">AI-assisted grouping strategy suggestions</span></div><span class="status-badge status-future">Future</span></div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Comments (// prefix)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                </div>
-                <!-- Language -->
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden">
-                    <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-700/50">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Language</h3>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Advanced tier: score=, role=, +Want@N</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                    <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Simple tier: +want / -avoid syntax</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Comments (// prefix)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: score=, role=, +Want@N</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: separate(), together(), balance</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Advanced tier: room/table/near/far syntax</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">GroupLogic.py: Python + GL library</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">GroupLogic.py: CSV/JSON import, custom export</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Tier switcher UI (Simple / Advanced / Python)</span></div><span class="status-badge status-done">Shipped</span></div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Advanced tier: separate(), together(), balance</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                </div>
-                <!-- Editor & UI -->
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden">
-                    <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-700/50">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Editor & UI</h3>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Advanced tier: overflow modes (absorb, even, newgroup, small)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                    <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Live syntax highlighting</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Conflict glow (pulsing red border)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Hover-to-inspect relationship visualization</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Better highlighting, inline errors, advanced search</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">UI overhaul (resizable panels, drag-and-drop)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Chip hover highlighting with data-name attribute</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multi-classroom tab management with rename</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">.gls/.gla/.glu file export and import</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Version history with undo</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Code-driven classroom layout with hover preview</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Free-form groups (not rule-based)</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Built-in documentation & learning guides</span></div><span class="status-badge status-done">Shipped</span></div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Advanced tier: room/table/near/far syntax</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
                     </div>
-                </div>
-                <!-- Save & Persistence -->
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden">
-                    <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-700/50">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Save & Persistence</h3>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">GroupLogic.py: Python + GL library</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
                     </div>
-                    <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Copy results to clipboard</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Cloud save/load with password (no login)</span></div><span class="status-badge status-active">In Progress</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Download/upload .gl files (local backup)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multiple export formats (.json, .gls, .gla, .glu)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Save student rosters separately</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Export as CSV, JSON, PDF</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Connect codes to cross-reference saved data</span></div><span class="status-badge status-planned">Planned</span></div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">GroupLogic.py: CSV/JSON import, custom export</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Tier switcher UI (Simple / Advanced / Python)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
                 </div>
-                <!-- Class Management -->
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden">
-                    <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-700/50">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Class Management</h3>
+            </div>
+
+            <!-- Editor & UI -->
+            <div class="mb-16">
+                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-purple-400 rounded-full"></span>
+                    Editor & UI
+                </h3>
+                <div class="feature-card">
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Live syntax highlighting</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                    <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Single class support</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Multi-classroom tab management</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Drag-and-drop roster with rename and delete</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Generate unique class codes</span></div><span class="status-badge status-planned">Planned</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Manage 8+ classes per teacher</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Enhanced roster (add/remove without editing code)</span></div><span class="status-badge status-done">Shipped</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Import student lists from CSV</span></div><span class="status-badge status-planned">Planned</span></div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Conflict glow (pulsing red border)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Hover-to-inspect relationship visualization</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Better highlighting, inline errors, advanced search</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">UI overhaul (resizable panels, drag-and-drop)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Highlighting tool (hover-to-inspect) fix</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Code-driven classroom layout with hover preview</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Free-form groups (not rule-based)</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Built-in documentation & learning guides</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
                     </div>
                 </div>
-                <!-- Open Source & Community -->
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden">
-                    <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-700/50">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Open Source & Community</h3>
+            </div>
+
+            <!-- Save & Persistence -->
+            <div class="mb-16">
+                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-cyan-400 rounded-full"></span>
+                    Save & Persistence
+                </h3>
+                <div class="feature-card">
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Copy results to clipboard</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
                     </div>
-                    <div class="px-4">
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">GitHub public repository</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Contribution guidelines & issue templates</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Plugin system for community extensions</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">Template marketplace (share/sell grouping templates)</span></div><span class="status-badge status-future">Future</span></div>
-                        <div class="feature-row"><div><span class="text-sm text-white font-medium">LMS integration (Google Classroom, Canvas)</span></div><span class="status-badge status-future">Future</span></div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Cloud save/load with password (no login)</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Download/upload .gl files (local backup)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Save student rosters separately</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Export as CSV, JSON, PDF</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Connect codes to cross-reference saved data</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Management -->
+            <div class="mb-16">
+                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-amber-400 rounded-full"></span>
+                    Class Management
+                </h3>
+                <div class="feature-card">
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Single class support</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Multi-classroom tabs (manage multiple classes)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Enhanced roster (add/remove without editing code)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Import student lists from CSV</div>
+                        </div>
+                        <span class="status-badge status-planned">Planned</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Open Source & Community -->
+            <div>
+                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                    Open Source & Community
+                </h3>
+                <div class="feature-card">
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">GitHub public repository</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Contribution guidelines & issue templates</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Bug report form (/bug-report)</div>
+                        </div>
+                        <span class="status-badge status-done">Shipped</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Plugin system for community extensions</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">Template marketplace (share/sell grouping templates)</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
+                    </div>
+                    <div class="feature-row">
+                        <div>
+                            <div class="text-sm font-medium text-white">LMS integration (Google Classroom, Canvas)</div>
+                        </div>
+                        <span class="status-badge status-future">Future</span>
                     </div>
                 </div>
             </div>
@@ -1685,81 +1807,82 @@
     <section class="doc-section" id="vision">
         <div class="max-w-5xl mx-auto px-6">
             <div class="flex items-center gap-3 mb-6">
-                <span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Section 07</span>
+                <span class="text-[10px] font-black text-red-400 uppercase tracking-[0.2em]">Section 07</span>
                 <span class="flex-1 h-px bg-slate-800"></span>
             </div>
             <h2 class="text-4xl md:text-5xl font-black text-white mb-8">Vision</h2>
-            <p class="text-slate-400 text-lg max-w-3xl mb-20 leading-relaxed">
-                GroupLogic IDE is not just a group randomizer with extra steps. It's the beginning of a new category: <em class="text-white font-semibold">constraint-aware social orchestration tools</em>. The vision is a world where group assignment is never random, always intentional, and fully programmable&mdash;from a 5th grade classroom to a Fortune 500 boardroom.
+            <p class="text-slate-400 text-lg max-w-3xl mb-16 leading-relaxed">
+                GroupLogic IDE is not just a group randomizer with extra steps. It's the beginning of a new category: <em class="text-white font-semibold">constraint-aware social orchestration tools</em>. The vision is a world where group assignment is never random, always intentional, and fully programmable — from a 5th grade classroom to a Fortune 500 boardroom.
             </p>
 
-            <div class="grid md:grid-cols-2 gap-12 mb-20">
-                <div>
-                    <h3 class="text-xl font-bold text-white mb-6">The Problem with "Random"</h3>
-                    <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                        When a teacher says "I'll just assign groups randomly," what they're really saying is "I don't have the information or the tools to make a better decision." That's not their fault&mdash;the tools don't exist. Random assignment persists not because it's good, but because the alternative (manual assignment by a human) is worse: it's slower, more biased, and doesn't scale.
+            <div class="space-y-12">
+                <!-- The Problem with Random -->
+                <div class="feature-card">
+                    <h3 class="text-xl font-bold text-white mb-4">The Problem with "Random"</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        When a teacher says "I'll just assign groups randomly," what they're really saying is "I don't have the information or the tools to make a better decision." That's not their fault — the tools don't exist. Random assignment persists not because it's good, but because the alternative (manual assignment by a human) is worse: it's slower, more biased, and doesn't scale.
                     </p>
-                    <p class="text-sm text-slate-400 mb-5 leading-relaxed">
+                    <p class="text-slate-400 leading-relaxed">
                         GroupLogic IDE fills the gap between these two extremes. It gives the facilitator a language to express what they know about the social dynamics, test scores, skill levels, and the engine respects those constraints automatically. The result is group assignment that is simultaneously faster than manual, more informed than random, and completely auditable by anyone who reads the rules.
                     </p>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        The deeper insight is that group assignment is a <em class="text-slate-300">constraint satisfaction problem</em>, not a sorting problem. Once you frame it that way, a whole field of computer science opens up: constraint programming, SAT solvers, integer linear programming, Monte Carlo methods. GroupLogic IDE starts with the simplest viable approach and evolves toward more powerful solvers as the language grows.
-                    </p>
+                    <div class="mt-6 bg-slate-900/50 border border-slate-700/50 rounded-xl p-5">
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            The deeper insight is that group assignment is a <span class="text-white font-semibold">constraint satisfaction problem</span>, not a sorting problem. Once you frame it that way, a whole field of computer science opens up: constraint programming, SAT solvers, integer linear programming, Monte Carlo methods. GroupLogic IDE starts with the simplest viable approach and evolves toward more powerful solvers as the language grows.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-xl font-bold text-white mb-6">The Three-Tier Philosophy</h3>
-                    <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                        The language is the product. The three-tier design (Simple, Advanced, GroupLogic.py) borrows from successful systems like Scratch to Python to C: each tier is a superset of the one below it. Every Simple program is also a valid Advanced program. Every Advanced concept has a Python API equivalent.
-                    </p>
-                    <p class="text-sm text-slate-400 mb-5 leading-relaxed">
-                        Every new feature must pass the "glance test"&mdash;can someone who's never seen the language understand roughly what this rule does by looking at it for 3 seconds? If not, the syntax needs to be redesigned. This is why Simple mode uses prefix operators (+/-) instead of keywords, and why Advanced mode adds keywords only when the prefix syntax cannot express the concept clearly.
-                    </p>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        GroupLogic.py is the escape hatch: when the DSL can't express what you need, drop into Python. The library provides hand-holding&mdash;you're never writing raw constraint solvers, you're calling <code class="text-slate-300 bg-slate-800 px-1 rounded">gl.Classroom()</code> and <code class="text-slate-300 bg-slate-800 px-1 rounded">c.generate()</code>. Python's familiarity means any teacher who's done a coding bootcamp can use it.
-                    </p>
-                </div>
-            </div>
 
-            <!-- Application Domains -->
-            <h3 class="text-2xl font-bold text-white mb-10">Beyond the Classroom</h3>
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
-                    <h4 class="text-sm font-bold text-blue-400 mb-3">Corporate Teams</h4>
-                    <p class="text-xs text-slate-400">Cross-functional project teams where certain roles must be represented and certain personality combinations are known to clash.</p>
+                <!-- Three-Tier Philosophy -->
+                <div class="feature-card">
+                    <h3 class="text-xl font-bold text-white mb-4">The Three-Tier Philosophy</h3>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        The tier system isn't just about adding features — it's about matching complexity to the user's needs. A first-year teacher who just wants to avoid putting ex-friends in the same group shouldn't need to learn about score bands and role balancing. But a veteran teacher who's been manually grouping by test scores for 15 years shouldn't be limited to simple preferences either.
+                    </p>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="bg-green-500/10 border border-green-500/20 rounded-xl p-5">
+                            <div class="text-sm font-bold text-green-400 mb-2">Simple</div>
+                            <p class="text-slate-500 text-sm">For the 80% case: basic social constraints, fast setup, instant results.</p>
+                        </div>
+                        <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-5">
+                            <div class="text-sm font-bold text-blue-400 mb-2">Advanced</div>
+                            <p class="text-slate-500 text-sm">For the teacher who has data: test scores, roles, weighted preferences, multi-person constraints.</p>
+                        </div>
+                        <div class="bg-purple-500/10 border border-purple-500/20 rounded-xl p-5">
+                            <div class="text-sm font-bold text-purple-400 mb-2">GroupLogic.py</div>
+                            <p class="text-slate-500 text-sm">For the power user: custom algorithms, data integration, multi-round scheduling.</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm mt-6 leading-relaxed">
+                        The key design principle is that all three tiers produce the same output: a grouping with a score. The tiers differ only in what you can <em>express</em>, not in the quality of the result. A well-specified Simple program will produce the same quality of grouping as an equivalent Advanced program — it just can't express as many kinds of constraints.
+                    </p>
                 </div>
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
-                    <h4 class="text-sm font-bold text-purple-400 mb-3">Event Seating</h4>
-                    <p class="text-xs text-slate-400">Wedding reception seating where family dynamics, ex-relationships, and social preferences determine optimal table arrangement.</p>
-                </div>
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
-                    <h4 class="text-sm font-bold text-green-400 mb-3">Tournament Brackets</h4>
-                    <p class="text-xs text-slate-400">Esports or sports tournaments where same-org players should be in different brackets and rival matchups are scheduled for later.</p>
-                </div>
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
-                    <h4 class="text-sm font-bold text-amber-400 mb-3">Clinical Trials</h4>
-                    <p class="text-xs text-slate-400">Patient group assignment where demographic balance and comorbidity separation are ethical requirements.</p>
-                </div>
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
-                    <h4 class="text-sm font-bold text-cyan-400 mb-3">Dorm Room Assignment</h4>
-                    <p class="text-xs text-slate-400">University housing where roommate compatibility surveys translate directly into +want / -avoid rules.</p>
-                </div>
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
-                    <h4 class="text-sm font-bold text-pink-400 mb-3">Escape Room Groups</h4>
-                    <p class="text-xs text-slate-400">Group strangers into teams while keeping friend groups together and separating those who want to compete.</p>
-                </div>
-            </div>
 
-            <!-- Final thought -->
-            <div class="gradient-border max-w-3xl mx-auto">
-                <div class="gradient-border-inner text-center">
-                    <h3 class="text-xl font-bold text-white mb-6">The Core Belief</h3>
-                    <p class="text-slate-400 leading-relaxed">
-                        Every group assignment contains information&mdash;test scores, social preferences, skill levels, conflicts, physical room layouts. The question is whether you use it or throw it away. GroupLogic IDE is built on the conviction that using information is always better than ignoring it, and that a layered language&mdash;simple enough for a 5-minute start, powerful enough for a Python script&mdash;can make constraint-aware grouping accessible to everyone. And when it's open source, it gets better for everyone, by everyone.
+                <!-- Beyond the Classroom -->
+                <div class="feature-card">
+                    <h3 class="text-xl font-bold text-white mb-4">Beyond the Classroom</h3>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        While GroupLogic IDE is designed with teachers in mind, the core problem — optimal group assignment under constraints — is universal. Hackathon organizers need to form balanced teams. Project managers need to staff cross-functional squads. Event planners need to seat dinner guests without drama. Conference organizers need to create breakout discussion groups. In every case, the same engine applies: express constraints, optimize, output groups.
+                    </p>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        The language might evolve domain-specific vocabulary — <code class="text-cyan-400">seat_near</code> for events, <code class="text-cyan-400">skill_balance</code> for hackathons, <code class="text-cyan-400">department_separate</code> for corporate — but the underlying optimization is the same. GroupLogic IDE's long-term vision is to be the standard tool for <em>any</em> group assignment problem, with the language growing to cover each domain naturally.
+                    </p>
+                </div>
+
+                <!-- Open Source Bet -->
+                <div class="feature-card">
+                    <h3 class="text-xl font-bold text-white mb-4">The Open Source Bet</h3>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        GroupLogic IDE's most ambitious feature — the one that no proprietary tool can replicate — is an open language and engine. When the language is open, teachers can share rule templates. Researchers can publish new optimization strategies. Developers can build integrations with any platform. The community becomes the product's immune system: bugs get found faster, edge cases get covered, and the language evolves based on real classroom needs rather than a product team's assumptions.
+                    </p>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        The project is now open source on <a href="https://github.com/PandaGamesCode/GroupLogic-IDE/" class="text-blue-400 hover:text-blue-300 underline" target="_blank">GitHub</a>. The three-tier language design makes contribution accessible: you don't need to understand the optimization engine to add a new Advanced syntax feature, and you don't need to understand the DSL parser to add a new Python library function. The architecture is designed for contribution. Found a bug? Report it at <a href="https://sites.google.com/view/grouplogic-ide/bug-report" class="text-blue-400 hover:text-blue-300 underline" target="_blank">/bug-report</a>.
                     </p>
                 </div>
             </div>
         </div>
     </section>
+
+    <div class="section-divider"></div>
 
     <!-- ============================== BUG REPORT ============================== -->
     <section class="doc-section" id="bug-report">
@@ -1770,110 +1893,75 @@
             </div>
             <h2 class="text-4xl md:text-5xl font-black text-white mb-8">Bug Report</h2>
             <p class="text-slate-400 text-lg max-w-3xl mb-12 leading-relaxed">
-                Found a bug? Help us improve GroupLogic IDE by reporting it. We use a Google Form to collect bug reports so we can track and prioritize fixes.
+                Found a bug? Have a feature request? Something not working as expected? We want to hear about it.
             </p>
 
-            <div class="feature-card max-w-2xl mx-auto text-center">
-                <div class="text-4xl mb-6">&#x1F41B;</div>
-                <h3 class="text-xl font-bold text-white mb-4">Report a Bug</h3>
-                <p class="text-sm text-slate-400 mb-6 leading-relaxed">
-                    Visit <a href="https://sites.google.com/view/grouplogic-ide" class="text-blue-400 hover:text-blue-300 underline">sites.google.com/view/grouplogic-ide</a>/bug-report to fill out our bug report form. The form loads a Google Form where you can describe the issue, steps to reproduce, and your browser environment.
-                </p>
-                <a href="https://docs.google.com/forms/d/e/1FAIpQLSdKglJljVp6cpDZEDtRTAai6rahEy36L-XXA1__bV7EqT6T3Q/viewform?usp=header" target="_blank" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-red-600/20">
-                    <span>&#x1F4E4;</span> Open Bug Report Form
-                </a>
-                <p class="text-xs text-slate-500 mt-6">
-                    Direct link: <a href="https://docs.google.com/forms/d/e/1FAIpQLSdKglJljVp6cpDZEDtRTAai6rahEy36L-XXA1__bV7EqT6T3Q/viewform?usp=header" target="_blank" class="text-slate-400 hover:text-blue-400 underline break-all">https://docs.google.com/forms/d/e/1FAIpQLSdKglJljVp6cpDZEDtRTAai6rahEy36L-XXA1__bV7EqT6T3Q/viewform</a>
-                </p>
+            <div class="gradient-border max-w-2xl mx-auto">
+                <div class="gradient-border-inner text-center">
+                    <div class="text-4xl mb-4">🐛</div>
+                    <h3 class="text-xl font-bold text-white mb-3">Report a Bug</h3>
+                    <p class="text-slate-400 text-sm mb-8 max-w-md mx-auto">
+                        Use our Google Form to submit bug reports and feature requests. All submissions are reviewed and help us improve GroupLogic IDE.
+                    </p>
+                    <a href="https://sites.google.com/view/grouplogic-ide/bug-report" target="_blank" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-red-600/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+                        Report a Bug
+                    </a>
+                    <div class="mt-6 text-slate-600 text-xs">
+                        You can also open an issue on <a href="https://github.com/PandaGamesCode/GroupLogic-IDE/issues" target="_blank" class="text-slate-500 hover:text-slate-400 underline">GitHub Issues</a>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <div class="section-divider"></div>
-
-    <!-- Footer -->
-    <footer class="border-t border-slate-800 py-16 mt-20">
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div class="flex items-center gap-3">
-                    <span class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg text-sm font-black">G</span>
-                    <span class="font-bold text-sm text-white">GroupLogic IDE</span>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">v10.1</span>
-                </div>
-                <div class="flex flex-wrap items-center justify-center gap-4">
-                    <a href="#top" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Top</a>
-                    <a href="#why" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Why</a>
-                    <a href="#how-it-works" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Engine</a>
-                    <a href="#language" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Language</a>
-                    <a href="#classroom" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Classroom</a>
-                    <a href="#roadmap" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Roadmap</a>
-                    <a href="#features" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Features</a>
-                    <a href="#vision" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Vision</a>
-                    <a href="#bug-report" class="text-xs text-slate-500 hover:text-white transition-colors font-medium">Bug Report</a>
-                </div>
-            </div>
-            <div class="text-center mt-10">
-                <p class="text-[11px] text-slate-600">GroupLogic IDE Documentation &mdash; Not really random, just smarter. This HTML file IS the README.</p>
-            </div>
+    <!-- ============================== FOOTER ============================== -->
+    <footer class="border-t border-slate-800/50 py-12">
+        <div class="max-w-5xl mx-auto px-6 text-center">
+            <p class="text-slate-600 text-sm">
+                GroupLogic IDE — Documentation & Roadmap · Open Source on <a href="https://github.com/PandaGamesCode/GroupLogic-IDE/" target="_blank" class="text-slate-500 hover:text-slate-400 underline">GitHub</a>
+            </p>
         </div>
     </footer>
 
+    <!-- ============================== SCRIPTS ============================== -->
     <script>
-        // ============================================
-        // GITHUB CARD: Shows when SHOW_GITHUB = true
-        // ============================================
-        window.addEventListener('DOMContentLoaded', function() {
-            if (typeof SHOW_GITHUB !== 'undefined' && SHOW_GITHUB) {
-                document.getElementById('github-card-container').style.display = 'block';
-                document.getElementById('github-link').href = GITHUB_URL || '#';
-            }
-        });
-
         // Tier switcher
-        function showTier(tier) {
+        function switchTier(tier) {
             document.querySelectorAll('.tier-panel').forEach(p => p.classList.remove('visible'));
             document.querySelectorAll('.tier-btn').forEach(b => {
                 b.classList.remove('active-simple', 'active-advanced', 'active-python');
             });
             document.getElementById('tier-' + tier).classList.add('visible');
-            document.getElementById('btn-' + tier).classList.add('active-' + tier);
+            const btn = document.querySelector('[data-tier="' + tier + '"]');
+            btn.classList.add('active-' + tier);
         }
 
-        // Classroom seat hover
-        function showSeatInfo(id) {
-            // Highlight the hovered seat
-            const el = event.currentTarget;
-            el.style.borderColor = '#3b82f6';
-            el.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.4)';
-        }
-        function hideSeatInfo() {
-            const el = event.currentTarget;
-            el.style.borderColor = '#334155';
-            el.style.boxShadow = 'none';
+        // GitHub card
+        if (typeof SHOW_GITHUB !== 'undefined' && SHOW_GITHUB) {
+            const container = document.getElementById('github-card-container');
+            const link = document.getElementById('github-link');
+            if (container && link) {
+                container.style.display = 'block';
+                link.href = GITHUB_URL || '#';
+            }
         }
 
-        // Active nav link
-        const sections = document.querySelectorAll('.doc-section');
+        // Nav active state on scroll
+        const sections = document.querySelectorAll('section[id]');
         const navLinks = document.querySelectorAll('.nav-link');
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    navLinks.forEach(link => link.classList.remove('active'));
-                    const activeLink = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
-                    if (activeLink) activeLink.classList.add('active');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 120;
+                if (window.scrollY >= sectionTop) {
+                    current = section.getAttribute('id');
                 }
             });
-        }, { threshold: 0.2 });
-        sections.forEach(section => observer.observe(section));
-
-        // Smooth scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    const top = target.getBoundingClientRect().top + window.pageYOffset - 80;
-                    window.scrollTo({ top, behavior: 'smooth' });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
                 }
             });
         });
