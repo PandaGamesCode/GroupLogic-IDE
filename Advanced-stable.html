@@ -574,9 +574,10 @@
                 </div>
                 <div class="flex gap-2 mt-3 pt-3 border-t border-slate-800" id="overflowBar" style="position:relative; min-height:28px;">
                     <span class="text-[9px] text-slate-600 font-bold uppercase self-center mr-1">Overflow:</span>
-                    <button onclick="setOverflowMode('even')" id="btn-overflow-even" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
-                    <button onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
-                    <button onclick="setOverflowMode('small')" id="btn-overflow-small" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Small Last</button>
+                    <button onclick="setOverflowMode('absorb')" id="btn-overflow-absorb" title="Absorb extra students into existing groups — no solo groups (7/2 → [3,2,2])" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Absorb</button>
+                    <button onclick="setOverflowMode('even')" id="btn-overflow-even" title="Distribute overflow evenly across groups (7/4 → [4,3])" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Even Out</button>
+                    <button onclick="setOverflowMode('newgroup')" id="btn-overflow-newgroup" title="Put overflow students in a new smaller group (7/2 → [2,2,2,1])" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">New Group</button>
+                    <button onclick="setOverflowMode('small')" id="btn-overflow-small" title="Last group is intentionally smaller (same as New Group)" class="text-[9px] font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg hover:bg-slate-700 transition-all border border-slate-700">Small Last</button>
                 </div>
             </div>
             <div id="ref-advanced" class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800" style="display:none;">
@@ -598,7 +599,7 @@
                     <div class="w-full flex flex-wrap gap-x-5 gap-y-0.5 mt-1 pt-2 border-t border-slate-800">
                         <div><span class="text-purple-300 font-bold">@group_size</span> <span class="text-slate-600">= 4</span></div>
                         <div><span class="text-purple-300 font-bold">@balance</span> <span class="text-slate-600">= gender,scores</span></div>
-                        <div><span class="text-purple-300 font-bold">@overflow</span> <span class="text-slate-600">= even|newgroup|small</span></div>
+                        <div><span class="text-purple-300 font-bold">@overflow</span> <span class="text-slate-600">= absorb|even|newgroup|small</span></div>
                         <div><span class="text-purple-300 font-bold">@group_name</span> <span class="text-slate-600">= "Lab %d"</span></div>
                         <div><span class="text-purple-300 font-bold">@name_dynamic</span> <span class="text-slate-600">= true</span></div>
                         <div><span class="text-purple-300 font-bold">@iterations</span> <span class="text-slate-600">= 5000</span></div>
@@ -756,7 +757,7 @@ let currentLang = 'simple';
 let directives = {};
 let customRules = [];
 let ruleConflicts = [];
-let overflowMode = 'even';
+let overflowMode = 'absorb';
 let autoExcludedRoles = []; // roles auto-excluded by overflow (was autoExcludedTeachers)
 let manualRosterOrder = [];
 let rosterDragSrcIdx = null;
@@ -1560,7 +1561,7 @@ Overflow: auto (parity-based), always (always grouped), never (observer only)
 === DIRECTIVES (@key = value) ===
 @group_size = 4 — target students per group
 @balance = gender,scores,roles,age — balance criteria (comma-separated)
-@overflow = even|newgroup|small — how to handle extra students
+@overflow = absorb|even|newgroup|small — how to handle extra students
   even: distribute across groups (some slightly larger)
   newgroup: create a new smaller group
   small: last group is intentionally smaller
@@ -1785,6 +1786,9 @@ function renderSyntax() {
                     valHtml = dm[5].replace(/(mixed|similar|random)/g, '<span class="t-strategy">$1</span>')
                                     .replace(/(score|gender)/g, '<span class="t-round-key">$1</span>')
                                     .replace(/(&quot;[^&]*&quot;)/g, '<span class="t-round-name">$1</span>');
+                } else if (dm[1] === '@overflow') {
+                    // Highlight overflow mode values
+                    valHtml = dm[5].replace(/(absorb|fill|even|newgroup|new|small|distributed|dist)/g, '<span class="t-strategy">$1</span>');
                 } else {
                     valHtml = '<span class="t-val">' + dm[5] + '</span>';
                 }
@@ -2360,11 +2364,11 @@ function applySeparateConstraint(trial, separateList, groupSizes, perGroup) {
 }
 
 // Shared Hill Climbing: Phase 1 (conflict resolution) + Phase 2 (beneficial swaps) + Phase 3 (rebalance)
-function hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, rounds) {
+function hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, rounds, targetSizes) {
     if (!bestTrial) return bestTrial;
     let currentViolations = minViolations;
     let currentScore = topScore;
-    const perGroup = parseInt(document.getElementById('sizeInp').value) || 4;
+    const perGroup = parseInt(sizeInp.value) || 4;
 
     for (let r = 0; r < rounds; r++) {
         let improved = false;
@@ -2401,7 +2405,7 @@ function hillClimb(bestTrial, minViolations, topScore, balance, separateList, ba
                         for (let tgIdx = 0; tgIdx < bestTrial.length && !improved; tgIdx++) {
                             if (tgIdx === gIdx) continue;
                             if (bestTrial[gIdx].length <= 1) continue; // don't empty source
-                            const maxTarget = (typeof groupSizes !== 'undefined' && groupSizes[tgIdx]) ? groupSizes[tgIdx] + 1 : perGroup + 1;
+                            const maxTarget = (targetSizes && targetSizes[tgIdx]) ? targetSizes[tgIdx] + 1 : perGroup + 1;
                             if (bestTrial[tgIdx].length >= maxTarget) continue; // don't overfill
                             const next = bestTrial.map(g => [...g]);
                             next[tgIdx].push(next[gIdx].splice(sIdx, 1)[0]);
@@ -2448,17 +2452,18 @@ function hillClimb(bestTrial, minViolations, topScore, balance, separateList, ba
     }
 
     // HARD GUARANTEE: enforce correct group sizes after Hill Climbing
-    bestTrial = enforceGroupSizes(bestTrial, perGroup);
+    bestTrial = enforceGroupSizes(bestTrial, perGroup, targetSizes);
 
     return bestTrial;
 }
 
-// HARD GUARANTEE: Fix empty groups, oversized groups, and verify student count
-function enforceGroupSizes(groups, perGroup) {
+// HARD GUARANTEE: Fix empty groups, oversized groups, solo groups, and verify student count
+function enforceGroupSizes(groups, perGroup, targetSizes) {
     if (!groups || groups.length === 0) return groups;
     const keys = Object.keys(students).filter(k => students[k].defined && !students[k].exclude);
     const maxGroup = directives.max_group ? parseInt(directives.max_group) : (perGroup + 1);
     const minGroup = directives.min_group ? parseInt(directives.min_group) : 1;
+    const isAbsorb = overflowMode === 'absorb' || (directives.overflow && (directives.overflow.toLowerCase() === 'absorb' || directives.overflow.toLowerCase() === 'fill'));
 
     // Step 1: Fix empty groups by moving students from largest groups
     var maxFixIter = groups.length * 3;
@@ -2499,6 +2504,34 @@ function enforceGroupSizes(groups, perGroup) {
         } else break;
     }
 
+    // Step 2b: In absorb mode, fix solo groups by merging the solo student into the smallest group
+    if (isAbsorb && groups.length > 1) {
+        maxFixIter = groups.length * 3;
+        while (maxFixIter-- > 0) {
+            var soloIdx = -1;
+            for (var fi = 0; fi < groups.length; fi++) {
+                if (groups[fi].length === 1) { soloIdx = fi; break; }
+            }
+            if (soloIdx === -1) break;
+            // Find the smallest non-solo group that can absorb
+            var bestTarget = -1, bestLen = Infinity;
+            for (var fi = 0; fi < groups.length; fi++) {
+                if (fi !== soloIdx && groups[fi].length < maxGroup && groups[fi].length < bestLen) {
+                    bestLen = groups[fi].length; bestTarget = fi;
+                }
+            }
+            if (bestTarget >= 0) {
+                // Move the solo student into the target group
+                groups[bestTarget].push(groups[soloIdx].pop());
+                // Remove the now-empty group
+                groups.splice(soloIdx, 1);
+            } else {
+                // Can't absorb — leave as is
+                break;
+            }
+        }
+    }
+
     // Step 3: Verify student count — full redistribution as last resort
     var totalInGroups = groups.reduce(function(s, g) { return s + g.length; }, 0);
     if (totalInGroups !== keys.length) {
@@ -2506,18 +2539,24 @@ function enforceGroupSizes(groups, perGroup) {
         groups.forEach(function(g) { allStudents = allStudents.concat(g); });
         var seen = {};
         allStudents = allStudents.filter(function(s) { if (seen[s]) return false; seen[s] = true; return true; });
-        if (typeof groupSizes !== 'undefined' && groupSizes && groupSizes.length > 0) {
-            groups = groupSizes.map(function() { return []; });
+        // Add any missing students that got dropped
+        keys.forEach(function(k) { if (!seen[k]) { allStudents.push(k); seen[k] = true; } });
+        if (targetSizes && targetSizes.length > 0) {
+            groups = targetSizes.map(function() { return []; });
             var rsi = 0;
             for (var rg = 0; rg < groups.length; rg++) {
-                for (var rs = 0; rs < groupSizes[rg] && rsi < allStudents.length; rs++) {
+                for (var rs = 0; rs < targetSizes[rg] && rsi < allStudents.length; rs++) {
                     groups[rg].push(allStudents[rsi++]);
                 }
+            }
+            // Any remaining students go into the last group
+            while (rsi < allStudents.length) {
+                groups[groups.length - 1].push(allStudents[rsi++]);
             }
         }
     }
 
-    // Final cleanup: remove any empty groups
+    // Final cleanup: remove any remaining empty groups (shouldn't happen but safety net)
     groups = groups.filter(function(g) { return g.length > 0; });
 
     return groups;
@@ -2633,6 +2672,7 @@ function _calculateGroupsInner() {
     if (directives.overflow) {
         const ov = directives.overflow.toLowerCase();
         if (ov === 'even') effectiveOverflow = 'even';
+        else if (ov === 'absorb' || ov === 'fill') effectiveOverflow = 'absorb';
         else if (ov === 'newgroup' || ov === 'new') effectiveOverflow = 'newgroup';
         else if (ov === 'small') effectiveOverflow = 'small';
         else if (ov === 'dist' || ov === 'distributed') effectiveOverflow = 'even'; // dist maps to even
@@ -2660,27 +2700,67 @@ function _calculateGroupsInner() {
     const hillClimbRounds = parseInt(directives.hill_climb) || 20;
 
     // Group distribution based on overflow mode
+    // KEY DEFINITION:
+    //   even    = Distribute overflow evenly across groups (some groups get +1).
+    //             E.g., 7 students / group_size=4 → [4,3].  7/2 → [2,2,2,1].
+    //             No group is more than 1 larger than any other.
+    //   absorb  = Absorb overflow into existing groups — NO solo/tiny groups.
+    //             Uses fewer groups, allows groups up to perGroup+1.
+    //             E.g., 7 students / group_size=2 → [3,2,2] (NOT [2,2,2,1]).
+    //             9 / group_size=4 → [5,4] (NOT [4,4,1]).
+    //   newgroup= Full groups first, then a new smaller group for overflow.
+    //             E.g., 7 students / group_size=2 → [2,2,2,1]. Solo allowed.
+    //   small   = Same as newgroup (legacy alias).
     const totalStudents = keys.length;
     let totalGroups, groupSizes;
 
-    if (effectiveOverflow === 'newgroup') {
+    if (effectiveOverflow === 'absorb') {
+        // ABSORB: Use floor(N/perGroup) groups, spread overflow across them.
+        // Never creates a solo or tiny group — extra students join existing groups.
+        totalGroups = Math.max(1, Math.floor(totalStudents / perGroup));
+        if (totalStudents % perGroup === 0) {
+            // Exact fit — all groups are perGroup
+            groupSizes = [];
+            for (let i = 0; i < totalGroups; i++) groupSizes.push(perGroup);
+        } else {
+            // Overflow: distribute extra students as +1 across groups
+            const overflow = totalStudents - perGroup * totalGroups;
+            groupSizes = [];
+            for (let i = 0; i < totalGroups; i++) {
+                groupSizes.push(perGroup + (i < overflow ? 1 : 0));
+            }
+            // Edge case: if totalGroups = 0 (fewer students than perGroup), make 1 group
+            if (totalGroups === 0) {
+                totalGroups = 1;
+                groupSizes = [totalStudents];
+            }
+        }
+    } else if (effectiveOverflow === 'even') {
+        // EVEN: Use ceil(N/perGroup) groups, distribute as evenly as possible.
+        // Some groups may be +1 larger than others, but no group is more than 1 larger.
+        // E.g., 7/4 → [4,3].  7/2 → [2,2,2,1] (4 groups, 7%4=3 get +1).
+        totalGroups = Math.ceil(totalStudents / perGroup);
+        const baseSize = Math.floor(totalStudents / totalGroups);
+        const remainder = totalStudents % totalGroups;
+        groupSizes = [];
+        for (let i = 0; i < totalGroups; i++) groupSizes.push(baseSize + (i < remainder ? 1 : 0));
+    } else if (effectiveOverflow === 'newgroup' || effectiveOverflow === 'small') {
+        // NEWGROUP/SMALL: Fill complete groups, put remainder in a new last group.
+        // E.g., 7/2 → [2,2,2,1].  7/4 → [4,3].  8/4 → [4,4].
         totalGroups = Math.ceil(totalStudents / perGroup);
         groupSizes = [];
         for (let i = 0; i < totalGroups - 1; i++) groupSizes.push(perGroup);
         const remaining = totalStudents - perGroup * (totalGroups - 1);
         if (remaining > 0) groupSizes.push(remaining);
         else groupSizes.pop();
-    } else if (effectiveOverflow === 'even') {
-        totalGroups = Math.ceil(totalStudents / perGroup);
-        const baseSize = Math.floor(totalStudents / totalGroups);
-        const remainder = totalStudents % totalGroups;
-        groupSizes = [];
-        for (let i = 0; i < totalGroups; i++) groupSizes.push(baseSize + (i < remainder ? 1 : 0));
     } else {
+        // Default fallback: same as newgroup
         totalGroups = Math.ceil(totalStudents / perGroup);
         groupSizes = [];
         for (let i = 0; i < totalGroups - 1; i++) groupSizes.push(perGroup);
-        groupSizes.push(totalStudents - perGroup * (totalGroups - 1));
+        const remaining = totalStudents - perGroup * (totalGroups - 1);
+        if (remaining > 0) groupSizes.push(remaining);
+        else groupSizes.pop();
     }
 
     // Apply @min_group and @max_group bounds
@@ -2786,7 +2866,7 @@ function _calculateGroupsInner() {
         }
 
         // Hill Climbing
-        bestTrial = hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, hillClimbRounds);
+        bestTrial = hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, hillClimbRounds, groupSizes);
 
         return { groups: bestTrial, violations: minViolations };
     }
@@ -2805,7 +2885,7 @@ function _calculateGroupsInner() {
         // POST-PROCESSING: Run HARD GUARANTEE on each round after partner swaps
         for (var _pri = 0; _pri < currentRounds.length; _pri++) {
             if (currentRounds[_pri].groups) {
-                currentRounds[_pri].groups = enforceGroupSizes(currentRounds[_pri].groups, perGroup);
+                currentRounds[_pri].groups = enforceGroupSizes(currentRounds[_pri].groups, perGroup, groupSizes);
             }
         }
         // Set currentGroups to first round for compatibility
@@ -2859,7 +2939,10 @@ function _calculateGroupsInner() {
         }
 
         // Hill Climbing
-        bestTrial = hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, hillClimbRounds);
+        bestTrial = hillClimb(bestTrial, minViolations, topScore, balance, separateList, bandWidth, tagBalance, hillClimbRounds, groupSizes);
+
+        // Final HARD GUARANTEE: ensure no empty groups after everything
+        bestTrial = enforceGroupSizes(bestTrial, perGroup, groupSizes);
 
         currentGroups = bestTrial;
         identifyConflicts(bestTrial);
@@ -2877,7 +2960,7 @@ function _calculateGroupsInner() {
 
 function scoreTrial(groups, balance, separateList, bandWidth, tagBalance) {
     let score = 0, violations = 0;
-    const _perGroup = parseInt(document.getElementById('sizeInp').value) || 4;
+    const _perGroup = parseInt(sizeInp.value) || 4;
     const _maxGroup = directives.max_group ? parseInt(directives.max_group) : (_perGroup + 1);
     groups.forEach(g => {
         // Penalize empty groups EXTREMELY heavily — must NEVER be selected as best trial
@@ -2980,6 +3063,7 @@ function renderGroups(groups, violations) {
                 labelBadge = '<span class="text-[8px] font-mono ml-1 opacity-50" style="color:' + labelColor + '">' + esc(s.tag) + '</span>';
             }
             return '<span class="' + chipCls + '"' + inlineStyle +
+                ' data-name="' + esc(name) + '"' +
                 ' onmouseenter="inspect(\'' + escJS(name) + '\')"' +
                 ' onmouseleave="uninspect()">' + iconSvg + esc(s.originalName) + roleBadge + labelBadge + '</span>';
         }).join(' ');
@@ -3170,7 +3254,7 @@ function switchRoundTab(idx) {
 // ===== CHIP INSPECT =====
 function inspect(activeLow) {
     document.querySelectorAll('.chip').forEach(function(el) {
-        const chipName = el.textContent.trim().toLowerCase();
+        const chipName = (el.getAttribute('data-name') || el.textContent.trim()).toLowerCase();
         if (chipName === activeLow) el.classList.add('chip-active');
         else if (students[activeLow]) {
             if (students[activeLow].wants.has(chipName) || (students[chipName] && students[chipName].wants.has(activeLow))) el.classList.add('chip-pos');
@@ -3194,11 +3278,16 @@ function addEmptyGroup() {
 function setOverflowMode(mode) {
     overflowMode = mode;
     document.querySelectorAll('[id^="btn-overflow-"]').forEach(function(b) { b.classList.remove('bg-blue-600','text-white','border-blue-500'); b.classList.add('bg-slate-800','text-slate-400','border-slate-700'); });
-    const id = mode === 'newgroup' ? 'btn-overflow-newgroup' : mode === 'distributed' ? 'btn-overflow-dist' : 'btn-overflow-' + mode;
-    const btn = document.getElementById(id);
+    const btn = document.getElementById('btn-overflow-' + mode);
     if (btn) { btn.classList.remove('bg-slate-800','text-slate-400','border-slate-700'); btn.classList.add('bg-blue-600','text-white','border-blue-500'); }
     runIDE();
 }
+
+// Set initial overflow button highlight on page load
+(function() {
+    var initBtn = document.getElementById('btn-overflow-' + overflowMode);
+    if (initBtn) { initBtn.classList.remove('bg-slate-800','text-slate-400','border-slate-700'); initBtn.classList.add('bg-blue-600','text-white','border-blue-500'); }
+})();
 
 // ===== LANGUAGE =====
 function switchLang(lang) {
@@ -4281,7 +4370,8 @@ function openDocs() {
         '<p><code>@group_size = 4</code> — target number of students per group. This replaces the "Per Group" UI control in Advanced mode.</p>' +
         '<p><code>@group_name = "Lab %d"</code> — custom group naming. <code>%d</code> = group number (1-indexed), <code>%s</code> = group size. Example: "Lab 1", "Lab 2", etc.</p>' +
         '<p><code>@name_dynamic = true</code> — name groups after their leader instead of using the pattern. Overrides @group_name for groups that have a leader.</p>' +
-        '<p><code>@overflow = even|newgroup|small</code> — how to handle extra students that don\'t fill a complete group:</p>' +
+        '<p><code>@overflow = absorb|even|newgroup|small</code> — how to handle extra students that don\'t fill a complete group:</p>' +
+        '<p>&nbsp;&nbsp;<code>absorb</code> — absorb overflow into existing groups, never creating a solo or tiny group. E.g., 7 students / group_size=2 → [3,2,2] instead of [2,2,2,1]. Great for pair work where nobody should be alone.</p>' +
         '<p>&nbsp;&nbsp;<code>even</code> (default) — distribute overflow students evenly across groups, making some groups slightly larger.</p>' +
         '<p>&nbsp;&nbsp;<code>newgroup</code> — create a new group for the remaining students, potentially making a smaller final group.</p>' +
         '<p>&nbsp;&nbsp;<code>small</code> — the last group is intentionally smaller. All other groups are exactly @group_size.</p>' +
@@ -4409,7 +4499,7 @@ function openDocs() {
         '<p><code>@arrange_by = score|gender|age</code> — initial seeding strategy</p>' +
         '<p><code>@balance = gender,scores,roles,age</code> — balance criteria (comma-separated)</p>' +
         '<p><code>@band_width = 10</code> — max score spread within a group</p>' +
-        '<p><code>@overflow = even|newgroup|small</code> — overflow distribution mode</p>' +
+        '<p><code>@overflow = absorb|even|newgroup|small</code> — overflow distribution mode</p>' +
         '<p><code>@group_name = "Lab %d"</code> — custom group naming (%d=number, %s=size)</p>' +
         '<p><code>@name_dynamic = true</code> — name groups after their leader</p>' +
         '<p><code>@separate = Name1,Name2</code> — force into different groups</p>' +
@@ -4444,7 +4534,7 @@ function openDocs() {
         '<div class="docs-section"><h4>Advanced Mode: Disabled UI Controls</h4><div class="docs-body text-[11px] text-slate-400 space-y-1">' +
         '<p>In Advanced mode, many UI controls are <b>disabled</b> (greyed out with "In code" overlay) because they are controlled by code directives instead of buttons:</p>' +
         '<p><code>Per Group</code> input → Use <code>@group_size = 4</code> in the editor</p>' +
-        '<p><code>Overflow</code> buttons → Use <code>@overflow = even|newgroup|small</code></p>' +
+        '<p><code>Overflow</code> buttons → Use <code>@overflow = absorb|even|newgroup|small</code></p>' +
         '<p><code>+ Group</code> button → Groups are auto-generated from the code. Adding empty groups manually doesn\'t make sense when the code defines group sizes.</p>' +
         '<p><code>Roster Sort</code> dropdown → In Advanced mode, roster order follows the editor code. The "Manual" drag-reorder option is disabled because you should define order via code instead. Use <code>@arrange_by</code> for sorting strategies.</p>' +
         '<p>Disabled controls show an "In code" indicator. Switch to Simple mode to use these controls directly with the UI.</p>' +
